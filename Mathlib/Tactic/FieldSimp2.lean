@@ -32,6 +32,9 @@ theorem zpow'_add (a : α) (m n : ℤ) :
     · simp +contextual [hn, zero_zpow]
   · simp [zpow', ha, zpow_add₀]
 
+theorem zpow'_of_ne_zero_right (a : α) (n : ℤ) (hn : n ≠ 0) : zpow' a n = a ^ n := by
+  simp [zpow', hn]
+
 @[simp]
 lemma zero_zpow' (n : ℤ) : zpow' (0 : α) n = 0 := by
   simp +contextual only [zpow', true_and, ite_eq_left_iff]
@@ -75,6 +78,17 @@ lemma zpow'_mul (a : α) (m n : ℤ) : zpow' a (m * n) = zpow' (zpow' a m) n := 
     simp [zpow', ha]
   simp [zpow', ha, hm, hn]
   exact zpow_mul a m n
+
+lemma zpow'_zero_eq_div (a : α) : zpow' a 0 = a / a := by
+  simp [zpow']
+  by_cases h : a = 0
+  · simp [h]
+  · simp [h]
+
+lemma zpow'_ofNat (a : α) {n : ℕ} (hn : n ≠ 0) : zpow' a n = a ^ n := by
+  rw [zpow'_of_ne_zero_right]
+  · simp
+  exact_mod_cast hn
 
 namespace List
 variable {M : Type*}
@@ -167,34 +181,23 @@ theorem mul_eq_eval₁ [Semifield M] (a₁ : ℤ × M) {a₂ : ℤ × M} {l₁ l
   congr! 1
   rw [mul_comm, mul_assoc]
 
-theorem mul_eq_eval₂ [Semifield M] {r₁ r₂ : ℤ} (hr : r₁ + r₂ = 0) (x : M) (hx : x ≠ 0)
-    {l₁ l₂ l : NF M} (h : l₁.eval * l₂.eval = l.eval) :
-    ((r₁, x) ::ᵣ l₁).eval * ((r₂, x) ::ᵣ l₂).eval = l.eval := by
-  simp only [← h, eval_cons, mul_assoc]
-  congr! 1
-  rw [mul_comm, mul_assoc, ← zpow'_add, add_comm, hr]
-  sorry
-  -- simp [hx]
+-- theorem mul_eq_eval₂ [Semifield M] {r₁ r₂ : ℤ} (hr : r₁ + r₂ = 0) (x : M)
+--     {l₁ l₂ l : NF M} (h : l₁.eval * l₂.eval = l.eval) :
+--     ((r₁, x) ::ᵣ l₁).eval * ((r₂, x) ::ᵣ l₂).eval = ((0, x) ::ᵣ l).eval := by
+--   simp only [← h, eval_cons, mul_assoc]
+--   congr! 1
+--   rw [mul_comm, mul_assoc, ← zpow'_add, add_comm, hr]
 
-theorem mul_eq_eval₂' [Semifield M] {r₁ r₂ : ℤ} (hr : r₁ + r₂ ≠ 0) (x : M)
+theorem mul_eq_eval₂ [Semifield M] (r₁ r₂ : ℤ) (x : M)
     {l₁ l₂ l : NF M} (h : l₁.eval * l₂.eval = l.eval) :
     ((r₁, x) ::ᵣ l₁).eval * ((r₂, x) ::ᵣ l₂).eval = ((r₁ + r₂, x) ::ᵣ l).eval := by
-  stop
-  simp only [← h, eval_cons]
-  obtain rfl | h := eq_or_ne x 0
-  · rw [zero_zpow _ hr]
-    obtain hr₁ | hr₂ : r₁ ≠ 0 ∨ r₂ ≠ 0 := by omega
-    · simp [zero_zpow _ hr₁]
-    · simp [zero_zpow _ hr₂]
-  simp only [zpow_add₀ h, mul_assoc]
-  congr! 1
-  simp only [← mul_assoc]
-  rw [mul_comm (x ^ r₁)]
+  simp [zpow'_add, ← h]
+  rw [mul_assoc, mul_comm (zpow' _ _), mul_assoc, mul_comm (zpow' _ _), mul_assoc]
 
 theorem mul_eq_eval₃ [Semifield M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l₁ l₂ l : NF M}
     (h : (a₁ ::ᵣ l₁).eval * l₂.eval = l.eval) :
     (a₁ ::ᵣ l₁).eval * (a₂ ::ᵣ l₂).eval = (a₂ ::ᵣ l).eval := by
-  stop
+  simp [← h]
   simp only [eval_cons, ← h, mul_assoc]
 
 theorem mul_eq_eval [Semifield M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
@@ -383,7 +386,7 @@ variable {M : Q(Type v)}
 number), build an `Expr` representing an object of type `NF M` (i.e. `List (ℤ × M)`) in the
 in the obvious way: by forgetting the natural numbers and gluing together the integers and `Expr`s.
 -/
-def toNF (l : qNF M) : Q(NF $M) :=
+def toNF (l : qNF q($M)) : Q(NF $M) :=
   let l' : List Q(ℤ × $M) := (l.map Prod.fst).map (fun (a, x) ↦ q(($a, $x)))
   let qt : List Q(ℤ × $M) → Q(List (ℤ × $M)) := List.rec q([]) (fun e _ l ↦ q($e ::ᵣ $l))
   qt l'
@@ -399,10 +402,16 @@ def evalPrettyMonomial (iM : Q(Semifield $M)) (r : ℤ) (x : Q($M)) :
     MetaM (Σ e : Q($M), Q(zpow' $x $r = $e)) := do
   match r with
   | 0 => /- If an exponent is zero then we must not have been able to prove that x is nonzero.  -/
-    return ⟨q($x / $x), q(sorry)⟩
+    return ⟨q($x / $x), q(zpow'_zero_eq_div ..)⟩
   | 1 => return ⟨x, q(zpow'_one $x)⟩
-  | .ofNat r => return ⟨q($x ^ $r), q(sorry /-zpow_natCast $x $r-/)⟩
-  | r => return ⟨q($x ^ $r), q(sorry /-rfl-/)⟩
+  | .ofNat r =>
+    have : Q(decide ($r ≠ 0) = true) := (q(Eq.refl true):)
+    have pf : Q($r ≠ 0) := q(of_decide_eq_true $this)
+    return ⟨q($x ^ $r), q(zpow'_ofNat $x $pf)⟩
+  | r =>
+    have : Q(decide ($r ≠ 0) = true) := (q(Eq.refl true):)
+    have pf : Q($r ≠ 0) := q(of_decide_eq_true $this)
+    return ⟨q($x ^ $r), q(zpow'_of_ne_zero_right _ _ $pf)⟩
 
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
 def evalPretty (iM : Q(Semifield $M)) (l : qNF M) :
@@ -415,7 +424,7 @@ def evalPretty (iM : Q(Semifield $M)) (l : qNF M) :
   | ((r, x), _) :: t =>
     let ⟨e, pf_e⟩ ← evalPrettyMonomial iM r x
     let ⟨t', pf⟩ ← evalPretty iM t
-    return ⟨q($t' * $e), (q(sorry /-congr_arg₂ HMul.hMul $pf $pf_e-/))⟩
+    return ⟨q($t' * $e), (q(congr_arg₂ HMul.hMul $pf $pf_e):)⟩
 
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), construct another such term `l`, which will have the property that in
@@ -429,10 +438,10 @@ the same `ℕ`-component `k`, then the expressions `x₁` and `x₂` are equal.
 The construction is as follows: merge the two lists, except that if pairs `(a₁, x₁)` and `(a₂, x₂)`
 appear in `l₁`, `l₂` respectively with the same `ℕ`-component `k`, then contribute a term
 `(a₁ + a₂, x₁)` to the output list with `ℕ`-component `k`. -/
-def mul : qNF M → qNF M → qNF M
+def mul : qNF q($M) → qNF q($M) → qNF q($M)
   | [], l => l
   | l, [] => l
-  | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
+  | ((a₁, x₁), k₁) :: (t₁ : qNF q($M)), ((a₂, x₂), k₂) :: (t₂ : qNF q($M)) =>
     if k₁ > k₂ then
       ((a₁, x₁), k₁) :: mul t₁ (((a₂, x₂), k₂) :: t₂)
     else if k₁ = k₂ then
@@ -454,22 +463,23 @@ def mkMulProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
   match l₁, l₂ with
   | [], l => (q(one_mul (NF.eval $(l.toNF))):)
   | l, [] => (q(mul_one (NF.eval $(l.toNF))):)
-  | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
+  | l₁@((a₁, x₁), k₁) :: (t₁ : qNF q($M)), l₂@((a₂, x₂), k₂) :: (t₂ : qNF q($M)) =>
     if k₁ > k₂ then
       let pf := mkMulProof iM t₁ (((a₂, x₂), k₂) :: t₂)
       (q(NF.mul_eq_eval₁ ($a₁, $x₁) $pf):)
     else if k₁ = k₂ then
       let pf := mkMulProof iM t₁ t₂
-      if a₁ + a₂ = 0 then
-        -- how do you quote a proof of a `ℤ` equality?
-        let h : Q($a₁ + $a₂ = 0) := (q(Eq.refl (0:ℤ)):)
-        let hx₁ : Q($x₁ ≠ 0) := q(sorry) -- use the discharger here
-        (q(NF.mul_eq_eval₂ $h $x₁ $hx₁ $pf):)
-      else
-        -- how do you quote a proof of a `ℤ` disequality?
-        let z : Q(decide ($a₁ + $a₂ ≠ 0) = true) := (q(Eq.refl true):)
-        let h : Q($a₁ + $a₂ ≠ 0) := q(of_decide_eq_true $z)
-        (q(NF.mul_eq_eval₂' $h $x₁ $pf):)
+      (q(NF.mul_eq_eval₂ $a₁ $a₂ $x₁ $pf):)
+      -- (q(NF.mul_eq_eval₂' $x₁ $pf))
+      -- if a₁ + a₂ = 0 then
+      --   -- how do you quote a proof of a `ℤ` equality?
+      --   let h : Q($a₁ + $a₂ = 0) := (q(Eq.refl (0:ℤ)):)
+      --   (q(NF.mul_eq_eval₂ $h $x₁ $pf):)
+      -- else
+      --   -- how do you quote a proof of a `ℤ` disequality?
+      --   let z : Q(decide ($a₁ + $a₂ ≠ 0) = true) := (q(Eq.refl true):)
+      --   let h : Q($a₁ + $a₂ ≠ 0) := q(of_decide_eq_true $z)
+      --   (q(NF.mul_eq_eval₂' $h $x₁ $pf):)
     else
       let pf := mkMulProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(NF.mul_eq_eval₃ ($a₂, $x₂) $pf):)
@@ -508,12 +518,12 @@ linear combination represented by `FieldSimp.qNF.div l₁ l₁`. -/
 def mkDivProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
     Q(NF.eval $(l₁.toNF) / NF.eval $(l₂.toNF) = NF.eval $((qNF.div l₁ l₂).toNF)) :=
   match l₁, l₂ with
-  | [], l => (q(NF.one_div_eq_eval $(l.toNF)):)
-  | l, [] => (q(div_one (NF.eval $(l.toNF))):)
+  | [], l => (q(sorry /-NF.one_div_eq_eval $(l.toNF)-/))
+  | l, [] => (q(sorry /-div_one (NF.eval $(l.toNF))-/))
   | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
     if k₁ > k₂ then
       let pf := mkDivProof iM t₁ (((a₂, x₂), k₂) :: t₂)
-      (q(NF.div_eq_eval₁ ($a₁, $x₁) $pf):)
+      q(sorry) --(q(NF.div_eq_eval₁ ($a₁, $x₁) $pf):)
     else if k₁ = k₂ then
       let pf := mkDivProof iM t₁ t₂
       if a₁ - a₂ = 0 then
@@ -575,7 +585,7 @@ partial def normalize (iM : Q(Semifield $M)) (x : Q($M)) :
     let ⟨l₁, pf₁⟩ ← normalize iM x₁
     let ⟨l₂, pf₂⟩ ← normalize iM x₂
     -- build the new list and proof
-    let pf := qNF.mkMulProof iM l₁ l₂
+    have pf := qNF.mkMulProof iM l₁ l₂
     pure ⟨qNF.mul l₁ l₂, (q(NF.mul_eq_eval $pf₁ $pf₂ $pf))⟩
   /- normalize a division: `x₁ / x₂` -/
   | ~q($x₁ / $x₂) =>
@@ -625,7 +635,7 @@ partial def normalize (iM : Q(Semifield $M)) (x : Q($M)) :
       let ⟨l, pf⟩ ← normalize iM y
       have ps : Q($s ≠ 0) := q(sorry)
       -- build the new list and proof
-      pure ⟨l.onExponent (HMul.hMul s), (q(NF.pow_eq_eval $s $ps $pf):)⟩
+      pure ⟨l.onExponent (HMul.hMul s), (q(sorry /-NF.pow_eq_eval $s $ps $pf-/))⟩
   /- normalize a `(1:M)` -/
   | ~q(1) => pure ⟨[], q(NF.one_eq_eval $M)⟩
   /- anything else should be treated as an atom -/
@@ -868,6 +878,7 @@ example : x / x ^ 4 = x ^ (-3:ℤ) := by conv_lhs => field_simp2
 example : x ^ 1 * x ^ 2 = x ^ 3 := by conv_lhs => field_simp2
 example : x * x = x ^ 2 := by conv_lhs => field_simp2
 example : x ^ 3 * x ^ 42 = x ^ 45 := by conv_lhs => field_simp2
+example : x * x * x⁻¹ = x := by conv_lhs => field_simp2
 
 example : x / (x + 1) + y / (y + 1)
     = (x + 1) ^ (-1:ℤ) * (y + 1) ^ (-1:ℤ) * (x * (y + 1) + (x + 1) * y) := by
