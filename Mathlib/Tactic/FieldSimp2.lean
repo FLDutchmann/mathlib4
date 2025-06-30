@@ -751,17 +751,16 @@ end
 #conv field_simp2 => x ^ (-1 : ℤ) * x ^ (-2 : ℤ)
 
 -- Cancellation: if x could be zero, we cannot cancel x * x⁻¹.
--- TODO: right now, we always cancel (which we should not)
 
-/-- info: 1 -/
+/-- info: x / x -/
 #guard_msgs in
 #conv field_simp2 => x * x⁻¹
 
-/-- info: 1 -/
+/-- info: x / x -/
 #guard_msgs in
 #conv field_simp2 => x⁻¹ * x
 
-/-- info: 1 -/
+/-- info: x / x -/
 #guard_msgs in
 #conv field_simp2 => x / x
 
@@ -774,18 +773,19 @@ end
 #conv field_simp2 => x / x ^ 4
 
 -- If x is non-zero, we do cancel.
+-- TODO: Right now, we never cancel, even when we should.
 section
 variable {hx : x ≠ 0}
 
-/-- info: 1 -/
+/-- info: x / x -/
 #guard_msgs in
 #conv field_simp2 => x * x⁻¹
 
-/-- info: 1 -/
+/-- info: x / x -/
 #guard_msgs in
 #conv field_simp2 => x⁻¹ * x
 
-/-- info: 1 -/
+/-- info: x / x -/
 #guard_msgs in
 #conv field_simp2 => x / x
 
