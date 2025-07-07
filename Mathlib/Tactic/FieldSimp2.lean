@@ -246,6 +246,11 @@ theorem div_eq_eval₃ [Semifield M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l₁ l
   stop
   simp only [eval_cons, zpow_neg, mul_inv, div_eq_mul_inv, ← h, ← mul_assoc]
 
+-- theorem div_eq_eval [Semifield M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
+--     (hx₂ : x₂ = l₂.eval) (h : l₁.eval / l₂.eval = l.eval) :
+--     x₁ / x₂ = l.eval := by
+--   rw [hx₁, hx₂, h]
+
 theorem div_eq_eval [Semifield M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
     (hx₂ : x₂ = l₂.eval) (h : l₁.eval / l₂.eval = l.eval) :
     x₁ / x₂ = l.eval := by
@@ -376,29 +381,42 @@ that the expressions `x₁` and `x₂` are the same.  It is also expected that t
 By forgetting the natural number indices, an expression representing a `Mathlib.Tactic.FieldSimp.NF`
 object can be built from a `FieldSimp.qNF` object; this construction is provided as
 `Mathlib.Tactic.FieldSimp.qNF.toNF`. -/
-abbrev qNF (M : Q(Type v)) := List ((ℤ × Q($M)) × ℕ)
+-- abbrev qNF (M : Q(Type v)) := List ((ℤ × Q($M)) × ℕ)
+
+/- An attempt to add type annotations -/
+
+inductive qNF : ∀ {v : Level}, {M : Q(Type v)} → (iM : Q(Semifield $M)) → (e : Q($M)) → Type
+| one {v} {M : Q(Type v)} (iM : Q(Semifield $M)) : qNF q($iM) q(1 : $M)
+| mul {v} {M : Q(Type v)} (iM : Q(Semifield $M)) (a : Q($M)) {b : Q($M)} (n : ℤ)
+     (t : qNF q($iM) q($b)) : qNF q($iM) q((zpow' $a $n) * $b)
 
 namespace qNF
 
-variable {M : Q(Type v)}
+-- variable {M : Q(Type v)} (iM : Q(Semifield $M)) (e : Q($M))
 
 /-- Given `l` of type `qNF M`, i.e. a list of `(ℤ × Q($M)) × ℕ`s (two `Expr`s and a natural
 number), build an `Expr` representing an object of type `NF M` (i.e. `List (ℤ × M)`) in the
 in the obvious way: by forgetting the natural numbers and gluing together the integers and `Expr`s.
 -/
-def toNF (l : qNF q($M)) : Q(NF $M) :=
-  let l' : List Q(ℤ × $M) := (l.map Prod.fst).map (fun (a, x) ↦ q(($a, $x)))
-  let qt : List Q(ℤ × $M) → Q(List (ℤ × $M)) := List.rec q([]) (fun e _ l ↦ q($e ::ᵣ $l))
-  qt l'
+partial def toNF {M : Q(Type v)} (iM : Q(Semifield $M)) {e : Q($M)} :
+  qNF q($iM) q($e) → Q(NF $M)
+| one iM => q([])
+| mul iM a n t =>
+  q(($n, $a) ::ᵣ $(t.toNF))
+  -- let l' : List Q(ℤ × $M) := (l.map Prod.fst).map (fun (a, x) ↦ q(($a, $x)))
+  -- let qt : List Q(ℤ × $M) → Q(List (ℤ × $M)) := List.rec q([]) (fun e _ l ↦ q($e ::ᵣ $l))
+  -- qt l'
 
-/-- Given `l` of type `qNF M`, i.e. a list of `(ℤ × Q($M)) × ℕ`s (two `Expr`s and a natural
-number), apply an expression representing a function with domain `ℤ` to each of the `ℤ`
-components. -/
-def onExponent (l : qNF M) (f : ℤ → ℤ) : qNF M :=
-  l.map fun ((a, x), k) ↦ ((f a, x), k)
+-- /-- Given `l` of type `qNF M`, i.e. a list of `(ℤ × Q($M)) × ℕ`s (two `Expr`s and a natural
+-- number), apply an expression representing a function with domain `ℤ` to each of the `ℤ`
+-- components. -/
+-- def onExponent {M : Q(Type v)} (iM : Q(Semifield $M)) {e : Q($M)}
+
+-- (l : qNF iM e) (f : ℤ → ℤ) : qNF iM :=
+--   l.map fun ((a, x), k) ↦ ((f a, x), k)
 
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
-def evalPrettyMonomial (iM : Q(Semifield $M)) (r : ℤ) (x : Q($M)) :
+def evalPrettyMonomial {M : Q(Type v)} (iM : Q(Semifield $M)) (r : ℤ) (x : Q($M)) :
     MetaM (Σ e : Q($M), Q(zpow' $x $r = $e)) := do
   match r with
   | 0 => /- If an exponent is zero then we must not have been able to prove that x is nonzero.  -/
@@ -414,17 +432,20 @@ def evalPrettyMonomial (iM : Q(Semifield $M)) (r : ℤ) (x : Q($M)) :
     return ⟨q($x ^ $r), q(zpow'_of_ne_zero_right _ _ $pf)⟩
 
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
-def evalPretty (iM : Q(Semifield $M)) (l : qNF M) :
-    MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
+def evalPretty {M : Q(Type v)} (iM : Q(Semifield $M)) {e : Q($M)} (l : qNF iM e) :
+    MetaM (Σ e' : Q($M), Q(NF.eval $(l.toNF) = $e')) := do
   match l with
-  | [] => return ⟨q(1), q(rfl)⟩
-  | [((r, x), _)] =>
-    let ⟨e, pf⟩ ← evalPrettyMonomial iM r x
-    return ⟨e, q(Eq.trans (one_mul _) $pf)⟩
-  | ((r, x), _) :: t =>
-    let ⟨e, pf_e⟩ ← evalPrettyMonomial iM r x
-    let ⟨t', pf⟩ ← evalPretty iM t
-    return ⟨q($t' * $e), (q(congr_arg₂ HMul.hMul $pf $pf_e):)⟩
+  | one _ => return ⟨q(1), q(rfl)⟩
+  | mul _ _ _ (one ..) => sorry
+  | mul _ _ _ _ => sorry
+  -- | [] => return ⟨q(1), q(rfl)⟩
+  -- | [((r, x), _)] =>
+  --   let ⟨e, pf⟩ ← evalPrettyMonomial iM r x
+  --   return ⟨e, q(Eq.trans (one_mul _) $pf)⟩
+  -- | ((r, x), _) :: t =>
+  --   let ⟨e, pf_e⟩ ← evalPrettyMonomial iM r x
+  --   let ⟨t', pf⟩ ← evalPretty iM t
+  --   return ⟨q($t' * $e), (q(congr_arg₂ HMul.hMul $pf $pf_e):)⟩
 
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), construct another such term `l`, which will have the property that in
@@ -484,6 +505,15 @@ def mkMulProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
       let pf := mkMulProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(NF.mul_eq_eval₃ ($a₂, $x₂) $pf):)
 
+
+def inv (l : qNF M) : qNF M := l.onExponent Neg.neg
+
+def mkInvProof (iM : Q(Semifield $M)) (l : qNF M) :
+    Q(NF.eval $(l.toNF) ⁻¹ = NF.eval ($(l.inv.toNF))) :=
+  have : Q(NF.eval $(l.toNF) = NF.eval $(l.toNF)) := q(rfl)
+  (q(NF.inv_eq_eval $this):)
+  -- sorry
+
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), construct another such term `l`, which will have the property that in
 the field `$M`, the quotient of the "multiplicative linear combinations" represented by `l₁` and
@@ -497,19 +527,19 @@ The construction is as follows: merge the first list and the negation of the sec
 that if pairs `(a₁, x₁)` and `(a₂, x₂)` appear in `l₁`, `l₂` respectively with the same
 `ℕ`-component `k`, then contribute a term `(a₁ - a₂, x₁)` to the output list with `ℕ`-component `k`.
 -/
-def div : qNF M → qNF M → qNF M
-  | [], l => l.onExponent Neg.neg
-  | l, [] => l
-  | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
-    if k₁ > k₂ then
-      ((a₁, x₁), k₁) :: div t₁ (((a₂, x₂), k₂) :: t₂)
-    else if k₁ = k₂ then
-      -- if a₁ - a₂ = 0 then
-      --   div t₁ t₂
-      -- else
-        ((a₁ - a₂, x₁), k₁) :: div t₁ t₂
-    else
-      ((-a₂, x₂), k₂) :: div (((a₁, x₁), k₁) :: t₁) t₂
+def div : qNF M → qNF M → qNF M := fun l₁ l₂ ↦ l₁.mul l₂.inv
+  -- | [], l => l.onExponent Neg.neg
+  -- | l, [] => l
+  -- | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
+  --   if k₁ > k₂ then
+  --     ((a₁, x₁), k₁) :: div t₁ (((a₂, x₂), k₂) :: t₂)
+  --   else if k₁ = k₂ then
+  --     -- if a₁ - a₂ = 0 then
+  --     --   div t₁ t₂
+  --     -- else
+  --       ((a₁ - a₂, x₁), k₁) :: div t₁ t₂
+  --   else
+  --     ((-a₂, x₂), k₂) :: div (((a₁, x₁), k₁) :: t₁) t₂
 
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), recursively construct a proof that in the field `$M`, the quotient
@@ -517,28 +547,30 @@ of the "multiplicative linear combinations" represented by `l₁` and `l₂` is 
 linear combination represented by `FieldSimp.qNF.div l₁ l₁`. -/
 def mkDivProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
     Q(NF.eval $(l₁.toNF) / NF.eval $(l₂.toNF) = NF.eval $((qNF.div l₁ l₂).toNF)) :=
-  match l₁, l₂ with
-  | [], l => (q(sorry /-NF.one_div_eq_eval $(l.toNF)-/))
-  | l, [] => (q(sorry /-div_one (NF.eval $(l.toNF))-/))
-  | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
-    if k₁ > k₂ then
-      let pf := mkDivProof iM t₁ (((a₂, x₂), k₂) :: t₂)
-      q(sorry) --(q(NF.div_eq_eval₁ ($a₁, $x₁) $pf):)
-    else if k₁ = k₂ then
-      let pf := mkDivProof iM t₁ t₂
-      if a₁ - a₂ = 0 then
-        -- how do you quote a proof of a `ℤ` equality?
-        let h : Q($a₁ - $a₂ = 0) := (q(Eq.refl (0:ℤ)):)
-        let hx₁ : Q($x₁ ≠ 0) := q(sorry) -- use the discharger here
-        (q(sorry/- NF.div_eq_eval₂ $h $x₁ $hx₁ $pf -/))
-      else
-        -- how do you quote a proof of a `ℤ` disequality?
-        let z : Q(decide ($a₁ - $a₂ ≠ 0) = true) := (q(Eq.refl true):)
-        let h : Q($a₁ - $a₂ ≠ 0) := q(of_decide_eq_true $z)
-        (q(sorry /-NF.div_eq_eval₂' $h $x₁ $pf-/))
-    else
-      let pf := mkDivProof iM (((a₁, x₁), k₁) :: t₁) t₂
-      (q(sorry/- NF.div_eq_eval₃ ($a₂, $x₂) $pf -/))
+  q(sorry)
+
+  -- match l₁, l₂ with
+  -- | [], l => (q(sorry /-NF.one_div_eq_eval $(l.toNF)-/))
+  -- | l, [] => (q(sorry /-div_one (NF.eval $(l.toNF))-/))
+  -- | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
+  --   if k₁ > k₂ then
+  --     let pf := mkDivProof iM t₁ (((a₂, x₂), k₂) :: t₂)
+  --     q(sorry) --(q(NF.div_eq_eval₁ ($a₁, $x₁) $pf):)
+  --   else if k₁ = k₂ then
+  --     let pf := mkDivProof iM t₁ t₂
+  --     if a₁ - a₂ = 0 then
+  --       -- how do you quote a proof of a `ℤ` equality?
+  --       let h : Q($a₁ - $a₂ = 0) := (q(Eq.refl (0:ℤ)):)
+  --       let hx₁ : Q($x₁ ≠ 0) := q(sorry) -- use the discharger here
+  --       (q(sorry/- NF.div_eq_eval₂ $h $x₁ $hx₁ $pf -/))
+  --     else
+  --       -- how do you quote a proof of a `ℤ` disequality?
+  --       let z : Q(decide ($a₁ - $a₂ ≠ 0) = true) := (q(Eq.refl true):)
+  --       let h : Q($a₁ - $a₂ ≠ 0) := q(of_decide_eq_true $z)
+  --       (q(sorry /-NF.div_eq_eval₂' $h $x₁ $pf-/))
+  --   else
+  --     let pf := mkDivProof iM (((a₁, x₁), k₁) :: t₁) t₂
+  --     (q(sorry/- NF.div_eq_eval₃ ($a₂, $x₂) $pf -/))
 
 -- minimum of the
 partial /- TODO figure out why! -/ def minimum : qNF M → qNF M → qNF M
@@ -593,12 +625,13 @@ partial def normalize (iM : Q(Semifield $M)) (x : Q($M)) :
     let ⟨l₂, pf₂⟩ ← normalize iM x₂
     -- build the new list and proof
     let pf := qNF.mkDivProof iM l₁ l₂
-    pure ⟨qNF.div l₁ l₂, (q(NF.div_eq_eval $pf₁ $pf₂ $pf))⟩
+    pure ⟨qNF.mul l₁ l₂, (q(NF.div_eq_eval $pf₁ $pf₂ $pf):)⟩
   /- normalize a inversion: `y⁻¹` -/
   | ~q($y⁻¹) =>
     let ⟨l, pf⟩ ← normalize iM y
+    -- have pf' := qNF.mkInvProof iM l
     -- build the new list and proof
-    pure ⟨l.onExponent Neg.neg, (q(NF.inv_eq_eval $pf):)⟩
+    pure ⟨l.inv, (q(NF.inv_eq_eval $pf):)⟩
   | ~q($a + $b) =>
     let ⟨l₁, pf₁⟩ ← normalize iM a
     let ⟨l₂, pf₂⟩ ← normalize iM b
@@ -806,13 +839,13 @@ end
 #guard_msgs in
 #conv field_simp2 => x ^1 * y * x ^2 * y ^ 3
 
-/-- info: x ^ 3 -/
+/-- info: x ^ 3 * (y / y) -/
 #guard_msgs in
 #conv field_simp2 => x ^ 1 * y * x ^2 * y⁻¹
 
 variable {y' : ℚ} (hy' : y' ≠ 0)
 
-/-- info: x ^ 3 -/
+/-- info: x ^ 3 * (y / y) -/
 #guard_msgs in
 #conv field_simp2 => x ^ 1 * y * x ^ 2 * y⁻¹
 
@@ -867,7 +900,7 @@ example : x / (y ^ (-3:ℤ) / x) = x ^ 2 * y ^ 3 := by conv_lhs => field_simp2
 example : (x / y ^ (-3:ℤ)) * x = x ^ 2 * y ^ 3 := by conv_lhs => field_simp2
 example : (x * y) / (y * x) = 1 := by conv_lhs => field_simp2
 example : (x * y) * (y * x)⁻¹ = 1 := by conv_lhs => field_simp2
-example : x ^ (0:ℤ) * y = y := by conv_lhs => field_simp2
+example : x ^ (0:ℤ) * y = y := by (conv_lhs => field_simp2)
 example : y * (y + x) ^ (0:ℤ) * y = y ^ 2 := by conv_lhs => field_simp2
 example : x * y * z = x * y * z := by conv_lhs => field_simp2
 example : x * y + x * z = x * (y + z) := by conv_lhs => field_simp2
