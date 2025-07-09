@@ -424,7 +424,11 @@ def evalPretty (iM : Q(Semifield $M)) (l : qNF M) :
   | ((r, x), _) :: t =>
     let ⟨e, pf_e⟩ ← evalPrettyMonomial iM r x
     let ⟨t', pf⟩ ← evalPretty iM t
-    return ⟨q($t' * $e), (q(congr_arg₂ HMul.hMul $pf $pf_e):)⟩
+    return ⟨q($t' * $e),
+      -- (q(congr_arg₂ HMul.hMul $pf $pf_e):)
+      q(sorry)
+
+      ⟩
 
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), construct another such term `l`, which will have the property that in
@@ -547,26 +551,77 @@ def mkDivProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
       let pf := mkDivProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(sorry/- NF.div_eq_eval₃ ($a₂, $x₂) $pf -/))
 
--- minimum of the
-partial /- TODO figure out why! -/ def minimum : qNF M → qNF M → qNF M
-| [], [] => []
-| [], ((n, e), i) :: rest | ((n, e), i) :: rest, [] =>
-  if 0 ≤ n then (minimum [] rest) else ((n, e), i) :: (minimum [] rest)
-| ((n, e), i) :: rest, ((n', e'), i') :: rest' =>
-    -- should factor into a separate definition
-    if i > i' then
-      if 0 ≤ n then minimum rest (((n', e'), i') :: rest')
-      else ((n, e), i) :: minimum rest (((n', e'), i') :: rest')
-    else if i = i' then
-      ((min n n', e), i) :: minimum rest rest'
-    else
-      if 0 ≤ n' then minimum rest' (((n, e), i) :: rest)
-      else ((n', e'), i') :: minimum rest' (((n, e), i) :: rest)
+-- -- minimum of the
+-- partial /- TODO figure out why! -/ def minimum : qNF M → qNF M → qNF M
+-- | [], [] => []
+-- | [], ((n, e), i) :: rest | ((n, e), i) :: rest, [] =>
+--   if 0 ≤ n then (minimum [] rest) else ((n, e), i) :: (minimum [] rest)
+-- | ((n, e), i) :: rest, ((n', e'), i') :: rest' =>
+--     -- should factor into a separate definition
+--     if i > i' then
+--       if 0 ≤ n then minimum rest (((n', e'), i') :: rest')
+--       else ((n, e), i) :: minimum rest (((n', e'), i') :: rest')
+--     else if i = i' then
+--       ((min n n', e), i) :: minimum rest rest'
+--     else
+--       if 0 ≤ n' then minimum rest' (((n, e), i) :: rest)
+--       else ((n', e'), i') :: minimum rest' (((n, e), i) :: rest)
 
-def negPart : qNF M → qNF M
-  | [] => []
-  | ((n, e), i) :: rest =>
-    if 0 ≤ n then negPart rest else ((n, e), i) :: negPart rest
+-- def negPart : qNF M → qNF M
+--   | [] => []
+--   | ((n, e), i) :: rest =>
+--     if 0 ≤ n then negPart rest else ((n, e), i) :: negPart rest
+
+
+
+partial def gcd (iM : Q(Semifield $M)) (l₁ l₂: qNF M) :
+  MetaM <| Σ (L l₁' l₂' : qNF M),
+    Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(l₁.toNF)) ×
+    Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) :=
+
+  /- Handle the case where atom `i` is present in the first list but not the second. -/
+  let rec absent (l₁ l₂ : qNF M) (n : ℤ) (e : Q($M)) (i : ℕ) :
+      MetaM <| Σ (L l₁' l₂' : qNF M),
+        Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(qNF.toNF (((n, e), i) :: l₁))) ×
+        Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) := do
+    let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM l₁ l₂
+    if 0 ≤ n then
+      -- Don't pull anything out
+      return ⟨L, ((n, e), i) :: l₁', l₂', q(sorry), q($pf₂)⟩
+    if true then
+      -- if we can prove nonzeroness
+      have : Q($e ≠ 0) := q(sorry) -- TODO: Use discharger here.
+      return ⟨((n, e), i) :: L, l₁', ((-n, e), i) :: l₂', q(sorry), q(sorry)⟩
+    else
+      -- if we can't prove nonzeroness
+      return ⟨L, ((n, e), i) :: l₁', l₂', q(sorry), q($pf₂)⟩
+
+  match l₁, l₂ with
+  | [], [] => pure ⟨[], [], [],
+    (q(one_mul (NF.eval $(qNF.toNF (M := M) []))):),
+    (q(one_mul (NF.eval $(qNF.toNF (M := M) []))):)⟩
+  | ((n, e), i) :: t, [] => do
+    let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← absent t [] n e i
+    return ⟨L, l₁', l₂', q($pf₁), q($pf₂)⟩
+  | [], ((n, e), i) :: t => do
+    let ⟨L, l₂', l₁', pf₂, pf₁⟩ ← absent t [] n e i
+    return ⟨L, l₁', l₂', q($pf₁), q($pf₂)⟩
+  | ((n₁, e₁), i₁) :: t₁, ((n₂, e₂), i₂) :: t₂ => do
+    if i₁ > i₂ then
+      let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← absent t₁ (((n₂, e₂), i₂) :: t₂) n₁ e₁ i₁
+      return ⟨L, l₁', l₂', q($pf₁), q($pf₂)⟩
+    else if i₁ == i₂ then
+      have : $e₁ =Q $e₂ := ⟨⟩
+      let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM t₁ t₂
+      if n₁ < n₂ then
+        return ⟨((n₁, e₁), i₁) :: L, l₁', ((n₂ - n₁, e₂), i₂) :: l₂', q(sorry), q(sorry)⟩
+      else if n₁ = n₂ then
+        return ⟨((n₁, e₁), i₁) :: L, l₁', l₂', q(sorry), q(sorry)⟩
+      else
+        return ⟨((n₂, e₂), i₂) :: L, ((n₁ - n₂, e₁), i₁) :: l₁', l₂', q(sorry), q(sorry)⟩
+    else
+      let ⟨L, l₂', l₁', pf₂, pf₁⟩ ← absent t₂ (((n₁, e₁), i₁) :: t₁) n₂ e₂ i₂
+      return ⟨L, l₁', l₂', q($pf₁), q($pf₂)⟩
 
 end qNF
 
@@ -605,25 +660,27 @@ partial def normalize (iM : Q(Semifield $M)) (x : Q($M)) :
   | ~q($y⁻¹) =>
     let ⟨l, pf⟩ ← normalize iM y
     -- build the new list and proof
-    pure ⟨l.onExponent Neg.neg, (q(NF.inv_eq_eval $pf):)⟩
+    pure ⟨l.onExponent Neg.neg,
+      -- (q(NF.inv_eq_eval $pf):)
+      q(sorry)
+
+      ⟩
   | ~q($a + $b) =>
     let ⟨l₁, pf₁⟩ ← normalize iM a
     let ⟨l₂, pf₂⟩ ← normalize iM b
-    let L : qNF M := qNF.minimum l₁ l₂
-    let l₁' := qNF.div l₁ L
-    let l₂' := qNF.div l₂ L
-    let pf₁' : Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(l₁.toNF)) :=
-      qNF.mkMulProof iM L l₁'
-    let pf₂' : Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) :=
-      qNF.mkMulProof iM L l₂'
+    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂
     let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
     let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
     let e : Q($M) := q($e₁ + $e₂)
     let ⟨sum, pf_atom⟩ ← baseCase e
     let L' := qNF.mul L sum
     let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
-      qNF.mkMulProof iM L sum
-    pure ⟨L', (q(NF.add_eq_eval $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul))⟩
+      q(sorry)
+      -- qNF.mkMulProof iM L sum
+    pure ⟨L',
+      q(sorry)
+    -- (q(NF.add_eq_eval $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul))
+    ⟩
   /- normalize an integer exponentiation: `y ^ (s : ℤ)` -/
   | ~q($y ^ ($s : ℤ)) =>
     let some s := Expr.int? s | baseCase x
@@ -658,17 +715,13 @@ def normalizePretty (iM : Q(Semifield $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q
   let ⟨x', pf'⟩ ← l.evalPretty iM
   return ⟨x', q(Eq.trans $pf $pf')⟩
 
+def qNF.expIds (l : qNF M) : List (ℤ × ℕ) := List.map (fun p ↦ (p.1.1, p.2)) l
+
 /-- Given `e₁` and `e₂`, construct a new goal which is sufficient to prove `e₁ = e₂`. -/
 def proveEq (iM : Q(Semifield $M)) (e₁ e₂ : Q($M)) : AtomM (MVarId × Q($e₁ = $e₂)) := do
   let ⟨l₁, pf₁⟩ ← normalize iM e₁
   let ⟨l₂, pf₂⟩ ← normalize iM e₂
-  let L := qNF.negPart (qNF.minimum l₁ l₂)
-  let l₁' := qNF.div l₁ L
-  let l₂' := qNF.div l₂ L
-  let pf₁' : Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(l₁.toNF)) :=
-    qNF.mkMulProof iM L l₁'
-  let pf₂' : Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) :=
-    qNF.mkMulProof iM L l₂'
+  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂
   let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty iM
   let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty iM
   let mvar ← mkFreshExprMVarQ q($e₁' = $e₂')
@@ -877,8 +930,8 @@ example : (x * y) * (y * x)⁻¹ = x / x * (y / y) := by conv_lhs => field_simp2
 example : x ^ (0:ℤ) * y = y := by conv_lhs => field_simp2
 example : y * (y + x) ^ (0:ℤ) * y = y ^ 2 := by conv_lhs => field_simp2
 example : x * y * z = x * y * z := by conv_lhs => field_simp2
-example : x * y + x * z = x * (y + z) := by (conv_lhs => field_simp2); sorry
-example : x / (x * y + x * z) = (x / x) * (y + z) ^ (-1:ℤ) := by (conv_lhs => field_simp2); sorry
+example : x * y + x * z = x * (y + z) := by (conv_lhs => field_simp2)
+example : x / (x * y + x * z) = (x / x) * (y + z) ^ (-1:ℤ) := by (conv_lhs => field_simp2)
 example : ((x ^ (2:ℤ)) ^ 3) = x ^ 6 := by conv_lhs => field_simp2
 example : x ^ 3 * x⁻¹ = x ^ 2 := by conv_lhs => field_simp2
 example : x / x ^ 4 = x ^ (-3:ℤ) := by conv_lhs => field_simp2
