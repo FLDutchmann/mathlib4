@@ -413,8 +413,23 @@ def evalPrettyMonomial (iM : Q(Semifield $M)) (r : ℤ) (x : Q($M)) :
     have pf : Q($r ≠ 0) := q(of_decide_eq_true $this)
     return ⟨q($x ^ $r), q(zpow'_of_ne_zero_right _ _ $pf)⟩
 
+def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $M)) (l : qNF M) : MetaM <|
+    Σ l' : qNF M, Q(NF.eval $(l.toNF) = NF.eval $(l'.toNF)) :=
+  match l with
+  | [] => return ⟨[], q(sorry)⟩
+  | ((r, x), i) :: t => do
+    let ⟨l', pf⟩ ← removeZeros disch iM t
+    if r != 0 then
+      return ⟨((r, x), i) :: l', q(sorry)⟩
+    match ← disch q($x ≠ 0) with
+    | some pf' =>
+      have : Q($r = 0) := ← mkDecideProofQ q($r = 0)
+      return ⟨l', q(sorry)⟩
+    | none =>
+      return ⟨((r, x), i) :: l', q(sorry)⟩
+
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
-def evalPretty (iM : Q(Semifield $M)) (l : qNF M) :
+private def evalPrettyRec (iM : Q(Semifield $M)) (l : qNF M) :
     MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
   match l with
   | [] => return ⟨q(1), q(rfl)⟩
@@ -423,12 +438,16 @@ def evalPretty (iM : Q(Semifield $M)) (l : qNF M) :
     return ⟨e, q(Eq.trans (one_mul _) $pf)⟩
   | ((r, x), _) :: t =>
     let ⟨e, pf_e⟩ ← evalPrettyMonomial iM r x
-    let ⟨t', pf⟩ ← evalPretty iM t
-    return ⟨q($t' * $e),
-      -- (q(congr_arg₂ HMul.hMul $pf $pf_e):)
-      q(sorry)
+    let ⟨t', pf⟩ ← evalPrettyRec iM t
+    return ⟨q($t' * $e), (q(congr_arg₂ HMul.hMul $pf $pf_e):)⟩
 
-      ⟩
+/-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
+def evalPretty (disch : Expr → (MetaM (Option Expr))) (iM : Q(Semifield $M)) (l : qNF M) :
+    MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
+  let ⟨l, pf⟩ ← removeZeros disch iM l
+  let ⟨l', pf'⟩ ← evalPrettyRec iM l
+  return ⟨l', q(Eq.trans $pf $pf')⟩
+
 
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), construct another such term `l`, which will have the property that in
@@ -537,44 +556,12 @@ def mkDivProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
       q(sorry) --(q(NF.div_eq_eval₁ ($a₁, $x₁) $pf):)
     else if k₁ = k₂ then
       let pf := mkDivProof iM t₁ t₂
-      if a₁ - a₂ = 0 then
-        -- how do you quote a proof of a `ℤ` equality?
-        let h : Q($a₁ - $a₂ = 0) := (q(Eq.refl (0:ℤ)):)
-        let hx₁ : Q($x₁ ≠ 0) := q(sorry) -- use the discharger here
-        (q(sorry/- NF.div_eq_eval₂ $h $x₁ $hx₁ $pf -/))
-      else
-        -- how do you quote a proof of a `ℤ` disequality?
-        let z : Q(decide ($a₁ - $a₂ ≠ 0) = true) := (q(Eq.refl true):)
-        let h : Q($a₁ - $a₂ ≠ 0) := q(of_decide_eq_true $z)
-        (q(sorry /-NF.div_eq_eval₂' $h $x₁ $pf-/))
+      (q(sorry /-NF.div_eq_eval₂' $h $x₁ $pf-/))
     else
       let pf := mkDivProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(sorry/- NF.div_eq_eval₃ ($a₂, $x₂) $pf -/))
 
--- -- minimum of the
--- partial /- TODO figure out why! -/ def minimum : qNF M → qNF M → qNF M
--- | [], [] => []
--- | [], ((n, e), i) :: rest | ((n, e), i) :: rest, [] =>
---   if 0 ≤ n then (minimum [] rest) else ((n, e), i) :: (minimum [] rest)
--- | ((n, e), i) :: rest, ((n', e'), i') :: rest' =>
---     -- should factor into a separate definition
---     if i > i' then
---       if 0 ≤ n then minimum rest (((n', e'), i') :: rest')
---       else ((n, e), i) :: minimum rest (((n', e'), i') :: rest')
---     else if i = i' then
---       ((min n n', e), i) :: minimum rest rest'
---     else
---       if 0 ≤ n' then minimum rest' (((n, e), i) :: rest)
---       else ((n', e'), i') :: minimum rest' (((n, e), i) :: rest)
-
--- def negPart : qNF M → qNF M
---   | [] => []
---   | ((n, e), i) :: rest =>
---     if 0 ≤ n then negPart rest else ((n, e), i) :: negPart rest
-
-
-
-partial def gcd (iM : Q(Semifield $M)) (l₁ l₂: qNF M) :
+partial def gcd (iM : Q(Semifield $M)) (l₁ l₂: qNF M) (disch : Expr → MetaM (Option Expr)) :
   MetaM <| Σ (L l₁' l₂' : qNF M),
     Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(l₁.toNF)) ×
     Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) :=
@@ -584,16 +571,17 @@ partial def gcd (iM : Q(Semifield $M)) (l₁ l₂: qNF M) :
       MetaM <| Σ (L l₁' l₂' : qNF M),
         Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(qNF.toNF (((n, e), i) :: l₁))) ×
         Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) := do
-    let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM l₁ l₂
+    let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM l₁ l₂ disch
     if 0 ≤ n then
       -- Don't pull anything out
       return ⟨L, ((n, e), i) :: l₁', l₂', q(sorry), q($pf₂)⟩
-    if true then
+    match ← disch q($e ≠ 0) with
+    | .some pf =>
       -- if we can prove nonzeroness
-      have : Q($e ≠ 0) := q(sorry) -- TODO: Use discharger here.
+      have : Q($e ≠ 0) := pf
       return ⟨((n, e), i) :: L, l₁', ((-n, e), i) :: l₂', q(sorry), q(sorry)⟩
-    else
-      -- if we can't prove nonzeroness
+    | .none =>
+      -- if we can't prove nonzeroness, don't pull out e.
       return ⟨L, ((n, e), i) :: l₁', l₂', q(sorry), q($pf₂)⟩
 
   match l₁, l₂ with
@@ -612,7 +600,7 @@ partial def gcd (iM : Q(Semifield $M)) (l₁ l₂: qNF M) :
       return ⟨L, l₁', l₂', q($pf₁), q($pf₂)⟩
     else if i₁ == i₂ then
       have : $e₁ =Q $e₂ := ⟨⟩
-      let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM t₁ t₂
+      let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM t₁ t₂ disch
       if n₁ < n₂ then
         return ⟨((n₁, e₁), i₁) :: L, l₁', ((n₂ - n₁, e₂), i₂) :: l₂', q(sorry), q(sorry)⟩
       else if n₁ = n₂ then
@@ -636,7 +624,7 @@ where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
 Possible TODO, if poor performance on large problems is witnessed: switch the implementation from
 `AtomM` to `CanonM`, per the discussion
 https://github.com/leanprover-community/mathlib4/pull/16593/files#r1749623191 -/
-partial def normalize (iM : Q(Semifield $M)) (x : Q($M)) :
+partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $M)) (x : Q($M)) :
     AtomM (Σ l : qNF M, Q($x = NF.eval $(l.toNF))) := do
   let baseCase (y : Q($M)) : AtomM (Σ l : qNF M, Q($y = NF.eval $(l.toNF))):= do
     let (k, ⟨x', _⟩) ← AtomM.addAtomQ y
@@ -644,42 +632,40 @@ partial def normalize (iM : Q(Semifield $M)) (x : Q($M)) :
   match x with
   /- normalize a multiplication: `x₁ * x₂` -/
   | ~q($x₁ * $x₂) =>
-    let ⟨l₁, pf₁⟩ ← normalize iM x₁
-    let ⟨l₂, pf₂⟩ ← normalize iM x₂
+    let ⟨l₁, pf₁⟩ ← normalize disch iM x₁
+    let ⟨l₂, pf₂⟩ ← normalize disch iM x₂
     -- build the new list and proof
     have pf := qNF.mkMulProof iM l₁ l₂
     pure ⟨qNF.mul l₁ l₂, (q(NF.mul_eq_eval $pf₁ $pf₂ $pf))⟩
   /- normalize a division: `x₁ / x₂` -/
   | ~q($x₁ / $x₂) =>
-    let ⟨l₁, pf₁⟩ ← normalize iM x₁
-    let ⟨l₂, pf₂⟩ ← normalize iM x₂
+    let ⟨l₁, pf₁⟩ ← normalize disch iM x₁
+    let ⟨l₂, pf₂⟩ ← normalize disch iM x₂
     -- build the new list and proof
     let pf := qNF.mkDivProof iM l₁ l₂
     pure ⟨qNF.div l₁ l₂, (q(NF.div_eq_eval $pf₁ $pf₂ $pf))⟩
   /- normalize a inversion: `y⁻¹` -/
   | ~q($y⁻¹) =>
-    let ⟨l, pf⟩ ← normalize iM y
+    let ⟨l, pf⟩ ← normalize disch iM y
     -- build the new list and proof
     pure ⟨l.onExponent Neg.neg,
-      -- (q(NF.inv_eq_eval $pf):)
-      q(sorry)
+      (q(NF.inv_eq_eval $pf):)
+      -- q(sorry)
 
       ⟩
   | ~q($a + $b) =>
-    let ⟨l₁, pf₁⟩ ← normalize iM a
-    let ⟨l₂, pf₂⟩ ← normalize iM b
-    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂
-    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
-    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
+    let ⟨l₁, pf₁⟩ ← normalize disch iM a
+    let ⟨l₂, pf₂⟩ ← normalize disch iM b
+    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
+    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty disch iM l₁'
+    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty disch iM l₂'
     let e : Q($M) := q($e₁ + $e₂)
     let ⟨sum, pf_atom⟩ ← baseCase e
     let L' := qNF.mul L sum
     let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
-      q(sorry)
-      -- qNF.mkMulProof iM L sum
+      qNF.mkMulProof iM L sum
     pure ⟨L',
-      q(sorry)
-    -- (q(NF.add_eq_eval $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul))
+      (q(NF.add_eq_eval $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul))
     ⟩
   /- normalize an integer exponentiation: `y ^ (s : ℤ)` -/
   | ~q($y ^ ($s : ℤ)) =>
@@ -687,7 +673,7 @@ partial def normalize (iM : Q(Semifield $M)) (x : Q($M)) :
     if s = 0 then
       pure ⟨[], (q(sorry /-NF.zpow_zero_eq_eval $y-/))⟩
     else
-      let ⟨l, pf⟩ ← normalize iM y
+      let ⟨l, pf⟩ ← normalize disch iM y
       -- build the new list and proof
       pure ⟨l.onExponent (HMul.hMul s), (q(sorry /-zpow'_eq_eval $s $pf-/))⟩
   /- normalize a natural number exponentiation: `y ^ (s : ℕ)` -/
@@ -696,7 +682,7 @@ partial def normalize (iM : Q(Semifield $M)) (x : Q($M)) :
     if s = 0 then
       pure ⟨[], (q(sorry /-NF.pow_zero_eq_eval $y-/))⟩
     else
-      let ⟨l, pf⟩ ← normalize iM y
+      let ⟨l, pf⟩ ← normalize disch iM y
       have ps : Q($s ≠ 0) := q(sorry)
       -- build the new list and proof
       pure ⟨l.onExponent (HMul.hMul s), (q(sorry /-NF.pow_eq_eval $s $ps $pf-/))⟩
@@ -710,28 +696,77 @@ expression in a field `M` into the form x1 ^ c1 * x2 ^ c2 * ... x_k ^ c_k,
 where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
 
 Version with "pretty" output. -/
-def normalizePretty (iM : Q(Semifield $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
-  let ⟨l, pf⟩ ← normalize iM x
-  let ⟨x', pf'⟩ ← l.evalPretty iM
+def normalizePretty (disch : Expr → MetaM (Option Expr))
+    (iM : Q(Semifield $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
+  let ⟨l, pf⟩ ← normalize disch iM x
+  let ⟨x', pf'⟩ ← l.evalPretty disch iM
   return ⟨x', q(Eq.trans $pf $pf')⟩
 
 def qNF.expIds (l : qNF M) : List (ℤ × ℕ) := List.map (fun p ↦ (p.1.1, p.2)) l
 
 /-- Given `e₁` and `e₂`, construct a new goal which is sufficient to prove `e₁ = e₂`. -/
-def proveEq (iM : Q(Semifield $M)) (e₁ e₂ : Q($M)) : AtomM (MVarId × Q($e₁ = $e₂)) := do
-  let ⟨l₁, pf₁⟩ ← normalize iM e₁
-  let ⟨l₂, pf₂⟩ ← normalize iM e₂
-  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂
-  let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty iM
-  let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty iM
+def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $M)) (e₁ e₂ : Q($M)) :
+    AtomM (MVarId × Q($e₁ = $e₂)) := do
+  let ⟨l₁, pf₁⟩ ← normalize disch iM e₁
+  let ⟨l₂, pf₂⟩ ← normalize disch iM e₂
+  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
+  let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty disch iM
+  let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty disch iM
   let mvar ← mkFreshExprMVarQ q($e₁' = $e₂')
   return ⟨Expr.mvarId! mvar, q(NF.eq_of_eq_mul $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $mvar)⟩
 
-open Elab Tactic
+open Elab Tactic Lean.Parser.Tactic
+
+/-
+example of how to get a tactic out of disch:
+https://github.com/leanprover-community/mathlib4/blob/02c6431ffe61ac7571e0281242e025e54638ad42/Mathlib/Tactic/FunProp/Elab.lean#L54
+-/
+
+open Elab Term in
+/-- Turn tactic syntax into a discharger function.
+
+Copied from fun_prop at https://github.com/leanprover-community/mathlib4/blob/02c6431ffe61ac7571e0281242e025e54638ad42/Mathlib/Tactic/FunProp/Decl.lean#L131
+-/
+def tacticToDischarge (tacticCode : TSyntax `tactic) : Expr → MetaM (Option Expr) := fun e =>
+  withTraceNode `Meta.Tactic.fun_prop
+    (fun r => do pure s!"[{ExceptToEmoji.toEmoji r}] discharging: {← ppExpr e}") do
+    let mvar ← mkFreshExprSyntheticOpaqueMVar e `funProp.discharger
+    let runTac? : TermElabM (Option Expr) :=
+      try
+        withoutModifyingStateWithInfoAndMessages do
+          instantiateMVarDeclMVars mvar.mvarId!
+
+          let _ ←
+            withSynthesize (postpone := .no) do
+              Tactic.run mvar.mvarId! (Tactic.evalTactic tacticCode *> Tactic.pruneSolvedGoals)
+
+          let result ← instantiateMVars mvar
+          if result.hasExprMVar then
+            return none
+          else
+            return some result
+      catch _ =>
+        return none
+    let (result?, _) ← runTac?.run {} {}
+
+    return result?
+
+def positivityDischarge : MetaM (Expr → MetaM (Option Expr)) := do
+  pure <| tacticToDischarge (← `(tactic| positivity))
+
+def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger)) :
+  MetaM (Expr → MetaM (Option Expr)) := do
+    match d with
+    | none => pure <| ← positivityDischarge
+    | some d =>
+      match d with
+      | `(discharger| (discharger:=$tac)) => pure <| tacticToDischarge (← `(tactic| ($tac)))
+      | _ => pure <| ← positivityDischarge
 
 /-- Conv tactic for field_simp normalisation.
 Wraps the `MetaM` normalization function `normalize`. -/
-elab "field_simp2" : conv => do
+elab "field_simp2 " d:(discharger)? : conv => do
+  let disch ← parseDischarger d
   -- find the expression `x` to `conv` on
   let x ← Conv.getLhs
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
@@ -739,11 +774,13 @@ elab "field_simp2" : conv => do
   -- find a `Semifield` instance on `K`
   let iK : Q(Semifield $K) ← synthInstanceQ q(Semifield $K)
   -- run the core normalization function `normalizePretty` on `x`
-  let ⟨e, pf⟩ ← AtomM.run .reducible <| normalizePretty iK x
+  let ⟨e, pf⟩ ← AtomM.run .reducible <| normalizePretty disch iK x
   -- convert `x` to the output of the normalization
   Conv.applySimpResult { expr := e, proof? := some pf }
 
-elab "field_simp2" : tactic => liftMetaTactic fun g ↦ do
+
+elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
+  let disch ← parseDischarger d
   -- find the proposition `t` to prove
   let t ← g.getType''
   let some ⟨_, a, b⟩ := t.eq? | throwError "field_simp proves only equality goals"
@@ -752,7 +789,7 @@ elab "field_simp2" : tactic => liftMetaTactic fun g ↦ do
   -- find a `Semifield` instance on `K`
   let iK : Q(Semifield $K) ← synthInstanceQ q(Semifield $K)
   -- run the core equality-proving mechanism on `x`
-  let ⟨g', pf⟩ ← AtomM.run .reducible <| proveEq iK a b
+  let ⟨g', pf⟩ ← AtomM.run .reducible <| proveEq disch iK a b
   g.assign pf
   return [g']
 
@@ -833,19 +870,18 @@ end
 #conv field_simp2 => x / x ^ 4
 
 -- If x is non-zero, we do cancel.
--- TODO: Right now, we never cancel, even when we should.
 section
 variable {hx : x ≠ 0}
 
-/-- info: x / x -/
+/-- info: 1 -/
 #guard_msgs in
 #conv field_simp2 => x * x⁻¹
 
-/-- info: x / x -/
+/-- info: 1 -/
 #guard_msgs in
 #conv field_simp2 => x⁻¹ * x
 
-/-- info: x / x -/
+/-- info: 1 -/
 #guard_msgs in
 #conv field_simp2 => x / x
 
@@ -866,7 +902,7 @@ end
 #guard_msgs in
 #conv field_simp2 => x ^1 * y * x ^2 * y ^ 3
 
-/-- info: x ^ 3 -/
+/-- info: x ^ 3 * (y / y) -/
 #guard_msgs in
 #conv field_simp2 => x ^ 1 * y * x ^2 * y⁻¹
 
@@ -874,7 +910,7 @@ variable {y' : ℚ} (hy' : y' ≠ 0)
 
 /-- info: x ^ 3 -/
 #guard_msgs in
-#conv field_simp2 => x ^ 1 * y * x ^ 2 * y⁻¹
+#conv field_simp2 => x ^ 1 * y' * x ^ 2 * y'⁻¹
 
 end
 
@@ -890,7 +926,7 @@ end
 #guard_msgs in
 #conv field_simp2 => x * y
 
-/-- info: 1 -/
+/-- info: x / x * (y / y) -/
 #guard_msgs in
 #conv field_simp2 => (x * y) / (y * x)
 
@@ -898,7 +934,7 @@ end
 #guard_msgs in
 #conv field_simp2 => x * y + x * 1
 
-/-- info: 1 -/
+/-- info: x / x * (y / y) -/
 #guard_msgs in
 #conv field_simp2 => (x * y) * (y * x)⁻¹
 
@@ -914,7 +950,8 @@ end
 #guard_msgs in
 #conv field_simp2 => x / y
 
-/-- info: (x + 1) ^ (-1) * (y + 1) ^ (-1) * (x * (y + 1) + (x + 1) * y) -/
+variable (hx : x + 1 ≠ 0) in
+/-- info: (x + 1) ^ (-1) * (x + (x + 1) * y * (y + 1) ^ (-1)) -/
 #guard_msgs in
 #conv field_simp2 => x / (x + 1) + y / (y + 1)
 
@@ -940,36 +977,48 @@ example : x * x = x ^ 2 := by conv_lhs => field_simp2
 example : x ^ 3 * x ^ 42 = x ^ 45 := by conv_lhs => field_simp2
 example : x * x * x⁻¹ = x := by conv_lhs => field_simp2
 
-example : x / (x + 1) + y / (y + 1)
+example (_ : 0 < x + 1) (_ : 0 < y + 1) : x / (x + 1) + y / (y + 1)
     = (x + 1) ^ (-1:ℤ) * (y + 1) ^ (-1:ℤ) * (x * (y + 1) + (x + 1) * y) := by
   conv_lhs => field_simp2
 
 /-! ### Equality goals -/
 
 example : (1:ℚ) / 3 + 1 / 6 = 1 / 2 := by
-  field_simp2
+  /- TODO: should the default discharger handle this? -/
+  field_simp2 (disch := norm_num)
   norm_cast
 
 example : x / (x + y) + y / (x + y) = 1 := by
-  field_simp2
+  have : x + y ≠ 0 := sorry
+  field_simp2 (disch := assumption)
   rfl
 
-example : ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
-  field_simp2
+/- TODO: we don't have all the right positivity extensions in this file to make this test work -/
+example (hx : 0 < x) : ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
+  have : x^2 + y^2 ≠ 0 := by sorry
+  field_simp2 (disch := assumption)
   guard_target = (x ^ 2 - y ^ 2) ^ 2 + x ^ 2 * y ^ 2 * 2 ^ 2 = (x ^ 2 + y ^ 2) ^ 2
   sorry
 
 -- from PythagoreanTriples
-example {K : Type*} [Semifield K] (x y : K) :
+example {K : Type*} [Semifield K] (x y : K) (hy : y + 1 ≠ 0) :
     2 * (x / (y + 1)) / (1 + (x / (y + 1)) ^ 2) = x := by
-  field_simp2
-  guard_target = 2 * x * (y + 1) = x * ((y + 1) ^ 2 + x ^ 2)
+  /- TODO: positivity doesn't work on semifields. -/
+  have : (y+1)^2 + x^2 ≠ 0 := by
+    sorry
+  field_simp2 (disch := assumption)
+  /- TODO: do we want field_simp to cancel the x on either side? This is a consequence of how
+    we defined qNF.gcd -/
+  guard_target = 2 *  (y + 1) = ((y + 1) ^ 2 + x ^ 2)
   sorry
 
 -- from Set.IsoIoo
-example {K : Type*} [Field K] (x y z : K) :
+/- TODO: The default discharger doesn't work here -/
+example {K : Type*} [Field K] (x y z : K) (hy : 1-y ≠ 0) :
     x / (1 - y) / (1 + y / (1 - y)) = z := by
-  field_simp2
+  have : 1 - y + y ≠ 0 := by
+    sorry
+  field_simp2 (disch := assumption)
   guard_target = x = (1 - y + y) * z
   sorry
 
@@ -977,8 +1026,9 @@ example {K : Type*} [Field K] (x y z : K) :
 
 /--
 Test that the discharger can clear nontrivial denominators in ℚ.
+TODO: It currently cannot. This is probably because we don't have the right positivity extension in this file.
 -/
 example (x : ℚ) (h₀ : x ≠ 0) : (4 / x)⁻¹ * ((3 * x^3) / x)^2 * ((1 / (2 * x))⁻¹)^3 = 18 * x^8 := by
   field_simp2
-  guard_target = x ^ 8 * 3 ^ 2 * 2 ^ 3 = 4 * x ^ 8 * 18
+  guard_target = (3 : ℚ) ^ 2 * 2 ^ 3 = 4 * 18
   sorry
