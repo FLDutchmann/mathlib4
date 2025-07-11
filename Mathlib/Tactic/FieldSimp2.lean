@@ -412,13 +412,11 @@ def evalPrettyMonomial (iM : Q(GroupWithZero $M)) (r : ℤ) (x : Q($M)) :
   | 0 => /- If an exponent is zero then we must not have been able to prove that x is nonzero.  -/
     return ⟨q($x / $x), q(zpow'_zero_eq_div ..)⟩
   | 1 => return ⟨x, q(zpow'_one $x)⟩
-  | .ofNat r =>
-    have : Q(decide ($r ≠ 0) = true) := (q(Eq.refl true):)
-    have pf : Q($r ≠ 0) := q(of_decide_eq_true $this)
+  | .ofNat r => do
+    let pf ← mkDecideProofQ q($r ≠ 0)
     return ⟨q($x ^ $r), q(zpow'_ofNat $x $pf)⟩
-  | r =>
-    have : Q(decide ($r ≠ 0) = true) := (q(Eq.refl true):)
-    have pf : Q($r ≠ 0) := q(of_decide_eq_true $this)
+  | r => do
+    let pf ← mkDecideProofQ q($r ≠ 0)
     return ⟨q($x ^ $r), q(zpow'_of_ne_zero_right _ _ $pf)⟩
 
 def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)) (l : qNF M) : MetaM <|
