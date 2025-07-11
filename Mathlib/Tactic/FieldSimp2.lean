@@ -948,13 +948,16 @@ example : x / y = x * y ^ (-1:ℤ) := by conv_lhs => field_simp2
 example : x / (y / x) = x ^ 2 * y ^ (-1:ℤ) := by conv_lhs => field_simp2
 example : x / (y ^ (-3:ℤ) / x) = x ^ 2 * y ^ 3 := by conv_lhs => field_simp2
 example : (x / y ^ (-3:ℤ)) * x = x ^ 2 * y ^ 3 := by conv_lhs => field_simp2
+example (hx : x ≠ 0) (hy : y ≠ 0) : (x * y) / (y * x) = 1 := by conv_lhs => field_simp2
 example : (x * y) / (y * x) = x / x * (y / y) := by conv_lhs => field_simp2
+example (hx : x ≠ 0) (hy : y ≠ 0) : (x * y) * (y * x)⁻¹ = 1 := by conv_lhs => field_simp2
 example : (x * y) * (y * x)⁻¹ = x / x * (y / y) := by conv_lhs => field_simp2
 example : x ^ (0:ℤ) * y = y := by conv_lhs => field_simp2
 example : y * (y + x) ^ (0:ℤ) * y = y ^ 2 := by conv_lhs => field_simp2
 example : x * y * z = x * y * z := by conv_lhs => field_simp2
-example : x * y + x * z = x * (y + z) := by (conv_lhs => field_simp2)
-example : x / (x * y + x * z) = (x / x) * (y + z) ^ (-1:ℤ) := by (conv_lhs => field_simp2)
+example : x * y + x * z = x * (y + z) := by conv_lhs => field_simp2
+example (hx : x ≠ 0) : x / (x * y + x * z) = (y + z) ^ (-1:ℤ) := by conv_lhs => field_simp2
+example : x / (x * y + x * z) = (x / x) * (y + z) ^ (-1:ℤ) := by conv_lhs => field_simp2
 example : ((x ^ (2:ℤ)) ^ 3) = x ^ 6 := by conv_lhs => field_simp2
 example : x ^ 3 * x⁻¹ = x ^ 2 := by conv_lhs => field_simp2
 example : x / x ^ 4 = x ^ (-3:ℤ) := by conv_lhs => field_simp2
