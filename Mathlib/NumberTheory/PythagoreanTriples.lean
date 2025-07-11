@@ -258,13 +258,20 @@ def circleEquivGen (hk : ∀ x : K, 1 + x ^ 2 ≠ 0) :
     K ≃ { p : K × K // p.1 ^ 2 + p.2 ^ 2 = 1 ∧ p.2 ≠ -1 } where
   toFun x :=
     ⟨⟨2 * x / (1 + x ^ 2), (1 - x ^ 2) / (1 + x ^ 2)⟩, by
-      field_simp2
+      have := hk x
+      field_simp2 (disch := assumption)
       ring, by
       simp only [Ne, div_eq_iff (hk x), neg_mul, one_mul, neg_add, sub_eq_add_neg, add_left_inj]
       simpa only [eq_neg_iff_add_eq_zero, one_pow] using hk 1⟩
   invFun p := (p : K × K).1 / ((p : K × K).2 + 1)
   left_inv x := by
-    field_simp2
+    have := hk x
+    have h4 : (2 : K) ≠ 0 := by
+      convert hk 1
+      ring
+    field_simp2 (disch := assumption)
+    ring_nf
+    field_simp2 (disch := assumption)
     ring
   right_inv := fun ⟨⟨x, y⟩, hxy, hy⟩ => by
     change x ^ 2 + y ^ 2 = 1 at hxy
@@ -277,8 +284,9 @@ def circleEquivGen (hk : ∀ x : K, 1 + x ^ 2 ≠ 0) :
       ring
     simp only [Prod.mk_inj, Subtype.mk_eq_mk]
     constructor
-    · field_simp2
+    · field_simp2 (disch := assumption)
       rw [h3]
+      field_simp2 (disch := assumption)
       ring
     · field_simp [h3]
       rw [← add_neg_eq_iff_eq_add.mpr hxy.symm]
