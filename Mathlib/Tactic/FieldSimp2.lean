@@ -17,7 +17,10 @@ open Lean hiding Module
 open Meta Elab Qq Mathlib.Tactic List
 
 section zpow'
-variable {α : Type*} [Semifield α]
+variable {α : Type*}
+
+section
+variable [GroupWithZero α]
 
 open Classical in
 noncomputable def zpow' (a : α) (n : ℤ) : α :=
@@ -44,14 +47,6 @@ lemma zero_zpow' (n : ℤ) : zpow' (0 : α) n = 0 := by
 @[simp]
 lemma one_zpow' (n : ℤ) : zpow' (1 : α) n = 1 := by
   simp [zpow']
-
-lemma mul_zpow' (n : ℤ) (a b : α) : zpow' (a * b) n = zpow' a n * zpow' b n := by
-  by_cases ha : a = 0
-  · simp [ha]
-  by_cases hb : b = 0
-  · simp [hb]
-  simp [zpow', ha, hb]
-  exact mul_zpow a b n
 
 @[simp]
 lemma zpow'_one (a : α) : zpow' a 1 = a := by
@@ -90,6 +85,19 @@ lemma zpow'_ofNat (a : α) {n : ℕ} (hn : n ≠ 0) : zpow' a n = a ^ n := by
   · simp
   exact_mod_cast hn
 
+end
+
+lemma mul_zpow' [CommGroupWithZero α] (n : ℤ) (a b : α) :
+    zpow' (a * b) n = zpow' a n * zpow' b n := by
+  by_cases ha : a = 0
+  · simp [ha]
+  by_cases hb : b = 0
+  · simp [hb]
+  simp [zpow', ha, hb]
+  exact mul_zpow a b n
+
+end zpow'
+
 namespace List
 variable {M : Type*}
 
@@ -118,7 +126,7 @@ theorem _root_.map_list_prod' {M : Type*} {N : Type*} [Monoid M] [Monoid N] {F :
   (l.prod'_hom f).symm
 
 -- in the library somewhere?
-theorem prod'_zpow' {β : Type*} [Semifield β] {r : ℤ} {l : List β} :
+theorem prod'_zpow' {β : Type*} [CommGroupWithZero β] {r : ℤ} {l : List β} :
     zpow' l.prod' r = (map (fun x ↦ zpow' x r) l).prod' :=
   let fr : β →* β := ⟨⟨fun b ↦ zpow' b r, one_zpow' r⟩, (mul_zpow' r)⟩
   map_list_prod' fr l
@@ -159,60 +167,60 @@ def cons (p : ℤ × M) (l : NF M) : NF M := p :: l
 /-- Evaluate a `FieldSimp.NF M` object `l`, i.e. a list of pairs in `ℤ × M`, to an element of `M`,
 by forming the "multiplicative linear combination" it specifies: raise each `M` term to the power of
 the corresponding `ℤ` term, then multiply them all together. -/
-noncomputable def eval [Semifield M] (l : NF M) : M :=
+noncomputable def eval [GroupWithZero M] (l : NF M) : M :=
   (l.map (fun (⟨r, x⟩ : ℤ × M) ↦ zpow' x r)).prod'
 
-@[simp] theorem eval_cons [Semifield M] (p : ℤ × M) (l : NF M) :
+@[simp] theorem eval_cons [GroupWithZero M] (p : ℤ × M) (l : NF M) :
     (p ::ᵣ l).eval = l.eval * zpow' p.2 p.1 := by
   unfold eval cons
   rw [List.map_cons]
   rw [List.prod'_cons]
 
 
-theorem atom_eq_eval [Semifield M] (x : M) : x = NF.eval [(1, x)] := by simp [eval]
+theorem atom_eq_eval [GroupWithZero M] (x : M) : x = NF.eval [(1, x)] := by simp [eval]
 
 variable (M) in
-theorem one_eq_eval [Semifield M] : (1:M) = NF.eval (M := M) [] := rfl
+theorem one_eq_eval [GroupWithZero M] : (1:M) = NF.eval (M := M) [] := rfl
 
-theorem mul_eq_eval₁ [Semifield M] (a₁ : ℤ × M) {a₂ : ℤ × M} {l₁ l₂ l : NF M}
+theorem mul_eq_eval₁ [CommGroupWithZero M] (a₁ : ℤ × M) {a₂ : ℤ × M} {l₁ l₂ l : NF M}
     (h : l₁.eval * (a₂ ::ᵣ l₂).eval = l.eval) :
     (a₁ ::ᵣ l₁).eval * (a₂ ::ᵣ l₂).eval = (a₁ ::ᵣ l).eval := by
   simp only [eval_cons, ← h, mul_assoc]
   congr! 1
   rw [mul_comm, mul_assoc]
 
--- theorem mul_eq_eval₂ [Semifield M] {r₁ r₂ : ℤ} (hr : r₁ + r₂ = 0) (x : M)
+-- theorem mul_eq_eval₂ [GroupWithZero M] {r₁ r₂ : ℤ} (hr : r₁ + r₂ = 0) (x : M)
 --     {l₁ l₂ l : NF M} (h : l₁.eval * l₂.eval = l.eval) :
 --     ((r₁, x) ::ᵣ l₁).eval * ((r₂, x) ::ᵣ l₂).eval = ((0, x) ::ᵣ l).eval := by
 --   simp only [← h, eval_cons, mul_assoc]
 --   congr! 1
 --   rw [mul_comm, mul_assoc, ← zpow'_add, add_comm, hr]
 
-theorem mul_eq_eval₂ [Semifield M] (r₁ r₂ : ℤ) (x : M)
+theorem mul_eq_eval₂ [CommGroupWithZero M] (r₁ r₂ : ℤ) (x : M)
     {l₁ l₂ l : NF M} (h : l₁.eval * l₂.eval = l.eval) :
     ((r₁, x) ::ᵣ l₁).eval * ((r₂, x) ::ᵣ l₂).eval = ((r₁ + r₂, x) ::ᵣ l).eval := by
   simp [zpow'_add, ← h]
   rw [mul_assoc, mul_comm (zpow' _ _), mul_assoc, mul_comm (zpow' _ _), mul_assoc]
 
-theorem mul_eq_eval₃ [Semifield M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l₁ l₂ l : NF M}
+theorem mul_eq_eval₃ [GroupWithZero M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l₁ l₂ l : NF M}
     (h : (a₁ ::ᵣ l₁).eval * l₂.eval = l.eval) :
     (a₁ ::ᵣ l₁).eval * (a₂ ::ᵣ l₂).eval = (a₂ ::ᵣ l).eval := by
   simp [← h]
   simp only [eval_cons, ← h, mul_assoc]
 
-theorem mul_eq_eval [Semifield M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
+theorem mul_eq_eval [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
     (hx₂ : x₂ = l₂.eval) (h : l₁.eval * l₂.eval = l.eval) :
     x₁ * x₂ = l.eval := by
   rw [hx₁, hx₂, h]
 
-theorem div_eq_eval₁ [Semifield M] (a₁ : ℤ × M) {a₂ : ℤ × M} {l₁ l₂ l : NF M}
+theorem div_eq_eval₁ [CommGroupWithZero M] (a₁ : ℤ × M) {a₂ : ℤ × M} {l₁ l₂ l : NF M}
     (h : l₁.eval / (a₂ ::ᵣ l₂).eval = l.eval) :
     (a₁ ::ᵣ l₁).eval / (a₂ ::ᵣ l₂).eval = (a₁ ::ᵣ l).eval := by
   simp only [eval_cons, ← h, div_eq_mul_inv, mul_assoc]
   congr! 1
   rw [mul_comm]
 
-theorem div_eq_eval₂ [Semifield M] {r₁ r₂ : ℤ} (hr : r₁ - r₂ = 0) (x : M) (hx : x ≠ 0)
+theorem div_eq_eval₂ [CommGroupWithZero M] {r₁ r₂ : ℤ} (hr : r₁ - r₂ = 0) (x : M) (hx : x ≠ 0)
     {l₁ l₂ l : NF M} (h : l₁.eval / l₂.eval = l.eval) :
     ((r₁, x) ::ᵣ l₁).eval / ((r₂, x) ::ᵣ l₂).eval = l.eval := by
   simp only [← h, eval_cons, div_eq_mul_inv, mul_inv, mul_zpow, ← zpow'_neg, mul_assoc]
@@ -223,7 +231,7 @@ theorem div_eq_eval₂ [Semifield M] {r₁ r₂ : ℤ} (hr : r₁ - r₂ = 0) (x
   stop
   simp
 
-theorem div_eq_eval₂' [Semifield M] {r₁ r₂ : ℤ} (hr : r₁ - r₂ ≠ 0) (x : M)
+theorem div_eq_eval₂' [GroupWithZero M] {r₁ r₂ : ℤ} (hr : r₁ - r₂ ≠ 0) (x : M)
     {l₁ l₂ l : NF M} (h : l₁.eval / l₂.eval = l.eval) :
     ((r₁, x) ::ᵣ l₁).eval / ((r₂, x) ::ᵣ l₂).eval = ((r₁ - r₂, x) ::ᵣ l).eval := by
   stop
@@ -240,13 +248,13 @@ theorem div_eq_eval₂' [Semifield M] {r₁ r₂ : ℤ} (hr : r₁ - r₂ ≠ 0)
   congr! 1
   rw [mul_comm]
 
-theorem div_eq_eval₃ [Semifield M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l₁ l₂ l : NF M}
+theorem div_eq_eval₃ [GroupWithZero M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l₁ l₂ l : NF M}
     (h : (a₁ ::ᵣ l₁).eval / l₂.eval = l.eval) :
     (a₁ ::ᵣ l₁).eval / (a₂ ::ᵣ l₂).eval = ((-a₂.1, a₂.2) ::ᵣ l).eval := by
   stop
   simp only [eval_cons, zpow_neg, mul_inv, div_eq_mul_inv, ← h, ← mul_assoc]
 
-theorem div_eq_eval [Semifield M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
+theorem div_eq_eval [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
     (hx₂ : x₂ = l₂.eval) (h : l₁.eval / l₂.eval = l.eval) :
     x₁ / x₂ = l.eval := by
   rw [hx₁, hx₂, h]
@@ -273,16 +281,16 @@ theorem _root_.List.prod_inv₀ {K : Type*} [DivisionCommMonoid K] :
   | [] => by simp
   | x :: xs => by simp [mul_comm, prod_inv₀ xs]
 
-theorem eval_inv [Semifield M] (l : NF M) : (l⁻¹).eval = l.eval⁻¹ := by
+theorem eval_inv [CommGroupWithZero M] (l : NF M) : (l⁻¹).eval = l.eval⁻¹ := by
   simp only [NF.eval, List.map_map, List.prod'_inv₀, NF.instInv]
   congr
   ext p
   simp [zpow'_neg]
 
-theorem one_div_eq_eval [Semifield M] (l : NF M) : 1 / l.eval = (l⁻¹).eval := by
+theorem one_div_eq_eval [CommGroupWithZero M] (l : NF M) : 1 / l.eval = (l⁻¹).eval := by
   simp [eval_inv]
 
-theorem inv_eq_eval [Semifield M] {l : NF M} {x : M} (h : x = l.eval) :
+theorem inv_eq_eval [CommGroupWithZero M] {l : NF M} {x : M} (h : x = l.eval) :
     x⁻¹ = (l⁻¹).eval := by
   rw [h, eval_inv]
 
@@ -298,7 +306,7 @@ theorem _root_.List.prod_zpow {β : Type*} [DivisionCommMonoid β] {r : ℤ} {l 
   let fr : β →* β := ⟨⟨fun b ↦ b ^ r, one_zpow r⟩, (mul_zpow · · r)⟩
   map_list_prod fr l
 
-theorem eval_zpow [Semifield M] {l : NF M} {x : M} (h : x = l.eval) (r : ℤ) :
+theorem eval_zpow [CommGroupWithZero M] {l : NF M} {x : M} (h : x = l.eval) (r : ℤ) :
     (l ^ r).eval = zpow' x r := by
   unfold NF.eval at h ⊢
   simp only [h, List.prod'_zpow', map_map, NF.zpow_apply]
@@ -307,12 +315,12 @@ theorem eval_zpow [Semifield M] {l : NF M} {x : M} (h : x = l.eval) (r : ℤ) :
   simp [← zpow'_mul, mul_comm]
 
 
-theorem zpow'_eq_eval [Semifield M] {l : NF M} (r : ℤ) {x : M} (hx : x = l.eval) :
+theorem zpow'_eq_eval [CommGroupWithZero M] {l : NF M} (r : ℤ) {x : M} (hx : x = l.eval) :
     zpow' x r = (l ^ r).eval := by
   rw [hx, eval_zpow]
   rfl
 
--- theorem zpow_zero_eq_eval [Semifield M] (x : M) : zpow' x (0:ℤ) = NF.eval [] := by
+-- theorem zpow_zero_eq_eval [GroupWithZero M] (x : M) : zpow' x (0:ℤ) = NF.eval [] := by
 --   rw [zpow_zero, one_eq_eval]
 
 instance : Pow (NF M) ℕ where
@@ -327,7 +335,7 @@ theorem _root_.List.prod_pow {β : Type*} [CommMonoid β] {r : ℕ} {l : List β
   let fr : β →* β := ⟨⟨fun b ↦ b ^ r, one_pow r⟩, (mul_pow · · r)⟩
   map_list_prod fr l
 
-theorem eval_pow [Semifield M] {l : NF M} {x : M} (h : x = l.eval) (r : ℕ) :
+theorem eval_pow [GroupWithZero M] {l : NF M} {x : M} (h : x = l.eval) (r : ℕ) :
     (l ^ r).eval = zpow' x r := by
   stop
   unfold NF.eval at h ⊢
@@ -339,7 +347,7 @@ theorem eval_pow [Semifield M] {l : NF M} {x : M} (h : x = l.eval) (r : ℕ) :
   norm_cast
 
 
-theorem pow_eq_eval [Semifield M] {l : NF M} (r : ℕ) (hr : r ≠ 0) {x : M} (hx : x = l.eval) :
+theorem pow_eq_eval [GroupWithZero M] {l : NF M} (r : ℕ) (hr : r ≠ 0) {x : M} (hx : x = l.eval) :
     x ^ r = (l ^ r).eval := by
   stop
   rw [hx, eval_pow]
@@ -347,7 +355,7 @@ theorem pow_eq_eval [Semifield M] {l : NF M} (r : ℕ) (hr : r ≠ 0) {x : M} (h
 
 
 
-theorem pow_zero_eq_eval [Semifield M] (x : M) : x ^ (0:ℕ) = NF.eval [] := by
+theorem pow_zero_eq_eval [GroupWithZero M] (x : M) : x ^ (0:ℕ) = NF.eval [] := by
   rw [pow_zero, one_eq_eval]
 
 
@@ -398,7 +406,7 @@ def onExponent (l : qNF M) (f : ℤ → ℤ) : qNF M :=
   l.map fun ((a, x), k) ↦ ((f a, x), k)
 
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
-def evalPrettyMonomial (iM : Q(Semifield $M)) (r : ℤ) (x : Q($M)) :
+def evalPrettyMonomial (iM : Q(GroupWithZero $M)) (r : ℤ) (x : Q($M)) :
     MetaM (Σ e : Q($M), Q(zpow' $x $r = $e)) := do
   match r with
   | 0 => /- If an exponent is zero then we must not have been able to prove that x is nonzero.  -/
@@ -413,7 +421,7 @@ def evalPrettyMonomial (iM : Q(Semifield $M)) (r : ℤ) (x : Q($M)) :
     have pf : Q($r ≠ 0) := q(of_decide_eq_true $this)
     return ⟨q($x ^ $r), q(zpow'_of_ne_zero_right _ _ $pf)⟩
 
-def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $M)) (l : qNF M) : MetaM <|
+def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)) (l : qNF M) : MetaM <|
     Σ l' : qNF M, Q(NF.eval $(l.toNF) = NF.eval $(l'.toNF)) :=
   match l with
   | [] => return ⟨[], q(sorry)⟩
@@ -429,7 +437,7 @@ def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $M)) (l
       return ⟨((r, x), i) :: l', q(sorry)⟩
 
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
-private def evalPrettyRec (iM : Q(Semifield $M)) (l : qNF M) :
+private def evalPrettyRec (iM : Q(GroupWithZero $M)) (l : qNF M) :
     MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
   match l with
   | [] => return ⟨q(1), q(rfl)⟩
@@ -442,7 +450,7 @@ private def evalPrettyRec (iM : Q(Semifield $M)) (l : qNF M) :
     return ⟨q($t' * $e), (q(congr_arg₂ HMul.hMul $pf $pf_e):)⟩
 
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
-def evalPretty (disch : Expr → (MetaM (Option Expr))) (iM : Q(Semifield $M)) (l : qNF M) :
+def evalPretty (disch : Expr → (MetaM (Option Expr))) (iM : Q(GroupWithZero $M)) (l : qNF M) :
     MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
   let ⟨l, pf⟩ ← removeZeros disch iM l
   let ⟨l', pf'⟩ ← evalPrettyRec iM l
@@ -481,7 +489,7 @@ def mul : qNF q($M) → qNF q($M) → qNF q($M)
 `Expr` and a natural number), recursively construct a proof that in the field `$M`, the product of
 the "multiplicative linear combinations" represented by `l₁` and `l₂` is the multiplicative linear
 combination represented by `FieldSimp.qNF.mul l₁ l₁`. -/
-def mkMulProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
+def mkMulProof (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) :
     Q((NF.eval $(l₁.toNF)) * NF.eval $(l₂.toNF) = NF.eval $((qNF.mul l₁ l₂).toNF)) :=
   match l₁, l₂ with
   | [], l => (q(one_mul (NF.eval $(l.toNF))):)
@@ -510,7 +518,7 @@ def mkMulProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
 
 def inv (l : qNF M) : qNF M := l.onExponent Neg.neg
 
-def mkInvProof (iM : Q(Semifield $M)) (l : qNF M) :
+def mkInvProof (iM : Q(GroupWithZero $M)) (l : qNF M) :
     Q(NF.eval $(l.toNF) ⁻¹ = NF.eval $((l.inv.toNF))) :=
   q(sorry)
 
@@ -545,7 +553,7 @@ def div : qNF M → qNF M → qNF M
 `Expr` and a natural number), recursively construct a proof that in the field `$M`, the quotient
 of the "multiplicative linear combinations" represented by `l₁` and `l₂` is the multiplicative
 linear combination represented by `FieldSimp.qNF.div l₁ l₁`. -/
-def mkDivProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
+def mkDivProof (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) :
     Q(NF.eval $(l₁.toNF) / NF.eval $(l₂.toNF) = NF.eval $((qNF.div l₁ l₂).toNF)) :=
   match l₁, l₂ with
   | [], l => (q(sorry /-NF.one_div_eq_eval $(l.toNF)-/))
@@ -561,7 +569,7 @@ def mkDivProof (iM : Q(Semifield $M)) (l₁ l₂ : qNF M) :
       let pf := mkDivProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(sorry/- NF.div_eq_eval₃ ($a₂, $x₂) $pf -/))
 
-partial def gcd (iM : Q(Semifield $M)) (l₁ l₂: qNF M) (disch : Expr → MetaM (Option Expr)) :
+partial def gcd (iM : Q(GroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr → MetaM (Option Expr)) :
   MetaM <| Σ (L l₁' l₂' : qNF M),
     Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(l₁.toNF)) ×
     Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) :=
@@ -635,14 +643,14 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $
     let ⟨l₁, pf₁⟩ ← normalize disch iM x₁
     let ⟨l₂, pf₂⟩ ← normalize disch iM x₂
     -- build the new list and proof
-    have pf := qNF.mkMulProof iM l₁ l₂
+    have pf := qNF.mkMulProof q(inferInstance) l₁ l₂
     pure ⟨qNF.mul l₁ l₂, (q(NF.mul_eq_eval $pf₁ $pf₂ $pf))⟩
   /- normalize a division: `x₁ / x₂` -/
   | ~q($x₁ / $x₂) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM x₁
     let ⟨l₂, pf₂⟩ ← normalize disch iM x₂
     -- build the new list and proof
-    let pf := qNF.mkDivProof iM l₁ l₂
+    let pf := qNF.mkDivProof q(inferInstance) l₁ l₂
     pure ⟨qNF.div l₁ l₂, (q(NF.div_eq_eval $pf₁ $pf₂ $pf))⟩
   /- normalize a inversion: `y⁻¹` -/
   | ~q($y⁻¹) =>
@@ -656,14 +664,14 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $
   | ~q($a + $b) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
-    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
-    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty disch iM l₁'
-    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty disch iM l₂'
+    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd q(inferInstance) l₂ disch
+    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty disch q(inferInstance) l₁'
+    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty disch q(inferInstance) l₂'
     let e : Q($M) := q($e₁ + $e₂)
     let ⟨sum, pf_atom⟩ ← baseCase e
     let L' := qNF.mul L sum
     let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
-      qNF.mkMulProof iM L sum
+      qNF.mkMulProof q(inferInstance) L sum
     pure ⟨L',
       (q(NF.add_eq_eval $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul))
     ⟩
@@ -699,7 +707,7 @@ Version with "pretty" output. -/
 def normalizePretty (disch : Expr → MetaM (Option Expr))
     (iM : Q(Semifield $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
   let ⟨l, pf⟩ ← normalize disch iM x
-  let ⟨x', pf'⟩ ← l.evalPretty disch iM
+  let ⟨x', pf'⟩ ← l.evalPretty disch q(inferInstance)
   return ⟨x', q(Eq.trans $pf $pf')⟩
 
 def qNF.expIds (l : qNF M) : List (ℤ × ℕ) := List.map (fun p ↦ (p.1.1, p.2)) l
@@ -709,9 +717,9 @@ def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $M)) (e₁ 
     AtomM (MVarId × Q($e₁ = $e₂)) := do
   let ⟨l₁, pf₁⟩ ← normalize disch iM e₁
   let ⟨l₂, pf₂⟩ ← normalize disch iM e₂
-  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
-  let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty disch iM
-  let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty disch iM
+  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd q(inferInstance) l₂ disch
+  let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty disch q(inferInstance)
+  let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty disch q(inferInstance)
   let mvar ← mkFreshExprMVarQ q($e₁' = $e₂')
   return ⟨Expr.mvarId! mvar, q(NF.eq_of_eq_mul $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $mvar)⟩
 
