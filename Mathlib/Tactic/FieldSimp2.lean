@@ -625,14 +625,14 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
     let ⟨l₁, pf₁⟩ ← normalize disch iM x₁
     let ⟨l₂, pf₂⟩ ← normalize disch iM x₂
     -- build the new list and proof
-    have pf := qNF.mkMulProof q(inferInstance) l₁ l₂
+    have pf := qNF.mkMulProof iM l₁ l₂
     pure ⟨qNF.mul l₁ l₂, (q(NF.mul_eq_eval $pf₁ $pf₂ $pf))⟩
   /- normalize a division: `x₁ / x₂` -/
   | ~q($x₁ / $x₂) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM x₁
     let ⟨l₂, pf₂⟩ ← normalize disch iM x₂
     -- build the new list and proof
-    let pf := qNF.mkDivProof q(inferInstance) l₁ l₂
+    let pf := qNF.mkDivProof iM l₁ l₂
     pure ⟨qNF.div l₁ l₂, (q(NF.div_eq_eval $pf₁ $pf₂ $pf))⟩
   /- normalize a inversion: `y⁻¹` -/
   | ~q($y⁻¹) =>
@@ -642,8 +642,6 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
   | ~q(HAdd.hAdd (self := @instHAdd _ $i) $a $b) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
-    let iM ← synthInstanceQ q(Semifield $M)
-    assumeInstancesCommute
     let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd q(inferInstance) l₂ disch
     let ⟨e₁, pf₁''⟩ ← qNF.evalPretty disch q(inferInstance) l₁'
     let ⟨e₂, pf₂''⟩ ← qNF.evalPretty disch q(inferInstance) l₂'
@@ -651,10 +649,10 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
     let ⟨sum, pf_atom⟩ ← baseCase e
     let L' := qNF.mul L sum
     let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
-      qNF.mkMulProof q(inferInstance) L sum
-    pure ⟨L',
-      (q(NF.add_eq_eval $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul))
-    ⟩
+      qNF.mkMulProof iM L sum
+    let _i ← synthInstanceQ q(Semifield $M)
+    assumeInstancesCommute
+    pure ⟨L', q(NF.add_eq_eval $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul)⟩
   /- normalize an integer exponentiation: `y ^ (s : ℤ)` -/
   | ~q($y ^ ($s : ℤ)) =>
     let some s := Expr.int? s | baseCase x
