@@ -614,8 +614,8 @@ where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
 Possible TODO, if poor performance on large problems is witnessed: switch the implementation from
 `AtomM` to `CanonM`, per the discussion
 https://github.com/leanprover-community/mathlib4/pull/16593/files#r1749623191 -/
-partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $M)) (x : Q($M)) :
-    AtomM (Σ l : qNF M, Q($x = NF.eval $(l.toNF))) := do
+partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M))
+    (x : Q($M)) : AtomM (Σ l : qNF M, Q($x = NF.eval $(l.toNF))) := do
   let baseCase (y : Q($M)) : AtomM (Σ l : qNF M, Q($y = NF.eval $(l.toNF))):= do
     let (k, ⟨x', _⟩) ← AtomM.addAtomQ y
     pure ⟨[((1, x'), k)], q(NF.atom_eq_eval $x')⟩
@@ -639,9 +639,11 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $
     let ⟨l, pf⟩ ← normalize disch iM y
     -- build the new list and proof
     pure ⟨l.onExponent Neg.neg, (q(NF.inv_eq_eval $pf):)⟩
-  | ~q($a + $b) =>
+  | ~q(HAdd.hAdd (self := @instHAdd _ $i) $a $b) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
+    let iM ← synthInstanceQ q(Semifield $M)
+    assumeInstancesCommute
     let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd q(inferInstance) l₂ disch
     let ⟨e₁, pf₁''⟩ ← qNF.evalPretty disch q(inferInstance) l₁'
     let ⟨e₂, pf₂''⟩ ← qNF.evalPretty disch q(inferInstance) l₂'
@@ -683,7 +685,7 @@ where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
 
 Version with "pretty" output. -/
 def normalizePretty (disch : Expr → MetaM (Option Expr))
-    (iM : Q(Semifield $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
+    (iM : Q(CommGroupWithZero $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
   let ⟨l, pf⟩ ← normalize disch iM x
   let ⟨x', pf'⟩ ← l.evalPretty disch q(inferInstance)
   return ⟨x', q(Eq.trans $pf $pf')⟩
@@ -691,7 +693,7 @@ def normalizePretty (disch : Expr → MetaM (Option Expr))
 def qNF.expIds (l : qNF M) : List (ℤ × ℕ) := List.map (fun p ↦ (p.1.1, p.2)) l
 
 /-- Given `e₁` and `e₂`, construct a new goal which is sufficient to prove `e₁ = e₂`. -/
-def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $M)) (e₁ e₂ : Q($M)) :
+def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)) (e₁ e₂ : Q($M)) :
     AtomM (MVarId × Q($e₁ = $e₂)) := do
   let ⟨l₁, pf₁⟩ ← normalize disch iM e₁
   let ⟨l₂, pf₂⟩ ← normalize disch iM e₂
@@ -757,8 +759,8 @@ elab "field_simp2 " d:(discharger)? : conv => do
   let x ← Conv.getLhs
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, _⟩ ← inferTypeQ' x
-  -- find a `Semifield` instance on `K`
-  let iK : Q(Semifield $K) ← synthInstanceQ q(Semifield $K)
+  -- find a `CommGroupWithZero` instance on `K`
+  let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
   -- run the core normalization function `normalizePretty` on `x`
   let ⟨e, pf⟩ ← AtomM.run .reducible <| normalizePretty disch iK x
   -- convert `x` to the output of the normalization
@@ -772,8 +774,8 @@ elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
   let some ⟨_, a, b⟩ := t.eq? | throwError "field_simp proves only equality goals"
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, a⟩ ← inferTypeQ' a
-  -- find a `Semifield` instance on `K`
-  let iK : Q(Semifield $K) ← synthInstanceQ q(Semifield $K)
+  -- find a `CommGroupWithZero` instance on `K`
+  let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
   -- run the core equality-proving mechanism on `x`
   let ⟨g', pf⟩ ← AtomM.run .reducible <| proveEq disch iK a b
   g.assign pf
