@@ -970,6 +970,11 @@ example (_ : 0 < x + 1) (_ : 0 < y + 1) : x / (x + 1) + y / (y + 1)
     = (x + 1) ^ (-1:ℤ) * (y + 1) ^ (-1:ℤ) * (x * (y + 1) + (x + 1) * y) := by
   conv_lhs => field_simp2
 
+-- TODO decide desired behaviour on this example
+example (hy : y ≠ 0) (hz : z ≠ 0) : x / y = x / z := by
+  field_simp2
+  sorry
+
 /-! ### Equality goals -/
 
 example : (1:ℚ) / 3 + 1 / 6 = 1 / 2 := by
