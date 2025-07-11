@@ -419,8 +419,8 @@ def evalPrettyMonomial (iM : Q(GroupWithZero $M)) (r : ℤ) (x : Q($M)) :
     let pf ← mkDecideProofQ q($r ≠ 0)
     return ⟨q($x ^ $r), q(zpow'_of_ne_zero_right _ _ $pf)⟩
 
-def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)) (l : qNF M) : MetaM <|
-    Σ l' : qNF M, Q(NF.eval $(l.toNF) = NF.eval $(l'.toNF)) :=
+def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)) (l : qNF M) :
+    MetaM <| Σ l' : qNF M, Q(NF.eval $(l.toNF) = NF.eval $(l'.toNF)) :=
   match l with
   | [] => return ⟨[], q(sorry)⟩
   | ((r, x), i) :: t => do
@@ -470,15 +470,12 @@ appear in `l₁`, `l₂` respectively with the same `ℕ`-component `k`, then co
 def mul : qNF q($M) → qNF q($M) → qNF q($M)
   | [], l => l
   | l, [] => l
-  | ((a₁, x₁), k₁) :: (t₁ : qNF q($M)), ((a₂, x₂), k₂) :: (t₂ : qNF q($M)) =>
+  | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
     if k₁ > k₂ then
       ((a₁, x₁), k₁) :: mul t₁ (((a₂, x₂), k₂) :: t₂)
     else if k₁ = k₂ then
       /- If we can prove that the atom is nonzero then we could remove it from this list,
       but this will be done at a later stage. -/
-      -- if a₁ + a₂ = 0 then
-      --   mul t₁ t₂
-      -- else
       ((a₁ + a₂, x₁), k₁) :: mul t₁ t₂
     else
       ((a₂, x₂), k₂) :: mul (((a₁, x₁), k₁) :: t₁) t₂
@@ -492,23 +489,13 @@ def mkMulProof (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) :
   match l₁, l₂ with
   | [], l => (q(one_mul (NF.eval $(l.toNF))):)
   | l, [] => (q(mul_one (NF.eval $(l.toNF))):)
-  | l₁@((a₁, x₁), k₁) :: (t₁ : qNF q($M)), l₂@((a₂, x₂), k₂) :: (t₂ : qNF q($M)) =>
+  | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
     if k₁ > k₂ then
       let pf := mkMulProof iM t₁ (((a₂, x₂), k₂) :: t₂)
       (q(NF.mul_eq_eval₁ ($a₁, $x₁) $pf):)
     else if k₁ = k₂ then
       let pf := mkMulProof iM t₁ t₂
       (q(NF.mul_eq_eval₂ $a₁ $a₂ $x₁ $pf):)
-      -- (q(NF.mul_eq_eval₂' $x₁ $pf))
-      -- if a₁ + a₂ = 0 then
-      --   -- how do you quote a proof of a `ℤ` equality?
-      --   let h : Q($a₁ + $a₂ = 0) := (q(Eq.refl (0:ℤ)):)
-      --   (q(NF.mul_eq_eval₂ $h $x₁ $pf):)
-      -- else
-      --   -- how do you quote a proof of a `ℤ` disequality?
-      --   let z : Q(decide ($a₁ + $a₂ ≠ 0) = true) := (q(Eq.refl true):)
-      --   let h : Q($a₁ + $a₂ ≠ 0) := q(of_decide_eq_true $z)
-      --   (q(NF.mul_eq_eval₂' $h $x₁ $pf):)
     else
       let pf := mkMulProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(NF.mul_eq_eval₃ ($a₂, $x₂) $pf):)
@@ -540,10 +527,7 @@ def div : qNF M → qNF M → qNF M
     if k₁ > k₂ then
       ((a₁, x₁), k₁) :: div t₁ (((a₂, x₂), k₂) :: t₂)
     else if k₁ = k₂ then
-      -- if a₁ - a₂ = 0 then
-      --   div t₁ t₂
-      -- else
-        ((a₁ - a₂, x₁), k₁) :: div t₁ t₂
+      ((a₁ - a₂, x₁), k₁) :: div t₁ t₂
     else
       ((-a₂, x₂), k₂) :: div (((a₁, x₁), k₁) :: t₁) t₂
 
@@ -654,11 +638,7 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(Semifield $
   | ~q($y⁻¹) =>
     let ⟨l, pf⟩ ← normalize disch iM y
     -- build the new list and proof
-    pure ⟨l.onExponent Neg.neg,
-      (q(NF.inv_eq_eval $pf):)
-      -- q(sorry)
-
-      ⟩
+    pure ⟨l.onExponent Neg.neg, (q(NF.inv_eq_eval $pf):)⟩
   | ~q($a + $b) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
