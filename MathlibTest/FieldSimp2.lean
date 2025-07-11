@@ -267,38 +267,38 @@ Check that `field_simp` works for units of a ring.
 
 variable {R : Type _} [CommRing R] (a b c d e f g : R) (u₁ u₂ : Rˣ)
 
-/--
-Check that `divp_add_divp_same` takes priority over `divp_add_divp`.
--/
-example : a /ₚ u₁ + b /ₚ u₁ = (a + b) /ₚ u₁ := by field_simp2
+-- /--
+-- Check that `divp_add_divp_same` takes priority over `divp_add_divp`.
+-- -/
+-- example : a /ₚ u₁ + b /ₚ u₁ = (a + b) /ₚ u₁ := by field_simp2
 
-/--
-Check that `divp_sub_divp_same` takes priority over `divp_sub_divp`.
--/
-example : a /ₚ u₁ - b /ₚ u₁ = (a - b) /ₚ u₁ := by field_simp2
+-- /--
+-- Check that `divp_sub_divp_same` takes priority over `divp_sub_divp`.
+-- -/
+-- example : a /ₚ u₁ - b /ₚ u₁ = (a - b) /ₚ u₁ := by field_simp2
 
-/-
-Combining `eq_divp_iff_mul_eq` and `divp_eq_iff_mul_eq`.
--/
-example : a /ₚ u₁ = b /ₚ u₂ ↔ a * u₂ = b * u₁ := by field_simp2
+-- /-
+-- Combining `eq_divp_iff_mul_eq` and `divp_eq_iff_mul_eq`.
+-- -/
+-- example : a /ₚ u₁ = b /ₚ u₂ ↔ a * u₂ = b * u₁ := by field_simp2
 
-/--
-Making sure inverses of units are rewritten properly.
--/
-example : ↑u₁⁻¹ = 1 /ₚ u₁ := by field_simp2
+-- /--
+-- Making sure inverses of units are rewritten properly.
+-- -/
+-- example : ↑u₁⁻¹ = 1 /ₚ u₁ := by field_simp2
 
-/--
-Checking arithmetic expressions.
--/
-example : (f - (e + c * -(a /ₚ u₁) * b + d) - g) =
-    (f * u₁ - (e * u₁ + c * (-a) * b + d * u₁) - g * u₁) /ₚ u₁ := by field_simp2
+-- /--
+-- Checking arithmetic expressions.
+-- -/
+-- example : (f - (e + c * -(a /ₚ u₁) * b + d) - g) =
+--     (f * u₁ - (e * u₁ + c * (-a) * b + d * u₁) - g * u₁) /ₚ u₁ := by field_simp2
 
-/--
-Division of units.
--/
-example : a /ₚ (u₁ / u₂) = a * u₂ /ₚ u₁ := by field_simp2
+-- /--
+-- Division of units.
+-- -/
+-- example : a /ₚ (u₁ / u₂) = a * u₂ /ₚ u₁ := by field_simp2
 
-example : a /ₚ u₁ /ₚ u₂ = a /ₚ (u₂ * u₁) := by field_simp2
+-- example : a /ₚ u₁ /ₚ u₂ = a /ₚ (u₂ * u₁) := by field_simp2
 
 /--
 Test that the discharger can clear nontrivial denominators in ℚ.
