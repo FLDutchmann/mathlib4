@@ -2,6 +2,7 @@ import Mathlib.Algebra.Order.Field.Rat
 import Mathlib.Algebra.Ring.Basic
 import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.FieldSimp2
+import Mathlib.Tactic.Positivity
 import Mathlib.Tactic.Ring
 
 /-!
@@ -203,19 +204,16 @@ example (hy : y ≠ 0) (hz : z ≠ 0) : x / y = x / z := by
 /-! ### Equality goals -/
 
 example : (1:ℚ) / 3 + 1 / 6 = 1 / 2 := by
-  /- TODO: should the default discharger handle this? -/
-  field_simp2 (disch := norm_num)
-  norm_cast
+  field_simp2
+  norm_num
 
 example : x / (x + y) + y / (x + y) = 1 := by
   have : x + y ≠ 0 := sorry
-  field_simp2 (disch := assumption)
+  field_simp2
   rfl
 
-/- TODO: we don't have all the right positivity extensions in this file to make this test work -/
 example (hx : 0 < x) : ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
-  have : x^2 + y^2 ≠ 0 := by sorry
-  field_simp2 (disch := assumption)
+  field_simp2
   guard_target = (x ^ 2 - y ^ 2) ^ 2 + x ^ 2 * y ^ 2 * 2 ^ 2 = (x ^ 2 + y ^ 2) ^ 2
   sorry
 
@@ -225,21 +223,33 @@ example {K : Type*} [Semifield K] (hK : ∀ x : K, 1 + x ^ 2 ≠ 0) (x y : K) (h
   /- TODO: re-extract this test, `Semifield` is not a strong enough typeclass. -/
   have : (y+1)^2 + x^2 ≠ 0 := by
     sorry
-  field_simp2 (disch := assumption)
+  field_simp2
   /- TODO: do we want field_simp to cancel the x on either side? This is a consequence of how
     we defined qNF.gcd -/
   guard_target = 2 *  (y + 1) = ((y + 1) ^ 2 + x ^ 2)
   sorry
 
 -- from Set.IsoIoo
-/- TODO: The default discharger doesn't work here -/
+-- TODO decide what pattern we expect from our users here
+section
+
 example {K : Type*} [Field K] (x y z : K) (hy : 1-y ≠ 0) :
     x / (1 - y) / (1 + y / (1 - y)) = z := by
   have : 1 - y + y ≠ 0 := by
     sorry
-  field_simp2 (disch := assumption)
+  field_simp2
   guard_target = x = (1 - y + y) * z
   sorry
+
+example {K : Type*} [Field K] (x y z : K) (hy : 1-y ≠ 0) :
+    x / (1 - y) / (1 + y / (1 - y)) = z := by
+  field_simp2
+  ring_nf
+  field_simp2
+  guard_target = x = z
+  sorry
+
+end
 
 /-! ### Tests from the former `field_simp` file -/
 

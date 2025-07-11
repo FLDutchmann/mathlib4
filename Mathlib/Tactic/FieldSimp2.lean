@@ -5,7 +5,7 @@ Authors: Heather Macbeth
 -/
 import Mathlib.Algebra.BigOperators.Group.List.Basic
 import Mathlib.Algebra.Field.Rat
-import Mathlib.Tactic.Positivity.Core
+import Mathlib.Tactic.FieldSimp
 import Mathlib.Util.AtomM
 
 
@@ -737,17 +737,17 @@ def tacticToDischarge (tacticCode : TSyntax `tactic) : Expr → MetaM (Option Ex
 
     return result?
 
-def positivityDischarge : MetaM (Expr → MetaM (Option Expr)) := do
-  pure <| tacticToDischarge (← `(tactic| positivity))
+def defaultDischarge : MetaM (Expr → MetaM (Option Expr)) := do
+  pure <| tacticToDischarge (← `(tactic| field_simp_discharge))
 
 def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger)) :
   MetaM (Expr → MetaM (Option Expr)) := do
     match d with
-    | none => pure <| ← positivityDischarge
+    | none => pure <| ← defaultDischarge
     | some d =>
       match d with
       | `(discharger| (discharger:=$tac)) => pure <| tacticToDischarge (← `(tactic| ($tac)))
-      | _ => pure <| ← positivityDischarge
+      | _ => pure <| ← defaultDischarge
 
 /-- Conv tactic for field_simp normalisation.
 Wraps the `MetaM` normalization function `normalize`. -/
