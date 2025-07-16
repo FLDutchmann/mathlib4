@@ -9,6 +9,8 @@ import Mathlib.Tactic.Ring
 ## `field_simp` tests.
 -/
 
+private axiom test_sorry : ∀ {α}, α
+
 variable {x y z : ℚ}
 
 /-- info: 1 -/
@@ -199,7 +201,7 @@ example (_ : 0 < x + 1) (_ : 0 < y + 1) : x / (x + 1) + y / (y + 1)
 -- TODO decide desired behaviour on this example
 example (hy : y ≠ 0) (hz : z ≠ 0) (hx : x = 0) : x / y = x / z := by
   field_simp2 -- if this cancels the `x` it renders it unsolvable
-  sorry
+  exact test_sorry
 
 /-! ### Equality goals -/
 
@@ -208,46 +210,45 @@ example : (1:ℚ) / 3 + 1 / 6 = 1 / 2 := by
   norm_num
 
 example : x / (x + y) + y / (x + y) = 1 := by
-  have : x + y ≠ 0 := sorry
+  have : x + y ≠ 0 := test_sorry
   field_simp2
   rfl
 
-example (hx : 0 < x) : ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
+example (hx : 0 < x) :
+    ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
   field_simp2
   guard_target = (x ^ 2 - y ^ 2) ^ 2 + x ^ 2 * y ^ 2 * 2 ^ 2 = (x ^ 2 + y ^ 2) ^ 2
-  sorry
+  exact test_sorry
 
 -- from PythagoreanTriples
 example {K : Type*} [Semifield K] (hK : ∀ x : K, 1 + x ^ 2 ≠ 0) (x y : K) (hy : y + 1 ≠ 0) :
     2 * (x / (y + 1)) / (1 + (x / (y + 1)) ^ 2) = x := by
   /- TODO: re-extract this test, `Semifield` is not a strong enough typeclass. -/
-  have : (y+1)^2 + x^2 ≠ 0 := by
-    sorry
+  have : (y+1)^2 + x^2 ≠ 0 := test_sorry
   field_simp2
   /- TODO: do we want field_simp to cancel the x on either side? This is a consequence of how
     we defined qNF.gcd -/
   guard_target = 2 *  (y + 1) = ((y + 1) ^ 2 + x ^ 2)
-  sorry
+  exact test_sorry
 
 -- from Set.IsoIoo
 -- TODO decide what pattern we expect from our users here
 section
 
-example {K : Type*} [Field K] (x y z : K) (hy : 1-y ≠ 0) :
+example {K : Type*} [Field K] (x y z : K) (hy : 1 - y ≠ 0) :
     x / (1 - y) / (1 + y / (1 - y)) = z := by
-  have : 1 - y + y ≠ 0 := by
-    sorry
+  have : 1 - y + y ≠ 0 := test_sorry
   field_simp2
   guard_target = x = (1 - y + y) * z
-  sorry
+  exact test_sorry
 
-example {K : Type*} [Field K] (x y z : K) (hy : 1-y ≠ 0) :
+example {K : Type*} [Field K] (x y z : K) (hy : 1 - y ≠ 0) :
     x / (1 - y) / (1 + y / (1 - y)) = z := by
   field_simp2
   ring_nf
   field_simp2
   guard_target = x = z
-  sorry
+  exact test_sorry
 
 end
 
@@ -256,10 +257,11 @@ end
 /--
 Test that the discharger can clear nontrivial denominators in ℚ.
 -/
-example (x : ℚ) (h₀ : x ≠ 0) : (4 / x)⁻¹ * ((3 * x^3) / x)^2 * ((1 / (2 * x))⁻¹)^3 = 18 * x^8 := by
+example (x : ℚ) (h₀ : x ≠ 0) :
+    (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
   field_simp2
   guard_target = (3 : ℚ) ^ 2 * 2 ^ 3 = 4 * 18
-  sorry
+  exact test_sorry
 
 /-
 Check that `field_simp` works for units of a ring.
@@ -304,19 +306,19 @@ variable {R : Type _} [CommRing R] (a b c d e f g : R) (u₁ u₂ : Rˣ)
 Test that the discharger can clear nontrivial denominators in ℚ.
 -/
 example (x : ℚ) (h₀ : x ≠ 0) :
-    (4 / x)⁻¹ * ((3 * x^3) / x)^2 * ((1 / (2 * x))⁻¹)^3 = 18 * x^8 := by
+    (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
   field_simp2
   ring
 
 /-- Use a custom discharger -/
 example (x : ℚ) (h₀ : x ≠ 0) :
-    (4 / x)⁻¹ * ((3 * x^3) / x)^2 * ((1 / (2 * x))⁻¹)^3 = 18 * x^8 := by
+    (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
   field_simp2 (discharger := simp; assumption)
   ring
 
 -- /-- Specify a simp config. -/
 -- example (x : ℚ) (h₀ : x ≠ 0) :
---     (4 / x)⁻¹ * ((3 * x^3) / x)^2 * ((1 / (2 * x))⁻¹)^3 = 18 * x^8 := by
+--     (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
 --   fail_if_success field_simp2 (config := {maxSteps := 0})
 --   field_simp2 (config := {})
 --   ring
