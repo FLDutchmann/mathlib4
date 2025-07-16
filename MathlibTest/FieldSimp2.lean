@@ -197,8 +197,8 @@ example (_ : 0 < x + 1) (_ : 0 < y + 1) : x / (x + 1) + y / (y + 1)
   conv_lhs => field_simp2
 
 -- TODO decide desired behaviour on this example
-example (hy : y ≠ 0) (hz : z ≠ 0) : x / y = x / z := by
-  field_simp2
+example (hy : y ≠ 0) (hz : z ≠ 0) (hx : x = 0) : x / y = x / z := by
+  field_simp2 -- if this cancels the `x` it renders it unsolvable
   sorry
 
 /-! ### Equality goals -/
