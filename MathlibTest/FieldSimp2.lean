@@ -207,12 +207,20 @@ example (hy : y ≠ 0) (hz : z ≠ 0) (hx : x = 0) : x / y = x / z := by
 
 example : (1:ℚ) / 3 + 1 / 6 = 1 / 2 := by
   field_simp2
+  guard_target = ((6:ℚ) + 3) * 2 = 3 * 6
   norm_num
 
 example : x / (x + y) + y / (x + y) = 1 := by
   have : x + y ≠ 0 := test_sorry
   field_simp2
+  -- TODO decide desired behaviour on this example
   rfl
+
+-- TODO express using subtraction, once that's supported by `field_simp2`
+example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) + (-1) / b = 0 := by
+  field_simp2
+  guard_target = b ^ (-1:ℤ) * (1 + -1) = 0
+  ring
 
 example (hx : 0 < x) :
     ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
