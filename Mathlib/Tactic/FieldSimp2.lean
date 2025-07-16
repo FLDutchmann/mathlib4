@@ -467,13 +467,6 @@ def mkMulProof (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) :
       let pf := mkMulProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(NF.mul_eq_eval₃ ($a₂, $x₂) $pf):)
 
-
-def inv (l : qNF M) : qNF M := l.onExponent Neg.neg
-
-def mkInvProof (iM : Q(GroupWithZero $M)) (l : qNF M) :
-    Q(NF.eval $(l.toNF) ⁻¹ = NF.eval $((l.inv.toNF))) :=
-  q(sorry)
-
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), construct another such term `l`, which will have the property that in
 the field `$M`, the quotient of the "multiplicative linear combinations" represented by `l₁` and
