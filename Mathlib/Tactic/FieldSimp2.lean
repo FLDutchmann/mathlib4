@@ -228,6 +228,11 @@ theorem div_eq_eval [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx�
     x₁ / x₂ = l.eval := by
   rw [hx₁, hx₂, h]
 
+theorem eval_mul_eval_cons [GroupWithZero M] (n : ℤ) (e : M) {L l l' : List (ℤ × M)}
+    (h : NF.eval L * NF.eval l = NF.eval l') :
+    NF.eval L * ((n, e) ::ᵣ l).eval = ((n, e) ::ᵣ l').eval := by
+  rw [eval_cons, eval_cons, ← h, mul_assoc]
+
 theorem add_eq_eval [Semifield M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a b y : M}
     (h₁ : x₁ = X₁) (h₂ : x₂ = X₂)
     (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
@@ -524,10 +529,10 @@ partial def gcd (iM : Q(GroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr → 
     let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM l₁ l₂ disch
     if 0 < n then
       -- Don't pull anything out
-      return ⟨L, ((n, e), i) :: l₁', l₂', q(sorry), q($pf₂)⟩
+      return ⟨L, ((n, e), i) :: l₁', l₂', (q(NF.eval_mul_eval_cons $n $e $pf₁):), q($pf₂)⟩
     else if n = 0 then
       -- Don't pull anything out, but eliminate the term if it is a cancellable zero
-      let ⟨l₁'', pf⟩ ← tryClearZero disch iM n e i l₁'
+      let ⟨l₁'', pf⟩ ← tryClearZero disch iM 0 e i l₁'
       return ⟨L, l₁'', l₂', q(sorry), q($pf₂)⟩
     match ← disch q($e ≠ 0) with
     | .some pf =>
@@ -536,7 +541,7 @@ partial def gcd (iM : Q(GroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr → 
       return ⟨((n, e), i) :: L, l₁', ((-n, e), i) :: l₂', q(sorry), q(sorry)⟩
     | .none =>
       -- if we can't prove nonzeroness, don't pull out e.
-      return ⟨L, ((n, e), i) :: l₁', l₂', q(sorry), q($pf₂)⟩
+      return ⟨L, ((n, e), i) :: l₁', l₂', (q(NF.eval_mul_eval_cons $n $e $pf₁):), q($pf₂)⟩
 
   match l₁, l₂ with
   | [], [] => pure ⟨[], [], [],
