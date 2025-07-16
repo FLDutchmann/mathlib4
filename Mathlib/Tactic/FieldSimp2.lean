@@ -191,15 +191,8 @@ theorem mul_eq_eval₁ [CommGroupWithZero M] (a₁ : ℤ × M) {a₂ : ℤ × M}
   congr! 1
   rw [mul_comm, mul_assoc]
 
--- theorem mul_eq_eval₂ [GroupWithZero M] {r₁ r₂ : ℤ} (hr : r₁ + r₂ = 0) (x : M)
---     {l₁ l₂ l : NF M} (h : l₁.eval * l₂.eval = l.eval) :
---     ((r₁, x) ::ᵣ l₁).eval * ((r₂, x) ::ᵣ l₂).eval = ((0, x) ::ᵣ l).eval := by
---   simp only [← h, eval_cons, mul_assoc]
---   congr! 1
---   rw [mul_comm, mul_assoc, ← zpow'_add, add_comm, hr]
-
-theorem mul_eq_eval₂ [CommGroupWithZero M] (r₁ r₂ : ℤ) (x : M)
-    {l₁ l₂ l : NF M} (h : l₁.eval * l₂.eval = l.eval) :
+theorem mul_eq_eval₂ [CommGroupWithZero M] (r₁ r₂ : ℤ) (x : M) {l₁ l₂ l : NF M}
+    (h : l₁.eval * l₂.eval = l.eval) :
     ((r₁, x) ::ᵣ l₁).eval * ((r₂, x) ::ᵣ l₂).eval = ((r₁ + r₂, x) ::ᵣ l).eval := by
   simp [zpow'_add, ← h]
   rw [mul_assoc, mul_comm (zpow' _ _), mul_assoc, mul_comm (zpow' _ _), mul_assoc]
@@ -222,39 +215,19 @@ theorem div_eq_eval₁ [CommGroupWithZero M] (a₁ : ℤ × M) {a₂ : ℤ × M}
   congr! 1
   rw [mul_comm]
 
-theorem div_eq_eval₂ [CommGroupWithZero M] {r₁ r₂ : ℤ} (hr : r₁ - r₂ = 0) (x : M) (hx : x ≠ 0)
-    {l₁ l₂ l : NF M} (h : l₁.eval / l₂.eval = l.eval) :
-    ((r₁, x) ::ᵣ l₁).eval / ((r₂, x) ::ᵣ l₂).eval = l.eval := by
+theorem div_eq_eval₂ [CommGroupWithZero M] (r₁ r₂ : ℤ) (x : M) {l₁ l₂ l : NF M}
+    (h : l₁.eval / l₂.eval = l.eval) :
+    ((r₁, x) ::ᵣ l₁).eval / ((r₂, x) ::ᵣ l₂).eval = ((r₁ - r₂, x) ::ᵣ l).eval := by
   simp only [← h, eval_cons, div_eq_mul_inv, mul_inv, mul_zpow, ← zpow'_neg, mul_assoc]
   congr! 1
   rw [mul_comm, mul_assoc]
   nth_rewrite 2 [mul_comm]
-  rw [← zpow'_add, ← sub_eq_add_neg, hr]
-  stop
-  simp
+  rw [← zpow'_add, ← sub_eq_add_neg]
 
-theorem div_eq_eval₂' [GroupWithZero M] {r₁ r₂ : ℤ} (hr : r₁ - r₂ ≠ 0) (x : M)
-    {l₁ l₂ l : NF M} (h : l₁.eval / l₂.eval = l.eval) :
-    ((r₁, x) ::ᵣ l₁).eval / ((r₂, x) ::ᵣ l₂).eval = ((r₁ - r₂, x) ::ᵣ l).eval := by
-  stop
-  simp only [← h, eval_cons, sub_neg_eq_add, zpow_neg]
-  obtain rfl | h := eq_or_ne x 0
-  · rw [zero_zpow _ hr]
-    obtain hr₁ | hr₂ : r₁ ≠ 0 ∨ r₂ ≠ 0 := by omega
-    · simp [zero_zpow _ hr₁]
-    · simp [zero_zpow _ hr₂]
-  simp only [zpow_sub₀ h, mul_assoc]
-  simp only [pow_add, div_eq_mul_inv, mul_inv, mul_assoc, inv_inv]
-  congr! 1
-  simp only [← mul_assoc]
-  congr! 1
-  rw [mul_comm]
-
-theorem div_eq_eval₃ [GroupWithZero M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l₁ l₂ l : NF M}
+theorem div_eq_eval₃ [CommGroupWithZero M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l₁ l₂ l : NF M}
     (h : (a₁ ::ᵣ l₁).eval / l₂.eval = l.eval) :
     (a₁ ::ᵣ l₁).eval / (a₂ ::ᵣ l₂).eval = ((-a₂.1, a₂.2) ::ᵣ l).eval := by
-  stop
-  simp only [eval_cons, zpow_neg, mul_inv, div_eq_mul_inv, ← h, ← mul_assoc]
+  simp only [eval_cons, ← h, zpow'_neg, div_eq_mul_inv, mul_inv, mul_assoc]
 
 theorem div_eq_eval [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
     (hx₂ : x₂ = l₂.eval) (h : l₁.eval / l₂.eval = l.eval) :
@@ -538,18 +511,18 @@ linear combination represented by `FieldSimp.qNF.div l₁ l₁`. -/
 def mkDivProof (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) :
     Q(NF.eval $(l₁.toNF) / NF.eval $(l₂.toNF) = NF.eval $((qNF.div l₁ l₂).toNF)) :=
   match l₁, l₂ with
-  | [], l => (q(sorry /-NF.one_div_eq_eval $(l.toNF)-/))
-  | l, [] => (q(sorry /-div_one (NF.eval $(l.toNF))-/))
+  | [], l => (q(NF.one_div_eq_eval $(l.toNF)):)
+  | l, [] => (q(div_one (NF.eval $(l.toNF))):)
   | ((a₁, x₁), k₁) :: t₁, ((a₂, x₂), k₂) :: t₂ =>
     if k₁ > k₂ then
       let pf := mkDivProof iM t₁ (((a₂, x₂), k₂) :: t₂)
-      q(sorry) --(q(NF.div_eq_eval₁ ($a₁, $x₁) $pf):)
+      (q(NF.div_eq_eval₁ ($a₁, $x₁) $pf):)
     else if k₁ = k₂ then
       let pf := mkDivProof iM t₁ t₂
-      (q(sorry /-NF.div_eq_eval₂' $h $x₁ $pf-/))
+      (q(NF.div_eq_eval₂ $a₁ $a₂ $x₁ $pf):)
     else
       let pf := mkDivProof iM (((a₁, x₁), k₁) :: t₁) t₂
-      (q(sorry/- NF.div_eq_eval₃ ($a₂, $x₂) $pf -/))
+      (q(NF.div_eq_eval₃ ($a₂, $x₂) $pf):)
 
 partial def gcd (iM : Q(GroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr → MetaM (Option Expr)) :
   MetaM <| Σ (L l₁' l₂' : qNF M),
