@@ -306,22 +306,21 @@ theorem _root_.List.prod_zpow {β : Type*} [DivisionCommMonoid β] {r : ℤ} {l 
   let fr : β →* β := ⟨⟨fun b ↦ b ^ r, one_zpow r⟩, (mul_zpow · · r)⟩
   map_list_prod fr l
 
-theorem eval_zpow [CommGroupWithZero M] {l : NF M} {x : M} (h : x = l.eval) (r : ℤ) :
-    (l ^ r).eval = zpow' x r := by
-  unfold NF.eval at h ⊢
-  simp only [h, List.prod'_zpow', map_map, NF.zpow_apply]
+theorem eval_zpow' [CommGroupWithZero M] (l : NF M) (r : ℤ) :
+    (l ^ r).eval = zpow' l.eval r := by
+  unfold NF.eval at ⊢
+  simp only [List.prod'_zpow', map_map, NF.zpow_apply]
   congr
   ext p
   simp [← zpow'_mul, mul_comm]
 
+theorem zpow_eq_eval [CommGroupWithZero M] {l : NF M} {r : ℤ} (hr : r ≠ 0) {x : M}
+    (hx : x = l.eval) :
+    x ^ r = (l ^ r).eval := by
+  rw [← zpow'_of_ne_zero_right x r hr, eval_zpow', hx]
 
-theorem zpow'_eq_eval [CommGroupWithZero M] {l : NF M} (r : ℤ) {x : M} (hx : x = l.eval) :
-    zpow' x r = (l ^ r).eval := by
-  rw [hx, eval_zpow]
-  rfl
-
--- theorem zpow_zero_eq_eval [GroupWithZero M] (x : M) : zpow' x (0:ℤ) = NF.eval [] := by
---   rw [zpow_zero, one_eq_eval]
+theorem zpow_zero_eq_eval [GroupWithZero M] (x : M) : x ^ (0:ℤ) = NF.eval [] := by
+  rw [zpow_zero, one_eq_eval]
 
 instance : Pow (NF M) ℕ where
   pow l r := l.map fun (a, x) ↦ (r * a, x)
@@ -335,29 +334,17 @@ theorem _root_.List.prod_pow {β : Type*} [CommMonoid β] {r : ℕ} {l : List β
   let fr : β →* β := ⟨⟨fun b ↦ b ^ r, one_pow r⟩, (mul_pow · · r)⟩
   map_list_prod fr l
 
-theorem eval_pow [GroupWithZero M] {l : NF M} {x : M} (h : x = l.eval) (r : ℕ) :
-    (l ^ r).eval = zpow' x r := by
-  stop
-  unfold NF.eval at h ⊢
-  simp only [h, prod'_pow, map_map, NF.pow_apply]
-  congr! 2
-  -- ext p
-  dsimp
-  rw [mul_comm, zpow'_mul]
-  norm_cast
+theorem eval_pow [CommGroupWithZero M] (l : NF M) (r : ℕ) : (l ^ r).eval = zpow' l.eval r :=
+  eval_zpow' l r
 
-
-theorem pow_eq_eval [GroupWithZero M] {l : NF M} (r : ℕ) (hr : r ≠ 0) {x : M} (hx : x = l.eval) :
+theorem pow_eq_eval [CommGroupWithZero M] {l : NF M} {r : ℕ} (hr : r ≠ 0) {x : M}
+    (hx : x = l.eval) :
     x ^ r = (l ^ r).eval := by
-  stop
-  rw [hx, eval_pow]
-  sorry
-
-
+  rw [eval_pow, hx]
+  rw [zpow'_ofNat _ hr]
 
 theorem pow_zero_eq_eval [GroupWithZero M] (x : M) : x ^ (0:ℕ) = NF.eval [] := by
   rw [pow_zero, one_eq_eval]
-
 
 theorem eq_of_eq_mul [Mul M] {x₁ x₂ x₁' x₂' X₁ X₁' X₂ X₂' d : M}
     (h₁ : x₁ = X₁) (h₂ : x₂ = X₂) (h₁' : d * X₁' = X₁) (h₂' : d * X₂' = X₂)
@@ -659,21 +646,22 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
   | ~q($y ^ ($s : ℤ)) =>
     let some s := Expr.int? s | baseCase x
     if s = 0 then
-      pure ⟨[], (q(sorry /-NF.zpow_zero_eq_eval $y-/))⟩
+      pure ⟨[], (q(NF.zpow_zero_eq_eval $y):)⟩
     else
       let ⟨l, pf⟩ ← normalize disch iM y
+      let pf_s ← mkDecideProofQ q($s ≠ 0)
       -- build the new list and proof
-      pure ⟨l.onExponent (HMul.hMul s), (q(sorry /-zpow'_eq_eval $s $pf-/))⟩
+      pure ⟨l.onExponent (HMul.hMul s), (q(NF.zpow_eq_eval $pf_s $pf):)⟩
   /- normalize a natural number exponentiation: `y ^ (s : ℕ)` -/
   | ~q($y ^ ($s : ℕ)) =>
     let some s := Expr.nat? s | baseCase x
     if s = 0 then
-      pure ⟨[], (q(sorry /-NF.pow_zero_eq_eval $y-/))⟩
+      pure ⟨[], (q(NF.pow_zero_eq_eval $y):)⟩
     else
       let ⟨l, pf⟩ ← normalize disch iM y
-      have ps : Q($s ≠ 0) := q(sorry)
+      let pf_s ← mkDecideProofQ q($s ≠ 0)
       -- build the new list and proof
-      pure ⟨l.onExponent (HMul.hMul s), (q(sorry /-NF.pow_eq_eval $s $ps $pf-/))⟩
+      pure ⟨l.onExponent (HMul.hMul s), (q(NF.pow_eq_eval $pf_s $pf):)⟩
   /- normalize a `(1:M)` -/
   | ~q(1) => pure ⟨[], q(NF.one_eq_eval $M)⟩
   /- anything else should be treated as an atom -/
