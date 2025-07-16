@@ -52,6 +52,14 @@ lemma one_zpow' (n : ℤ) : zpow' (1 : α) n = 1 := by
 lemma zpow'_one (a : α) : zpow' a 1 = a := by
   simp [zpow']
 
+lemma zpow'_zero_eq_div (a : α) : zpow' a 0 = a / a := by
+  simp [zpow']
+  by_cases h : a = 0
+  · simp [h]
+  · simp [h]
+
+lemma zpow'_zero_of_ne_zero {a : α} (ha : a ≠ 0) : zpow' a 0 = 1 := by simp [zpow', ha]
+
 lemma zpow'_neg (a : α) (n : ℤ) : zpow' a (-n) = (zpow' a n)⁻¹ := by
   simp +contextual [zpow', apply_ite]
   split_ifs with h
@@ -73,12 +81,6 @@ lemma zpow'_mul (a : α) (m n : ℤ) : zpow' a (m * n) = zpow' (zpow' a m) n := 
     simp [zpow', ha]
   simp [zpow', ha, hm, hn]
   exact zpow_mul a m n
-
-lemma zpow'_zero_eq_div (a : α) : zpow' a 0 = a / a := by
-  simp [zpow']
-  by_cases h : a = 0
-  · simp [h]
-  · simp [h]
 
 lemma zpow'_ofNat (a : α) {n : ℕ} (hn : n ≠ 0) : zpow' a n = a ^ n := by
   rw [zpow'_of_ne_zero_right]
@@ -346,6 +348,16 @@ theorem pow_eq_eval [CommGroupWithZero M] {l : NF M} {r : ℕ} (hr : r ≠ 0) {x
 theorem pow_zero_eq_eval [GroupWithZero M] (x : M) : x ^ (0:ℕ) = NF.eval [] := by
   rw [pow_zero, one_eq_eval]
 
+theorem eval_cons_of_pow_eq_zero [GroupWithZero M] {r : ℤ} (hr : r = 0) {x : M} (hx : x ≠ 0)
+    (l : List (ℤ × M)) :
+    ((r, x) ::ᵣ l).eval = NF.eval l := by
+  simp [hr, zpow'_zero_of_ne_zero hx]
+
+theorem eval_cons_eq_eval_of_eq_of_eq [GroupWithZero M] (r : ℤ) (x : M)
+    {t t' l' : List (ℤ × M)} (h : NF.eval t = NF.eval t') (h' : ((r, x) ::ᵣ t').eval = NF.eval l') :
+    ((r, x) ::ᵣ t).eval = NF.eval l' := by
+  rw [← h', eval_cons, eval_cons, h]
+
 theorem eq_of_eq_mul [Mul M] {x₁ x₂ x₁' x₂' X₁ X₁' X₂ X₂' d : M}
     (h₁ : x₁ = X₁) (h₂ : x₂ = X₂) (h₁' : d * X₁' = X₁) (h₂' : d * X₂' = X₂)
     (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂') (h : x₁' = x₂') :
@@ -412,20 +424,23 @@ def tryClearZero (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M
   if r != 0 then
     return ⟨((r, x), i) :: l, q(rfl)⟩
   match ← disch q($x ≠ 0) with
-  | some pf' =>
-    have : Q($r = 0) := ← mkDecideProofQ q($r = 0)
-    return ⟨l, q(sorry)⟩
+  | some (pf' : Q($x ≠ 0)) =>
+    have pf_r : Q($r = 0) := ← mkDecideProofQ q($r = 0)
+    return ⟨l, (q(NF.eval_cons_of_pow_eq_zero $pf_r $pf' $(l.toNF)):)⟩
   | none =>
     return ⟨((r, x), i) :: l, q(rfl)⟩
 
 def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)) (l : qNF M) :
     MetaM <| Σ l' : qNF M, Q(NF.eval $(l.toNF) = NF.eval $(l'.toNF)) :=
   match l with
-  | [] => return ⟨[], q(sorry)⟩
+  | [] => return ⟨[], q(rfl)⟩
   | ((r, x), i) :: t => do
-    let ⟨l', pf⟩ ← removeZeros disch iM t
-    let ⟨l'', pf'⟩ ← tryClearZero disch iM r x i l'
-    return ⟨l'', q(Eq.trans sorry $pf')⟩
+    let ⟨t', pf⟩ ← removeZeros disch iM t
+    let ⟨l', pf'⟩ ← tryClearZero disch iM r x i t'
+    let pf' : Q(NF.eval (($r, $x) ::ᵣ $(qNF.toNF t')) = NF.eval $(qNF.toNF l')) := pf'
+    let pf'' : Q(NF.eval (($r, $x) ::ᵣ $(qNF.toNF t)) = NF.eval $(qNF.toNF l')) :=
+      q(NF.eval_cons_eq_eval_of_eq_of_eq $r $x $pf $pf')
+    return ⟨l', pf''⟩
 
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
 private def evalPretty (iM : Q(GroupWithZero $M)) (l : qNF M) :
