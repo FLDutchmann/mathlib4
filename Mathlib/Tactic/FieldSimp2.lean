@@ -1,7 +1,7 @@
 /-
-Copyright (c) 2024 Heather Macbeth. All rights reserved.
+Copyright (c) 2025 Heather Macbeth. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Heather Macbeth
+Authors: Heather Macbeth, Arend Mellendijk, Michael Rothgang
 -/
 import Mathlib.Algebra.BigOperators.Group.List.Basic
 import Mathlib.Algebra.Field.Rat
@@ -13,8 +13,7 @@ import Mathlib.Util.AtomM
 
 -/
 
-open Lean hiding Module
-open Meta Elab Qq Mathlib.Tactic List
+open Lean Meta Elab Qq Mathlib.Tactic List
 
 section zpow'
 variable {α : Type*}
@@ -65,10 +64,6 @@ lemma zpow'_neg (a : α) (n : ℤ) : zpow' a (-n) = (zpow' a n)⁻¹ := by
   split_ifs with h
   · tauto
   · tauto
-
--- example {n : ℕ} (hn : n = 0) (a b c : ℤ) : (if n^n = 1 ∧ 0 = 0 then a else b) = c := by
---   simp  [hn]
---   sorry
 
 lemma zpow'_mul (a : α) (m n : ℤ) : zpow' a (m * n) = zpow' (zpow' a m) n := by
   by_cases ha : a = 0
@@ -133,7 +128,7 @@ theorem prod'_zpow' {β : Type*} [CommGroupWithZero β] {r : ℤ} {l : List β} 
   let fr : β →* β := ⟨⟨fun b ↦ zpow' b r, one_zpow' r⟩, (mul_zpow' r)⟩
   map_list_prod' fr l
 
--- Do we need the ℕ exponenet at all?
+-- Do we need the ℕ exponent at all?
 -- in the library somewhere?
 theorem _root_.List.prod'_pow {β : Type*} [CommMonoid β] {r : ℕ} {l : List β} :
     l.prod' ^ r = (map (fun x ↦ x ^ r) l).prod' :=
@@ -177,7 +172,6 @@ noncomputable def eval [GroupWithZero M] (l : NF M) : M :=
   unfold eval cons
   rw [List.map_cons]
   rw [List.prod'_cons]
-
 
 theorem atom_eq_eval [GroupWithZero M] (x : M) : x = NF.eval [(1, x)] := by simp [eval]
 
@@ -667,7 +661,7 @@ def normalizePretty (disch : Expr → MetaM (Option Expr))
   let ⟨x', pf''⟩ ← qNF.evalPretty q(inferInstance) l'
   return ⟨x', q(Eq.trans $pf (Eq.trans $pf' $pf''))⟩
 
-def qNF.expIds (l : qNF M) : List (ℤ × ℕ) := List.map (fun p ↦ (p.1.1, p.2)) l
+-- def qNF.expIds (l : qNF M) : List (ℤ × ℕ) := List.map (fun p ↦ (p.1.1, p.2)) l
 
 /-- Given `e₁` and `e₂`, construct a new goal which is sufficient to prove `e₁ = e₂`. -/
 def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)) (e₁ e₂ : Q($M)) :
@@ -742,7 +736,6 @@ elab "field_simp2 " d:(discharger)? : conv => do
   let ⟨e, pf⟩ ← AtomM.run .reducible <| normalizePretty disch iK x
   -- convert `x` to the output of the normalization
   Conv.applySimpResult { expr := e, proof? := some pf }
-
 
 elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
   let disch ← parseDischarger d
