@@ -228,10 +228,28 @@ theorem div_eq_eval [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx�
     x₁ / x₂ = l.eval := by
   rw [hx₁, hx₂, h]
 
-theorem eval_mul_eval_cons [GroupWithZero M] (n : ℤ) (e : M) {L l l' : List (ℤ × M)}
-    (h : NF.eval L * NF.eval l = NF.eval l') :
-    NF.eval L * ((n, e) ::ᵣ l).eval = ((n, e) ::ᵣ l').eval := by
+theorem eval_mul_eval_cons [GroupWithZero M] (n : ℤ) (e : M) {L l l' : NF M}
+    (h : L.eval * l.eval = l'.eval) :
+    L.eval * ((n, e) ::ᵣ l).eval = ((n, e) ::ᵣ l').eval := by
   rw [eval_cons, eval_cons, ← h, mul_assoc]
+
+theorem eval_mul_eval_cons_zero [GroupWithZero M] {e : M} {L l l' l₀ : NF M}
+    (h : L.eval * l.eval = l'.eval) (h' : ((0, e) ::ᵣ l).eval = l₀.eval) :
+    L.eval * l₀.eval = ((0, e) ::ᵣ l').eval := by
+  rw [← eval_mul_eval_cons 0 e h, h']
+
+theorem eval_cons_mul_eval [CommGroupWithZero M] (n : ℤ) (e : M) {L l l' : NF M}
+    (h : L.eval * l.eval = l'.eval) :
+    ((n, e) ::ᵣ L).eval * l.eval = ((n, e) ::ᵣ l').eval := by
+  rw [eval_cons, eval_cons, ← h, mul_assoc, mul_assoc]
+  congr! 1
+  rw [mul_comm]
+
+theorem eval_cons_mul_eval_cons_neg [CommGroupWithZero M] (n : ℤ) {e : M} (he : e ≠ 0)
+    {L l l' : NF M} (h : L.eval * l.eval = l'.eval) :
+    ((n, e) ::ᵣ L).eval * ((-n, e) ::ᵣ l).eval = l'.eval := by
+  rw [mul_eq_eval₂ n (-n) e h]
+  simp [zpow'_zero_of_ne_zero he]
 
 theorem add_eq_eval [Semifield M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a b y : M}
     (h₁ : x₁ = X₁) (h₂ : x₂ = X₂)
@@ -516,13 +534,13 @@ def mkDivProof (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) :
       let pf := mkDivProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(NF.div_eq_eval₃ ($a₂, $x₂) $pf):)
 
-partial def gcd (iM : Q(GroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr → MetaM (Option Expr)) :
+partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr → MetaM (Option Expr)) :
   MetaM <| Σ (L l₁' l₂' : qNF M),
     Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(l₁.toNF)) ×
     Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) :=
 
   /- Handle the case where atom `i` is present in the first list but not the second. -/
-  let rec absent (l₁ l₂ : qNF M) (n : ℤ) (e : Q($M)) (i : ℕ) :
+  let absent (l₁ l₂ : qNF M) (n : ℤ) (e : Q($M)) (i : ℕ) :
       MetaM <| Σ (L l₁' l₂' : qNF M),
         Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(qNF.toNF (((n, e), i) :: l₁))) ×
         Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) := do
@@ -532,13 +550,15 @@ partial def gcd (iM : Q(GroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr → 
       return ⟨L, ((n, e), i) :: l₁', l₂', (q(NF.eval_mul_eval_cons $n $e $pf₁):), q($pf₂)⟩
     else if n = 0 then
       -- Don't pull anything out, but eliminate the term if it is a cancellable zero
-      let ⟨l₁'', pf⟩ ← tryClearZero disch iM 0 e i l₁'
-      return ⟨L, l₁'', l₂', q(sorry), q($pf₂)⟩
+      let ⟨l₁'', pf''⟩ ← tryClearZero disch q(inferInstance) 0 e i l₁'
+      let pf'' : Q(NF.eval ((0, $e) ::ᵣ $(l₁'.toNF)) = NF.eval $(l₁''.toNF)) := pf''
+      return ⟨L, l₁'', l₂', (q(NF.eval_mul_eval_cons_zero $pf₁ $pf''):), q($pf₂)⟩
     match ← disch q($e ≠ 0) with
     | .some pf =>
       -- if we can prove nonzeroness
-      have : Q($e ≠ 0) := pf
-      return ⟨((n, e), i) :: L, l₁', ((-n, e), i) :: l₂', q(sorry), q(sorry)⟩
+      have pf : Q($e ≠ 0) := pf
+      return ⟨((n, e), i) :: L, l₁', ((-n, e), i) :: l₂', (q(NF.eval_cons_mul_eval $n $e $pf₁):),
+        (q(NF.eval_cons_mul_eval_cons_neg $n $pf $pf₂):)⟩
     | .none =>
       -- if we can't prove nonzeroness, don't pull out e.
       return ⟨L, ((n, e), i) :: l₁', l₂', (q(NF.eval_mul_eval_cons $n $e $pf₁):), q($pf₂)⟩
@@ -611,7 +631,7 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
   | ~q(HAdd.hAdd (self := @instHAdd _ $i) $a $b) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
-    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd q(inferInstance) l₂ disch
+    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
     let ⟨e₁, pf₁''⟩ ← qNF.evalPretty q(inferInstance) l₁'
     let ⟨e₂, pf₂''⟩ ← qNF.evalPretty q(inferInstance) l₂'
     let e : Q($M) := q($e₁ + $e₂)
@@ -666,7 +686,7 @@ def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)
     AtomM (MVarId × Q($e₁ = $e₂)) := do
   let ⟨l₁, pf₁⟩ ← normalize disch iM e₁
   let ⟨l₂, pf₂⟩ ← normalize disch iM e₂
-  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd q(inferInstance) l₂ disch
+  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
   let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty q(inferInstance)
   let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty q(inferInstance)
   let mvar ← mkFreshExprMVarQ q($e₁' = $e₂')
