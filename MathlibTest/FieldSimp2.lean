@@ -279,6 +279,12 @@ example {K : Type*} [Field K] (x y z : K) (hy : 1 - y ≠ 0) :
   guard_target = x = z
   exact test_sorry
 
+-- from PluenneckeRuzsa
+-- FIXME requires handling variable exponents
+example (x z : ℚ≥0) (n : ℕ) : z * ((z / x) ^ n * x) = (z / x) ^ (n + 1) * x * x := by
+  field_simp2
+  exact test_sorry
+
 end
 
 /-! ### Tests from the former `field_simp` file -/
