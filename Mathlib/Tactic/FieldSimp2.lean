@@ -171,6 +171,12 @@ theorem subst_neg {M : Type*} [Field M] {x negOne X X' : M}
   rw [pf, ← pf', ← pf_negOne]
   rw [mul_neg, mul_one]
 
+theorem eq_of_eq_mul {M : Type*} [Mul M] {x₁ x₂ x₁' x₂' X₁ X₁' X₂ X₂' d : M}
+    (h₁ : x₁ = X₁) (h₂ : x₂ = X₂) (h₁' : d * X₁' = X₁) (h₂' : d * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂') (h : x₁' = x₂') :
+    x₁ = x₂ := by
+  rw [h₁, h₂, ← h₁', ← h₂', h₁'', h₂'', h]
+
 /-! ### Theory of lists of pairs (exponent, atom)
 
 This section contains the lemmas which are orchestrated by the `field_simp` tactic
@@ -358,20 +364,14 @@ theorem pow_zero_eq_eval [GroupWithZero M] (x : M) : x ^ (0:ℕ) = NF.eval [] :=
   rw [pow_zero, one_eq_eval]
 
 theorem eval_cons_of_pow_eq_zero [GroupWithZero M] {r : ℤ} (hr : r = 0) {x : M} (hx : x ≠ 0)
-    (l : List (ℤ × M)) :
+    (l : NF M) :
     ((r, x) ::ᵣ l).eval = NF.eval l := by
   simp [hr, zpow'_zero_of_ne_zero hx]
 
-theorem eval_cons_eq_eval_of_eq_of_eq [GroupWithZero M] (r : ℤ) (x : M)
-    {t t' l' : List (ℤ × M)} (h : NF.eval t = NF.eval t') (h' : ((r, x) ::ᵣ t').eval = NF.eval l') :
+theorem eval_cons_eq_eval_of_eq_of_eq [GroupWithZero M] (r : ℤ) (x : M) {t t' l' : NF M}
+    (h : NF.eval t = NF.eval t') (h' : ((r, x) ::ᵣ t').eval = NF.eval l') :
     ((r, x) ::ᵣ t).eval = NF.eval l' := by
   rw [← h', eval_cons, eval_cons, h]
-
-theorem eq_of_eq_mul [Mul M] {x₁ x₂ x₁' x₂' X₁ X₁' X₂ X₂' d : M}
-    (h₁ : x₁ = X₁) (h₂ : x₂ = X₂) (h₁' : d * X₁' = X₁) (h₂' : d * X₂' = X₂)
-    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂') (h : x₁' = x₂') :
-    x₁ = x₂ := by
-  rw [h₁, h₂, ← h₁', ← h₂', h₁'', h₂'', h]
 
 end NF
 
@@ -734,7 +734,7 @@ def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)
   let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty q(inferInstance)
   let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty q(inferInstance)
   let mvar ← mkFreshExprMVarQ q($e₁' = $e₂')
-  return ⟨Expr.mvarId! mvar, q(NF.eq_of_eq_mul $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $mvar)⟩
+  return ⟨Expr.mvarId! mvar, q(eq_of_eq_mul $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $mvar)⟩
 
 open Elab Tactic Lean.Parser.Tactic
 
