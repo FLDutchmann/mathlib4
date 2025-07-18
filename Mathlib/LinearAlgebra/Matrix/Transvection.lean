@@ -401,9 +401,7 @@ theorem listTransvecCol_mul_last_col (hM : M (inr unit) (inr unit) ≠ 0) (i : F
         simp [h]
       simp only [h, transvection_mul_apply_same, IH, ← hni, add_le_iff_nonpos_right,
           listTransvecCol_mul_last_row_drop _ _ hn]
-      field_simp2
-      simp only [nonpos_iff_eq_zero, one_ne_zero, ↓reduceIte, le_refl, n']
-      ring
+      simp [field]
     · have hni : n ≠ i := by
         rintro rfl
         cases i
@@ -480,8 +478,7 @@ theorem mul_listTransvecRow_last_row (hM : M (inr unit) (inr unit) ≠ 0) (i : F
       have : ¬n.succ ≤ i := by simp only [← hni, n.lt_succ_self, not_le]
       simp only [h, mul_transvection_apply_same, List.take, if_false,
         mul_listTransvecRow_last_col_take _ _ hnr.le, hni.le, this, if_true, IH hnr.le]
-      field_simp2
-      ring
+      simp [field]
     · have hni : n ≠ i := by
         rintro rfl
         cases i

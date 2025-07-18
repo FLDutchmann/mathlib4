@@ -177,6 +177,15 @@ theorem eq_of_eq_mul {M : Type*} [Mul M] {x₁ x₂ x₁' x₂' X₁ X₁' X₂ 
     x₁ = x₂ := by
   rw [h₁, h₂, ← h₁', ← h₂', h₁'', h₂'', h]
 
+theorem eq_eq_cancel_eq {M : Type*} [CancelMonoidWithZero M] {e₁ e₂ f₁ f₂ l₁ l₂ l₁' l₂' L : M}
+    (h₁ : e₁ = l₁) (h₂ : e₂ = l₂)
+    (h₁' : l₁' = f₁) (h₂' : l₂' = f₂)
+    (HL : L ≠ 0)
+    (H₁ : L * l₁' = l₁) (H₂ : L * l₂' = l₂) :
+    (e₁ = e₂) = (f₁ = f₂) := by
+  subst h₁ h₂ h₁' h₂' H₁ H₂
+  rw [mul_right_inj' HL]
+
 /-! ### Theory of lists of pairs (exponent, atom)
 
 This section contains the lemmas which are orchestrated by the `field_simp` tactic
@@ -553,7 +562,8 @@ def mkDivProof (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) :
       let pf := mkDivProof iM (((a₁, x₁), k₁) :: t₁) t₂
       (q(NF.div_eq_eval₃ ($a₂, $x₂) $pf):)
 
-partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr → MetaM (Option Expr)) :
+partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) (disch : Expr → MetaM (Option Expr))
+    (nonzero : Bool) :
   MetaM <| Σ (L l₁' l₂' : qNF M),
     Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(l₁.toNF)) ×
     Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) :=
@@ -563,7 +573,7 @@ partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr 
       MetaM <| Σ (L l₁' l₂' : qNF M),
         Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(qNF.toNF (((n, e), i) :: l₁))) ×
         Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) := do
-    let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM l₁ l₂ disch
+    let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM l₁ l₂ disch nonzero
     if 0 < n then
       -- Don't pull anything out
       return ⟨L, ((n, e), i) :: l₁', l₂', (q(NF.eval_mul_eval_cons $n $e $pf₁):), q($pf₂)⟩
@@ -582,6 +592,25 @@ partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr 
       -- if we can't prove nonzeroness, don't pull out e.
       return ⟨L, ((n, e), i) :: l₁', l₂', (q(NF.eval_mul_eval_cons $n $e $pf₁):), q($pf₂)⟩
 
+  /- Handle the case where atom `i` is present in both lists. -/
+  let bothPresent (t₁ t₂ : qNF M) (n₁ n₂ : ℤ) (e : Q($M)) (i : ℕ) :
+      MetaM <| Σ (L l₁' l₂' : qNF M),
+        Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(qNF.toNF (((n₁, e), i) :: t₁))) ×
+        Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF)
+          = NF.eval $(qNF.toNF (((n₂, e), i) :: t₂))) := do
+    let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM t₁ t₂ disch nonzero
+    if n₁ < n₂ then
+      let N : ℤ := n₂ - n₁
+      return ⟨((n₁, e), i) :: L, l₁', ((n₂ - n₁, e), i) :: l₂',
+        (q(NF.eval_cons_mul_eval $n₁ $e $pf₁):), (q(NF.mul_eq_eval₂ $n₁ $N $e $pf₂):)⟩
+    else if n₁ = n₂ then
+      return ⟨((n₁, e), i) :: L, l₁', l₂', (q(NF.eval_cons_mul_eval $n₁ $e $pf₁):),
+        (q(NF.eval_cons_mul_eval $n₂ $e $pf₂):)⟩
+    else
+      let N : ℤ := n₁ - n₂
+      return ⟨((n₂, e), i) :: L, ((n₁ - n₂, e), i) :: l₁', l₂',
+        (q(NF.mul_eq_eval₂ $n₂ $N $e $pf₁):), (q(NF.eval_cons_mul_eval $n₂ $e $pf₂):)⟩
+
   match l₁, l₂ with
   | [], [] => pure ⟨[], [], [],
     (q(one_mul (NF.eval $(qNF.toNF (M := M) []))):),
@@ -597,19 +626,18 @@ partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr 
       let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← absent t₁ (((n₂, e₂), i₂) :: t₂) n₁ e₁ i₁
       return ⟨L, l₁', l₂', q($pf₁), q($pf₂)⟩
     else if i₁ == i₂ then
-      have : $e₁ =Q $e₂ := ⟨⟩
-      let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM t₁ t₂ disch
-      if n₁ < n₂ then
-        let N : ℤ := n₂ - n₁
-        return ⟨((n₁, e₁), i₁) :: L, l₁', ((n₂ - n₁, e₂), i₂) :: l₂',
-          (q(NF.eval_cons_mul_eval $n₁ $e₁ $pf₁):), (q(NF.mul_eq_eval₂ $n₁ $N $e₂ $pf₂):)⟩
-      else if n₁ = n₂ then
-        return ⟨((n₁, e₁), i₁) :: L, l₁', l₂', (q(NF.eval_cons_mul_eval $n₁ $e₁ $pf₁):),
-          (q(NF.eval_cons_mul_eval $n₂ $e₂ $pf₂):)⟩
+      if nonzero then
+        match ← disch q($e₁ ≠ 0) with
+        | .some _ =>
+          -- if we can prove nonzeroness
+          bothPresent t₁ t₂ n₁ n₂ e₁ i₁
+        | .none =>
+          -- if we can't prove nonzeroness, don't pull out e.
+          let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM t₁ t₂ disch nonzero
+          return ⟨L, ((n₁, e₁), i₁) :: l₁', ((n₂, e₂), i₂) :: l₂',
+            (q(NF.eval_mul_eval_cons $n₁ $e₁ $pf₁):), (q(NF.eval_mul_eval_cons $n₂ $e₂ $pf₂):)⟩
       else
-        let N : ℤ := n₁ - n₂
-        return ⟨((n₂, e₂), i₂) :: L, ((n₁ - n₂, e₁), i₁) :: l₁', l₂',
-          (q(NF.mul_eq_eval₂ $n₂ $N $e₁ $pf₁):), (q(NF.eval_cons_mul_eval $n₂ $e₂ $pf₂):)⟩
+        bothPresent t₁ t₂ n₁ n₂ e₁ i₁
     else
       let ⟨L, l₂', l₁', pf₂, pf₁⟩ ← absent t₂ (((n₁, e₁), i₁) :: t₁) n₂ e₂ i₂
       return ⟨L, l₁', l₂', q($pf₁), q($pf₂)⟩
@@ -678,7 +706,7 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
   | ~q(HAdd.hAdd (self := @instHAdd _ $i) $a $b) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
-    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
+    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch false
     let ⟨e₁, pf₁''⟩ ← qNF.evalPretty q(inferInstance) l₁'
     let ⟨e₂, pf₂''⟩ ← qNF.evalPretty q(inferInstance) l₂'
     let e : Q($M) := q($e₁ + $e₂)
@@ -693,7 +721,7 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
   | ~q(HSub.hSub (self := @instHSub _ $i) $a $b) =>
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
-    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
+    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch false
     let ⟨e₁, pf₁''⟩ ← qNF.evalPretty q(inferInstance) l₁'
     let ⟨e₂, pf₂''⟩ ← qNF.evalPretty q(inferInstance) l₂'
     let e : Q($M) := q($e₁ - $e₂)
@@ -730,12 +758,25 @@ def normalizePretty (disch : Expr → MetaM (Option Expr))
 
 -- def qNF.expIds (l : qNF M) : List (ℤ × ℕ) := List.map (fun p ↦ (p.1.1, p.2)) l
 
+/-- Given `e₁` and `e₂`, cancel nonzero factors to construct a new equality which is logically
+equivalent to `e₁ = e₂`. -/
+def reduceEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)) (e₁ e₂ : Q($M)) :
+    AtomM (Σ f₁ f₂ : Q($M), Q(($e₁ = $e₂) = ($f₁ = $f₂))) := do
+  let ⟨l₁, pf_l₁⟩ ← normalize disch iM e₁
+  let ⟨l₂, pf_l₂⟩ ← normalize disch iM e₂
+  let ⟨L, l₁', l₂', pf_lhs, pf_rhs⟩ ← l₁.gcd iM l₂ disch true
+  let pf₀ : Q(NF.eval $(L.toNF) ≠ 0) := q(sorry)
+  let ⟨f₁, pf_l₁'⟩ ← l₁'.evalPretty q(inferInstance)
+  let ⟨f₂, pf_l₂'⟩ ← l₂'.evalPretty q(inferInstance)
+  assumeInstancesCommute
+  return ⟨f₁, f₂, q(eq_eq_cancel_eq $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
+
 /-- Given `e₁` and `e₂`, construct a new goal which is sufficient to prove `e₁ = e₂`. -/
 def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)) (e₁ e₂ : Q($M)) :
     AtomM (MVarId × Q($e₁ = $e₂)) := do
   let ⟨l₁, pf₁⟩ ← normalize disch iM e₁
   let ⟨l₂, pf₂⟩ ← normalize disch iM e₂
-  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
+  let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch false
   let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty q(inferInstance)
   let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty q(inferInstance)
   let mvar ← mkFreshExprMVarQ q($e₁' = $e₂')
@@ -804,6 +845,20 @@ elab "field_simp2 " d:(discharger)? : conv => do
   -- convert `x` to the output of the normalization
   Conv.applySimpResult { expr := e, proof? := some pf }
 
+simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
+  let disch ← parseDischarger none
+  let some ⟨_, a, b⟩ := t.eq? | return .continue
+  -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
+  let ⟨u, K, a⟩ ← inferTypeQ' a
+  try
+    -- find a `CommGroupWithZero` instance on `K`
+    let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+    -- run the core equality-transforming mechanism on `a = b`
+    let ⟨a', b', pf⟩ ← AtomM.run .reducible <| reduceEq disch iK a b
+    let t' ← mkAppM `Eq #[a', b']
+    return .visit { expr := t', proof? := pf }
+  catch _ => return .continue
+
 elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
   let disch ← parseDischarger d
   -- find the proposition `t` to prove
@@ -813,7 +868,7 @@ elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
   let ⟨u, K, a⟩ ← inferTypeQ' a
   -- find a `CommGroupWithZero` instance on `K`
   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-  -- run the core equality-proving mechanism on `x`
+  -- run the core equality-proving mechanism on `a = b`
   let ⟨g', pf⟩ ← AtomM.run .reducible <| proveEq disch iK a b
   g.assign pf
   return [g']
