@@ -753,17 +753,21 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
     let L' := qNF.mul L sum
     let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
       qNF.mkMulProof iM L sum
-    let _i ← synthInstanceQ q(Field $M)
-    assumeInstancesCommute
-    pure ⟨L', q(subst_sub $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul)⟩
+    try
+      let _i ← synthInstanceQ q(Field $M)
+      assumeInstancesCommute
+      pure ⟨L', q(subst_sub $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul)⟩
+    catch _ => baseCase x
   /- normalize a negation: `-a` -/
   | ~q(Neg.neg (self := $i) $a) =>
     let ⟨l, pf⟩ ← normalize disch iM a
     let ⟨negOne, pf_negOne⟩ ← baseCase q(-1)
     have pf' := qNF.mkMulProof iM l negOne
-    let _i ← synthInstanceQ q(Field $M)
-    assumeInstancesCommute
-    pure ⟨qNF.mul l negOne, (q(subst_neg $pf $pf_negOne $pf'):)⟩
+    try
+      let _i ← synthInstanceQ q(Field $M)
+      assumeInstancesCommute
+      pure ⟨qNF.mul l negOne, (q(subst_neg $pf $pf_negOne $pf'):)⟩
+    catch _ => baseCase x
   -- TODO special-case handling of zero? maybe not necessary
   /- anything else should be treated as an atom -/
   | _ => baseCase x
