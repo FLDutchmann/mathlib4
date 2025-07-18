@@ -268,7 +268,7 @@ def circleEquivGen (hk : ∀ x : K, 1 + x ^ 2 ≠ 0) :
     have h2 : (1 + 1 : K) = 2 := by norm_num
     have h3 : (2 : K) ≠ 0 := by
       convert hk 1
-      ring
+      rw [one_pow 2, h2]
     have := hk x -- why can't this be deleted?
     simp [field, h2, add_assoc, add_comm, add_sub_cancel, mul_comm]
   right_inv := fun ⟨⟨x, y⟩, hxy, hy⟩ => by
@@ -279,6 +279,7 @@ def circleEquivGen (hk : ∀ x : K, 1 + x ^ 2 ≠ 0) :
       ring
     have h4 : (2 : K) ≠ 0 := by
       convert hk 1
+      rw [one_pow 2]
       ring
     simp only [Prod.mk_inj, Subtype.mk_eq_mk]
     constructor

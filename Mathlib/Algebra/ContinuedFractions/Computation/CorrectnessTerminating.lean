@@ -72,7 +72,7 @@ variable [FloorRing K]
 protected theorem compExactValue_correctness_of_stream_eq_some_aux_comp {a : K} (b c : K)
     (fract_a_ne_zero : Int.fract a ≠ 0) :
     ((⌊a⌋ : K) * b + c) / Int.fract a + b = (b * a + c) / Int.fract a := by
-  field_simp2 --[fract_a_ne_zero]
+  simp [field]
   rw [Int.fract]
   ring
 
@@ -114,10 +114,8 @@ theorem compExactValue_correctness_of_stream_eq_some :
         _ = ⌊v⌋ := by simp [fract_eq_zero]
     | inr fract_ne_zero =>
       -- Int.fract v ≠ 0; the claim then easily follows by unfolding a single computation step
-      simp only [contsAux, nextConts, nextNum, nextDen, of_h_eq_floor, compExactValue,
-        IntFractPair.of, fract_ne_zero, ↓reduceIte]
-      field_simp2
-      simp
+      simp [field, contsAux, nextConts, nextNum, nextDen, of_h_eq_floor, compExactValue,
+        IntFractPair.of, fract_ne_zero]
   | succ n IH =>
     intro ifp_succ_n succ_nth_stream_eq
     obtain ⟨ifp_n, nth_stream_eq, nth_fract_ne_zero, -⟩ :
