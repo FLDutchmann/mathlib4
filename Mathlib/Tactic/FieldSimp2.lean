@@ -600,11 +600,16 @@ partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂: qNF M) (disch : Expr 
       have : $e₁ =Q $e₂ := ⟨⟩
       let ⟨L, l₁', l₂', pf₁, pf₂⟩ ← gcd iM t₁ t₂ disch
       if n₁ < n₂ then
-        return ⟨((n₁, e₁), i₁) :: L, l₁', ((n₂ - n₁, e₂), i₂) :: l₂', q(sorry), q(sorry)⟩
+        let N : ℤ := n₂ - n₁
+        return ⟨((n₁, e₁), i₁) :: L, l₁', ((n₂ - n₁, e₂), i₂) :: l₂',
+          (q(NF.eval_cons_mul_eval $n₁ $e₁ $pf₁):), (q(NF.mul_eq_eval₂ $n₁ $N $e₂ $pf₂):)⟩
       else if n₁ = n₂ then
-        return ⟨((n₁, e₁), i₁) :: L, l₁', l₂', q(sorry), q(sorry)⟩
+        return ⟨((n₁, e₁), i₁) :: L, l₁', l₂', (q(NF.eval_cons_mul_eval $n₁ $e₁ $pf₁):),
+          (q(NF.eval_cons_mul_eval $n₂ $e₂ $pf₂):)⟩
       else
-        return ⟨((n₂, e₂), i₂) :: L, ((n₁ - n₂, e₁), i₁) :: l₁', l₂', q(sorry), q(sorry)⟩
+        let N : ℤ := n₁ - n₂
+        return ⟨((n₂, e₂), i₂) :: L, ((n₁ - n₂, e₁), i₁) :: l₁', l₂', (q(NF.mul_eq_eval₂ $n₂ $N $e₁ $pf₁):),
+          (q(NF.eval_cons_mul_eval $n₂ $e₂ $pf₂):)⟩
     else
       let ⟨L, l₂', l₁', pf₂, pf₁⟩ ← absent t₂ (((n₁, e₁), i₁) :: t₁) n₂ e₂ i₂
       return ⟨L, l₁', l₂', q($pf₁), q($pf₂)⟩

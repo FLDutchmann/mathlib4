@@ -199,6 +199,7 @@ example (_ : 0 < x + 1) (_ : 0 < y + 1) : x / (x + 1) + y / (y + 1)
   conv_lhs => field_simp2
 
 -- TODO decide desired behaviour on this example
+set_option linter.unusedVariables false in
 example (hy : y ≠ 0) (hz : z ≠ 0) (hx : x = 0) : x / y = x / z := by
   field_simp2 -- if this cancels the `x` it renders it unsolvable
   exact test_sorry
@@ -231,6 +232,16 @@ example {a b : ℚ} (h : b ≠ 0) : a / b + 2 * a / b + (-a) / b + (- (2 * a)) /
   guard_target = a * (1 + 2 + -1 + 2 * -1) = b * 0
   ring
 
+example : x / y ^ 2 = (x + 1) / y := by
+  field_simp2
+  guard_target = x = y * (x + 1)
+  exact test_sorry
+
+example : x / y = (x + 1) / y ^ 2 := by
+  field_simp2
+  guard_target = x * y = x + 1
+  exact test_sorry
+
 example (hx : 0 < x) :
     ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
   field_simp2
@@ -238,6 +249,7 @@ example (hx : 0 < x) :
   exact test_sorry
 
 -- from PythagoreanTriples
+set_option linter.unusedVariables false in
 example {K : Type*} [Semifield K] (hK : ∀ x : K, 1 + x ^ 2 ≠ 0) (x y : K) (hy : y + 1 ≠ 0) :
     2 * (x / (y + 1)) / (1 + (x / (y + 1)) ^ 2) = x := by
   /- TODO: re-extract this test, `Semifield` is not a strong enough typeclass. -/
@@ -271,6 +283,7 @@ end
 
 /-! ### Tests from the former `field_simp` file -/
 
+set_option linter.unusedVariables false in
 /--
 Test that the discharger can clear nontrivial denominators in ℚ.
 -/
@@ -319,6 +332,7 @@ variable {R : Type _} [CommRing R] (a b c d e f g : R) (u₁ u₂ : Rˣ)
 
 -- example : a /ₚ u₁ /ₚ u₂ = a /ₚ (u₂ * u₁) := by field_simp2
 
+set_option linter.unusedVariables false in
 /--
 Test that the discharger can clear nontrivial denominators in ℚ.
 -/
@@ -327,6 +341,7 @@ example (x : ℚ) (h₀ : x ≠ 0) :
   field_simp2
   ring
 
+set_option linter.unusedVariables false in
 /-- Use a custom discharger -/
 example (x : ℚ) (h₀ : x ≠ 0) :
     (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
