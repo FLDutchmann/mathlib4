@@ -216,10 +216,19 @@ example : x / (x + y) + y / (x + y) = 1 := by
   -- TODO decide desired behaviour on this example
   rfl
 
--- TODO express using subtraction, once that's supported by `field_simp2`
 example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) + (-1) / b = 0 := by
   field_simp2
   guard_target = b ^ (-1:ℤ) * (1 + -1) = 0
+  ring
+
+example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) - 1 / b = 0 := by
+  field_simp2
+  guard_target = b ^ (-1:ℤ) * (1 - 1) = 0
+  ring
+
+example {a b : ℚ} (h : b ≠ 0) : a / b + 2 * a / b + (-a) / b + (- (2 * a)) / b = 0 := by
+  field_simp2
+  guard_target = a * (1 + 2 + -1 + 2 * -1) = b * 0
   ring
 
 example (hx : 0 < x) :

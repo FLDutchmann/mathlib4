@@ -139,6 +139,38 @@ end List
 
 namespace Mathlib.Tactic.FieldSimp
 
+theorem subst_add {M : Type*} [Semiring M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a b y : M}
+    (h₁ : x₁ = X₁) (h₂ : x₂ = X₂)
+    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
+    (H_atom : x₁' + x₂' = y)
+    (H_mul : a * y = b) :
+    x₁ + x₂ = b := by
+  rw [h₁, h₂, ← h₁'', ← h₂''] at *
+  rw [← H_mul, ← H_atom] at *
+  rw [← h₁', ← h₂'] at *
+  simp only at *
+  rw [mul_add]
+
+theorem subst_sub {M : Type*} [Field M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a b y : M}
+    (h₁ : x₁ = X₁) (h₂ : x₂ = X₂)
+    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
+    (H_atom : x₁' - x₂' = y)
+    (H_mul : a * y = b) :
+    x₁ - x₂ = b := by
+  rw [sub_eq_add_neg] at H_atom ⊢
+  rw [subst_add h₁ congr(-$h₂) h₁' ?_ h₁'' congr(-$h₂'') H_atom H_mul]
+  rw [mul_neg, h₂']
+
+theorem subst_neg {M : Type*} [Field M] {x negOne X X' : M}
+    (pf : x = X)
+    (pf_negOne : -1 = negOne)
+    (pf' : X * negOne = X') :
+    -x = X' := by
+  rw [pf, ← pf', ← pf_negOne]
+  rw [mul_neg, mul_one]
+
 /-! ### Theory of lists of pairs (exponent, atom)
 
 This section contains the lemmas which are orchestrated by the `field_simp` tactic
@@ -250,19 +282,6 @@ theorem eval_cons_mul_eval_cons_neg [CommGroupWithZero M] (n : ℤ) {e : M} (he 
     ((n, e) ::ᵣ L).eval * ((-n, e) ::ᵣ l).eval = l'.eval := by
   rw [mul_eq_eval₂ n (-n) e h]
   simp [zpow'_zero_of_ne_zero he]
-
-theorem add_eq_eval [Semifield M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a b y : M}
-    (h₁ : x₁ = X₁) (h₂ : x₂ = X₂)
-    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
-    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
-    (H_atom : x₁' + x₂' = y)
-    (H_mul : a * y = b) :
-    x₁ + x₂ = b := by
-  rw [h₁, h₂, ← h₁'', ← h₂''] at *
-  rw [← H_mul, ← H_atom] at *
-  rw [← h₁', ← h₂'] at *
-  simp only at *
-  rw [mul_add]
 
 instance : Inv (NF M) where
   inv l := l.map fun (a, x) ↦ (-a, x)
@@ -605,7 +624,7 @@ Possible TODO, if poor performance on large problems is witnessed: switch the im
 https://github.com/leanprover-community/mathlib4/pull/16593/files#r1749623191 -/
 partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M))
     (x : Q($M)) : AtomM (Σ l : qNF M, Q($x = NF.eval $(l.toNF))) := do
-  let baseCase (y : Q($M)) : AtomM (Σ l : qNF M, Q($y = NF.eval $(l.toNF))):= do
+  let baseCase (y : Q($M)) : AtomM (Σ l : qNF M, Q($y = NF.eval $(l.toNF))) := do
     let (k, ⟨x', _⟩) ← AtomM.addAtomQ y
     pure ⟨[((1, x'), k)], q(NF.atom_eq_eval $x')⟩
   match x with
@@ -628,20 +647,6 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
     let ⟨l, pf⟩ ← normalize disch iM y
     -- build the new list and proof
     pure ⟨l.onExponent Neg.neg, (q(NF.inv_eq_eval $pf):)⟩
-  | ~q(HAdd.hAdd (self := @instHAdd _ $i) $a $b) =>
-    let ⟨l₁, pf₁⟩ ← normalize disch iM a
-    let ⟨l₂, pf₂⟩ ← normalize disch iM b
-    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
-    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty q(inferInstance) l₁'
-    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty q(inferInstance) l₂'
-    let e : Q($M) := q($e₁ + $e₂)
-    let ⟨sum, pf_atom⟩ ← baseCase e
-    let L' := qNF.mul L sum
-    let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
-      qNF.mkMulProof iM L sum
-    let _i ← synthInstanceQ q(Semifield $M)
-    assumeInstancesCommute
-    pure ⟨L', q(NF.add_eq_eval $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul)⟩
   /- normalize an integer exponentiation: `y ^ (s : ℤ)` -/
   | ~q($y ^ ($s : ℤ)) =>
     let some s := Expr.int? s | baseCase x
@@ -664,6 +669,45 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
       pure ⟨l.onExponent (HMul.hMul s), (q(NF.pow_eq_eval $pf_s $pf):)⟩
   /- normalize a `(1:M)` -/
   | ~q(1) => pure ⟨[], q(NF.one_eq_eval $M)⟩
+  /- normalize an addition: `a + b` -/
+  | ~q(HAdd.hAdd (self := @instHAdd _ $i) $a $b) =>
+    let ⟨l₁, pf₁⟩ ← normalize disch iM a
+    let ⟨l₂, pf₂⟩ ← normalize disch iM b
+    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
+    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty q(inferInstance) l₁'
+    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty q(inferInstance) l₂'
+    let e : Q($M) := q($e₁ + $e₂)
+    let ⟨sum, pf_atom⟩ ← baseCase e
+    let L' := qNF.mul L sum
+    let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
+      qNF.mkMulProof iM L sum
+    let _i ← synthInstanceQ q(Semifield $M)
+    assumeInstancesCommute
+    pure ⟨L', q(subst_add $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul)⟩
+  /- normalize a subtraction: `a - b` -/
+  | ~q(HSub.hSub (self := @instHSub _ $i) $a $b) =>
+    let ⟨l₁, pf₁⟩ ← normalize disch iM a
+    let ⟨l₂, pf₂⟩ ← normalize disch iM b
+    let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch
+    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty q(inferInstance) l₁'
+    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty q(inferInstance) l₂'
+    let e : Q($M) := q($e₁ - $e₂)
+    let ⟨sum, pf_atom⟩ ← baseCase e
+    let L' := qNF.mul L sum
+    let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
+      qNF.mkMulProof iM L sum
+    let _i ← synthInstanceQ q(Field $M)
+    assumeInstancesCommute
+    pure ⟨L', q(subst_sub $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom $pf_mul)⟩
+  /- normalize a negation: `-a` -/
+  | ~q(Neg.neg (self := $i) $a) =>
+    let ⟨l, pf⟩ ← normalize disch iM a
+    let ⟨negOne, pf_negOne⟩ ← baseCase q(-1)
+    have pf' := qNF.mkMulProof iM l negOne
+    let _i ← synthInstanceQ q(Field $M)
+    assumeInstancesCommute
+    pure ⟨qNF.mul l negOne, (q(subst_neg $pf $pf_negOne $pf'):)⟩
+  -- TODO special-case handling of zero? maybe not necessary
   /- anything else should be treated as an atom -/
   | _ => baseCase x
 
