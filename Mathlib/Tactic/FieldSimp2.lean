@@ -460,8 +460,21 @@ def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)
       q(NF.eval_cons_eq_eval_of_eq_of_eq $r $x $pf $pf')
     return ⟨l', pf''⟩
 
-/-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
-private def evalPretty (iM : Q(GroupWithZero $M)) (l : qNF M) :
+def split (iM : Q(GroupWithZero $M)) (l : qNF M) :
+    MetaM (Σ l_n l_d : qNF M, Q(NF.eval $(l.toNF)
+      = NF.eval $(l_n.toNF) / NF.eval $(l_d.toNF))) := do
+  match l with
+  | [] => return ⟨[], [], q(sorry)⟩
+  | ((r, x), i) :: t =>
+    let ⟨t_n, t_d, pf⟩ ← split iM t
+    if r > 0 then
+      return ⟨((r, x), i) :: t_n, t_d, q(sorry)⟩
+    else if r = 0 then
+      return ⟨((1, x), i) :: t_n, ((1, x), i) :: t_d, q(sorry)⟩
+    else
+      return ⟨t_n, ((-r, x), i) :: t_d, q(sorry)⟩
+
+private def evalPrettyAux (iM : Q(GroupWithZero $M)) (l : qNF M) :
     MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
   match l with
   | [] => return ⟨q(1), q(rfl)⟩
@@ -470,8 +483,19 @@ private def evalPretty (iM : Q(GroupWithZero $M)) (l : qNF M) :
     return ⟨e, q(Eq.trans (one_mul _) $pf)⟩
   | ((r, x), _) :: t =>
     let ⟨e, pf_e⟩ ← evalPrettyMonomial iM r x
-    let ⟨t', pf⟩ ← evalPretty iM t
+    let ⟨t', pf⟩ ← evalPrettyAux iM t
     return ⟨q($t' * $e), (q(congr_arg₂ HMul.hMul $pf $pf_e):)⟩
+
+/-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
+def evalPretty (iM : Q(GroupWithZero $M)) (l : qNF M) :
+    MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
+  let ⟨l_n, l_d, pf⟩ ← split iM l
+  let ⟨num, pf_n⟩ ← evalPrettyAux iM l_n
+  match l_d with
+  | [] => return ⟨num, q(Eq.trans $pf sorry)⟩
+  | _ =>
+    let ⟨den, pf_d⟩ ← evalPrettyAux iM l_d
+    return ⟨q($num / $den), q(sorry)⟩
 
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), construct another such term `l`, which will have the property that in

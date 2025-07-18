@@ -308,7 +308,7 @@ theorem succ_nth_conv_eq_squashGCF_nth_conv [Field K]
         symm
         simpa only [eq1, eq2, eq3, eq4, mul_div_cancel_right₀ _ b_ne_zero]
       simp [field]
-      congrm ?_ * (?_) ^ (-1 : ℤ) <;> ring -- fix normal form of `field` simproc
+      congr! 1 <;> ring
 
 end Squash
 

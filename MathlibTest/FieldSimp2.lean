@@ -57,7 +57,7 @@ variable {k : ℤ}
 
 end
 
-/-- info: x ^ (-3) -/
+/-- info: 1 / x ^ 3 -/
 #guard_msgs in
 #conv field_simp2 => x ^ (-1 : ℤ) * x ^ (-2 : ℤ)
 
@@ -79,7 +79,7 @@ end
 #guard_msgs in
 #conv field_simp2 => x ^ 3 * x⁻¹
 
-/-- info: x ^ (-3) -/
+/-- info: 1 / x ^ 3 -/
 #guard_msgs in
 #conv field_simp2 => x / x ^ 4
 
@@ -103,7 +103,7 @@ variable {hx : x ≠ 0}
 #guard_msgs in
 #conv field_simp2 => x ^ 3 * x⁻¹
 
-/-- info: x ^ (-3) -/
+/-- info: 1 / x ^ 3 -/
 #guard_msgs in
 #conv field_simp2 => x / x ^ 4
 
@@ -116,7 +116,7 @@ end
 #guard_msgs in
 #conv field_simp2 => x ^1 * y * x ^2 * y ^ 3
 
-/-- info: x ^ 3 * (y / y) -/
+/-- info: x ^ 3 * y / y -/
 #guard_msgs in
 #conv field_simp2 => x ^ 1 * y * x ^2 * y⁻¹
 
@@ -140,7 +140,7 @@ end
 #guard_msgs in
 #conv field_simp2 => x * y
 
-/-- info: x / x * (y / y) -/
+/-- info: x * y / (x * y) -/
 #guard_msgs in
 #conv field_simp2 => (x * y) / (y * x)
 
@@ -148,7 +148,7 @@ end
 #guard_msgs in
 #conv field_simp2 => x * y + x * 1
 
-/-- info: x / x * (y / y) -/
+/-- info: x * y / (x * y) -/
 #guard_msgs in
 #conv field_simp2 => (x * y) * (y * x)⁻¹
 
@@ -160,42 +160,42 @@ end
 #guard_msgs in
 #conv field_simp2 => y * (y + x) ^ (0:ℤ) * y
 
-/-- info: x * y ^ (-1) -/
+/-- info: x / y -/
 #guard_msgs in
 #conv field_simp2 => x / y
 
 variable (hx : x + 1 ≠ 0) in
-/-- info: (x + 1) ^ (-1) * (x + (x + 1) * y * (y + 1) ^ (-1)) -/
+/-- info: (x + (x + 1) * y / (y + 1)) / (x + 1) -/
 #guard_msgs in
 #conv field_simp2 => x / (x + 1) + y / (y + 1)
 
 example : (1 : ℚ) = 1 := by conv_lhs => field_simp2
 example : x = x := by conv_lhs => field_simp2
 example : x * y = x * y := by conv_lhs => field_simp2
-example : x / y = x * y ^ (-1:ℤ) := by conv_lhs => field_simp2
-example : x / (y / x) = x ^ 2 * y ^ (-1:ℤ) := by conv_lhs => field_simp2
+example : x / y = x / y := by conv_lhs => field_simp2
+example : x / (y / x) = x ^ 2 / y := by conv_lhs => field_simp2
 example : x / (y ^ (-3:ℤ) / x) = x ^ 2 * y ^ 3 := by conv_lhs => field_simp2
 example : (x / y ^ (-3:ℤ)) * x = x ^ 2 * y ^ 3 := by conv_lhs => field_simp2
 example (hx : x ≠ 0) (hy : y ≠ 0) : (x * y) / (y * x) = 1 := by conv_lhs => field_simp2
-example : (x * y) / (y * x) = x / x * (y / y) := by conv_lhs => field_simp2
+example : (x * y) / (y * x) = (x * y) / (x * y) := by conv_lhs => field_simp2
 example (hx : x ≠ 0) (hy : y ≠ 0) : (x * y) * (y * x)⁻¹ = 1 := by conv_lhs => field_simp2
-example : (x * y) * (y * x)⁻¹ = x / x * (y / y) := by conv_lhs => field_simp2
+example : (x * y) * (y * x)⁻¹ = (x * y) / (x * y) := by conv_lhs => field_simp2
 example : x ^ (0:ℤ) * y = y := by conv_lhs => field_simp2
 example : y * (y + x) ^ (0:ℤ) * y = y ^ 2 := by conv_lhs => field_simp2
 example : x * y * z = x * y * z := by conv_lhs => field_simp2
 example : x * y + x * z = x * (y + z) := by conv_lhs => field_simp2
-example (hx : x ≠ 0) : x / (x * y + x * z) = (y + z) ^ (-1:ℤ) := by conv_lhs => field_simp2
-example : x / (x * y + x * z) = (x / x) * (y + z) ^ (-1:ℤ) := by conv_lhs => field_simp2
+example (hx : x ≠ 0) : x / (x * y + x * z) = 1 / (y + z) := by conv_lhs => field_simp2
+example : x / (x * y + x * z) = x / (x * (y + z)) := by conv_lhs => field_simp2
 example : ((x ^ (2:ℤ)) ^ 3) = x ^ 6 := by conv_lhs => field_simp2
 example : x ^ 3 * x⁻¹ = x ^ 2 := by conv_lhs => field_simp2
-example : x / x ^ 4 = x ^ (-3:ℤ) := by conv_lhs => field_simp2
+example : x / x ^ 4 = 1 / x ^ 3 := by conv_lhs => field_simp2
 example : x ^ 1 * x ^ 2 = x ^ 3 := by conv_lhs => field_simp2
 example : x * x = x ^ 2 := by conv_lhs => field_simp2
 example : x ^ 3 * x ^ 42 = x ^ 45 := by conv_lhs => field_simp2
 example : x * x * x⁻¹ = x := by conv_lhs => field_simp2
 
 example (_ : 0 < x + 1) (_ : 0 < y + 1) : x / (x + 1) + y / (y + 1)
-    = (x + 1) ^ (-1:ℤ) * (y + 1) ^ (-1:ℤ) * (x * (y + 1) + (x + 1) * y) := by
+    = (x * (y + 1) + (x + 1) * y) / ((x + 1) * (y + 1)) := by
   conv_lhs => field_simp2
 
 -- TODO decide desired behaviour on this example
@@ -219,12 +219,12 @@ example : x / (x + y) + y / (x + y) = 1 := by
 
 example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) + (-1) / b = 0 := by
   field_simp2
-  guard_target = b ^ (-1:ℤ) * (1 + -1) = 0
+  guard_target = (1 + -1) / b = 0
   ring
 
 example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) - 1 / b = 0 := by
   field_simp2
-  guard_target = b ^ (-1:ℤ) * (1 - 1) = 0
+  guard_target = (1 - 1) / b = 0
   ring
 
 example {a b : ℚ} (h : b ≠ 0) : a / b + 2 * a / b + (-a) / b + (- (2 * a)) / b = 0 := by
