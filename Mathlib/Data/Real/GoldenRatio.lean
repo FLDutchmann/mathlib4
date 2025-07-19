@@ -40,7 +40,7 @@ open Real goldenRatio
 /-- The inverse of the golden ratio is the opposite of its conjugate. -/
 theorem inv_gold : φ⁻¹ = -ψ := by
   have : 1 + √5 ≠ 0 := ne_of_gt (add_pos (by norm_num) <| Real.sqrt_pos.mpr (by norm_num))
-  field_simp [sub_mul, mul_add]
+  simp [field, sub_mul, mul_add]
   norm_num
 
 /-- The opposite of the golden ratio is the inverse of its conjugate. -/
@@ -50,7 +50,7 @@ theorem inv_goldConj : ψ⁻¹ = -φ := by
 
 @[simp]
 theorem gold_mul_goldConj : φ * ψ = -1 := by
-  field_simp
+  simp [field]
   rw [← sq_sub_sq]
   norm_num
 
@@ -123,7 +123,7 @@ theorem gold_irrational : Irrational φ := by
   have := this.ratCast_add 1
   convert this.ratCast_mul (show (0.5 : ℚ) ≠ 0 by norm_num)
   norm_num
-  field_simp
+  simp [field]
 
 /-- The conjugate of the golden ratio is irrational. -/
 theorem goldConj_irrational : Irrational ψ := by
@@ -131,7 +131,7 @@ theorem goldConj_irrational : Irrational ψ := by
   have := this.ratCast_sub 1
   convert this.ratCast_mul (show (0.5 : ℚ) ≠ 0 by norm_num)
   norm_num
-  field_simp
+  simp [field]
 
 /-!
 ## Links with Fibonacci sequence

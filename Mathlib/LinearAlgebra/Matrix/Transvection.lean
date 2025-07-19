@@ -8,7 +8,6 @@ import Mathlib.Data.Matrix.DMatrix
 import Mathlib.LinearAlgebra.Matrix.Determinant.Basic
 import Mathlib.LinearAlgebra.Matrix.Reindex
 import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FieldSimp2
 
 /-!
 # Transvections

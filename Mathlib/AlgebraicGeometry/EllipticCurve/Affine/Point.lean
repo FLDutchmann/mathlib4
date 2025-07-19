@@ -284,8 +284,9 @@ lemma XYIdeal_eq₂ {x₁ x₂ y₁ y₂ : F} (h₁ : W.Equation x₁ y₁) (h�
     by_cases hx : x₁ = x₂
     · have hy : y₁ ≠ W.negY x₂ y₂ := fun h => hxy ⟨hx, h⟩
       rcases hx, Y_eq_of_Y_ne h₁ h₂ hx hy with ⟨rfl, rfl⟩
-      field_simp [linePolynomial, sub_ne_zero_of_ne hy]
-    · field_simp [linePolynomial, slope_of_X_ne hx, sub_ne_zero_of_ne hx]
+      simp [linePolynomial, sub_ne_zero_of_ne hy]
+    · have := sub_ne_zero_of_ne hx
+      simp [field, linePolynomial, slope_of_X_ne hx] -- assumption discharger
       ring1
   nth_rw 1 [hy₂]
   simp only [XYIdeal, XClass, YClass, linePolynomial]

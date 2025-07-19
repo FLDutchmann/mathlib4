@@ -10,7 +10,6 @@ import Mathlib.Data.NNRat.Order
 import Mathlib.GroupTheory.GroupAction.Ring
 import Mathlib.RingTheory.Polynomial.Pochhammer
 import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FieldSimp2
 
 /-!
 # Binomial rings
@@ -258,11 +257,8 @@ noncomputable instance {R : Type*} [AddCommMonoid R] [Module ℚ≥0 R] [Pow R �
     simp_all only [smul_assoc, Nat.cast_smul_eq_nsmul]
   multichoose r n := (n.factorial : ℚ≥0)⁻¹ • Polynomial.smeval (ascPochhammer ℕ n) r
   factorial_nsmul_multichoose r n := by
-    simp only [← smul_assoc, nsmul_eq_mul]
-    conv =>
-      enter [1, 1]
-      field_simp2
-    simp
+    simp only [← smul_assoc]
+    field_simp
 
 end Basic_Instances
 

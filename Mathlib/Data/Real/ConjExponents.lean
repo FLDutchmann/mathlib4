@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Sébastien Gouëzel, Yury Kudryashov
 -/
 import Mathlib.Data.ENNReal.Holder
+import Mathlib.Tactic.LinearCombination
 
 /-!
 # Real conjugate exponents
@@ -144,7 +145,8 @@ theorem sub_one_ne_zero : p - 1 ≠ 0 := h.sub_one_pos.ne'
 
 theorem conjugate_eq : q = p / (p - 1) := by
   convert inv_inv q ▸ congr($(h.symm.inv_sub_inv_eq_inv.symm)⁻¹) using 1
-  field_simp [h.ne_zero]
+  have := h.ne_zero -- assumption discharger
+  simp [field]
 
 lemma conjExponent_eq : conjExponent p = q := h.conjugate_eq.symm
 
@@ -158,8 +160,9 @@ theorem mul_eq_add : p * q = p + q := by
   simpa only [sub_mul, sub_eq_iff_eq_add, one_mul] using h.sub_one_mul_conj
 
 theorem div_conj_eq_sub_one : p / q = p - 1 := by
-  field_simp [h.symm.ne_zero]
-  rw [h.sub_one_mul_conj]
+  have := h.symm.ne_zero -- assumption discharger
+  simp [field]
+  linear_combination -h.sub_one_mul_conj
 
 theorem inv_add_inv_ennreal : (ENNReal.ofReal p)⁻¹ + (ENNReal.ofReal q)⁻¹ = 1 := by
   rw [← ENNReal.ofReal_one, ← ENNReal.ofReal_inv_of_pos h.pos,
@@ -192,7 +195,7 @@ end HolderConjugate
 lemma holderConjugate_comm : p.HolderConjugate q ↔ q.HolderConjugate p := ⟨.symm, .symm⟩
 
 lemma holderConjugate_iff_eq_conjExponent (hp : 1 < p) : p.HolderConjugate q ↔ q = p / (p - 1) :=
-  ⟨HolderConjugate.conjugate_eq, fun h ↦ holderConjugate_iff.mpr ⟨hp, by field_simp [h]⟩⟩
+  ⟨HolderConjugate.conjugate_eq, fun h ↦ holderConjugate_iff.mpr ⟨hp, by simp [field, h]⟩⟩
 
 lemma HolderConjugate.conjExponent (h : 1 < p) : p.HolderConjugate (conjExponent p) :=
   (holderConjugate_iff_eq_conjExponent h).2 rfl
@@ -336,8 +339,9 @@ theorem mul_eq_add : p * q = p + q := by
   simpa [mul_add, add_mul, h.ne_zero, h.symm.ne_zero, add_comm q] using congr(p * $(h.inv_eq) * q)
 
 theorem div_conj_eq_sub_one : p / q = p - 1 := by
-  field_simp [h.symm.ne_zero]
-  rw [h.sub_one_mul_conj]
+  have := h.symm.ne_zero -- assumption discharger
+  simp only [field]
+  linear_combination - h.sub_one_mul_conj
 
 lemma inv_add_inv_ennreal : (p⁻¹ + q⁻¹ : ℝ≥0∞) = 1 := by norm_cast; exact h.inv_add_inv_eq_one
 
@@ -393,7 +397,8 @@ lemma coe_conjExponent {p : ℝ≥0} (hp : 1 < p) : p.conjExponent = conjExponen
   norm_cast
   rw [← coe_inv (tsub_pos_of_lt hp).ne']
   norm_cast
-  field_simp [(tsub_pos_of_lt hp).ne']
+  have := tsub_pos_of_lt hp -- assumption discharger
+  simp [field]
   rw [tsub_add_cancel_of_le hp.le]
 
 

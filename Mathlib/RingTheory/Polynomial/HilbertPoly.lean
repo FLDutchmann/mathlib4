@@ -10,7 +10,6 @@ import Mathlib.Order.Interval.Set.Infinite
 import Mathlib.RingTheory.Polynomial.Pochhammer
 import Mathlib.RingTheory.PowerSeries.WellKnown
 import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FieldSimp2
 
 /-!
 # Hilbert polynomials

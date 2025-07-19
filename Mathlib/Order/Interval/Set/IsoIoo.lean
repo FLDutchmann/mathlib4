@@ -6,7 +6,6 @@ Authors: Yury Kudryashov
 import Mathlib.Order.Monotone.Odd
 import Mathlib.Algebra.Order.Field.Basic
 import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FieldSimp2
 
 /-!
 # Order isomorphism between a linear ordered field and `(-1, 1)`

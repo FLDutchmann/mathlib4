@@ -8,7 +8,6 @@ import Mathlib.Algebra.Polynomial.Roots
 import Mathlib.Data.Fintype.Inv
 import Mathlib.GroupTheory.SpecificGroups.Cyclic
 import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FieldSimp2
 
 /-!
 # Integral domains

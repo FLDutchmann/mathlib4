@@ -471,7 +471,7 @@ theorem addOrderOf_coe_eq_zero_iff_forall_rat_ne_div {a : 𝕜} :
     simp only [← coe_nsmul, coe_eq_zero_iff, nsmul_eq_mul, zsmul_eq_mul] at han
     rcases han with ⟨m, hm⟩
     apply h (m / n)
-    field_simp [hm]
+    simp [field, hm]
 
 variable (p)
 

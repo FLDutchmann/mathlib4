@@ -10,7 +10,6 @@ import Mathlib.RingTheory.Localization.Integer
 import Mathlib.RingTheory.Valuation.Integers
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FieldSimp2
 
 /-!
 # Valuation Rings

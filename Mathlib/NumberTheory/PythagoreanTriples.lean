@@ -7,7 +7,6 @@ import Mathlib.Data.Int.NatPrime
 import Mathlib.Data.ZMod.Basic
 import Mathlib.RingTheory.Int.Basic
 import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.FieldSimp2
 
 /-!
 # Pythagorean Triples
@@ -258,7 +257,7 @@ def circleEquivGen (hk : ∀ x : K, 1 + x ^ 2 ≠ 0) :
     K ≃ { p : K × K // p.1 ^ 2 + p.2 ^ 2 = 1 ∧ p.2 ≠ -1 } where
   toFun x :=
     ⟨⟨2 * x / (1 + x ^ 2), (1 - x ^ 2) / (1 + x ^ 2)⟩, by
-      have := hk x -- why can't this be deleted?
+      have := hk x -- field_simp assumption discharger
       simp [field]
       ring, by
       simp only [Ne, div_eq_iff (hk x), neg_mul, one_mul, neg_add, sub_eq_add_neg, add_left_inj]
@@ -269,7 +268,7 @@ def circleEquivGen (hk : ∀ x : K, 1 + x ^ 2 ≠ 0) :
     have h3 : (2 : K) ≠ 0 := by
       convert hk 1
       rw [one_pow 2, h2]
-    have := hk x -- why can't this be deleted?
+    have := hk x -- field_simp assumption discharger
     simp [field, h2, add_assoc, add_comm, add_sub_cancel, mul_comm]
   right_inv := fun ⟨⟨x, y⟩, hxy, hy⟩ => by
     change x ^ 2 + y ^ 2 = 1 at hxy
@@ -442,7 +441,7 @@ theorem isPrimitiveClassified_of_coprime_of_odd_of_pos (hc : Int.gcd x y = 1) (h
     simp only [sq] -- field simproc forces powers together, opposite to `sq`
     norm_cast
   have hvz : v ≠ 0 := by
-    field_simp [v]
+    simp [field, v, -mul_eq_zero, -div_eq_zero_iff] -- lemmas disabled in field_simp
     exact h0
   have hw1 : w ≠ -1 := by
     contrapose! hvz with hw1
