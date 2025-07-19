@@ -30,11 +30,11 @@ theorem ConvexOn.slope_mono_adjacent (hf : ConvexOn 𝕜 s f) {x y z : 𝕜} (hx
     linarith
   set a := (z - y) / (z - x)
   set b := (y - x) / (z - x)
-  have hy : a • x + b • z = y := by field_simp [a, b]; ring
+  have hy : a • x + b • z = y := by simp [field, a, b]; ring
   have key :=
     hf.2 hx hz (show 0 ≤ a by apply div_nonneg <;> linarith)
       (show 0 ≤ b by apply div_nonneg <;> linarith)
-      (show a + b = 1 by field_simp [a, b])
+      (show a + b = 1 by simp [field, a, b])
   rw [hy] at key
   replace key := mul_le_mul_of_nonneg_left key hxz.le
   field_simp [a, b, mul_comm (z - x) _] at key ⊢
@@ -64,10 +64,10 @@ theorem StrictConvexOn.slope_strict_mono_adjacent (hf : StrictConvexOn 𝕜 s f)
     linarith
   set a := (z - y) / (z - x)
   set b := (y - x) / (z - x)
-  have hy : a • x + b • z = y := by field_simp [a, b]; ring
+  have hy : a • x + b • z = y := by simp [field, a, b]; ring
   have key :=
     hf.2 hx hz hxz' (div_pos hyz hxz) (div_pos hxy hxz)
-      (show a + b = 1 by field_simp [a, b])
+      (show a + b = 1 by simp [field, a, b])
   rw [hy] at key
   replace key := mul_lt_mul_of_pos_left key hxz
   field_simp [mul_comm (z - x) _] at key ⊢
@@ -229,10 +229,10 @@ theorem ConvexOn.secant_mono_aux1 (hf : ConvexOn 𝕜 s f) {x y z : 𝕜} (hx : 
     _ ≤ (z - y) / (z - x) * f x + (y - x) / (z - x) * f z := hf.2 hx hz ha hb ?_
     _ = ((z - y) * f x + (y - x) * f z) / (z - x) := ?_
   · congr 1
-    field_simp
+    simp [field]
     ring
-  · field_simp
-  · field_simp
+  · simp [field]
+  · simp [field]
 
 theorem ConvexOn.secant_mono_aux2 (hf : ConvexOn 𝕜 s f) {x y z : 𝕜} (hx : x ∈ s) (hz : z ∈ s)
     (hxy : x < y) (hyz : y < z) : (f y - f x) / (y - x) ≤ (f z - f x) / (z - x) := by
@@ -257,9 +257,9 @@ theorem ConvexOn.secant_mono (hf : ConvexOn 𝕜 s f) {a x y : 𝕜} (ha : a ∈
   · simp
   rcases lt_or_gt_of_ne hxa with hxa | hxa
   · rcases lt_or_gt_of_ne hya with hya | hya
-    · convert hf.secant_mono_aux3 hx ha hxy hya using 1 <;> rw [← neg_div_neg_eq] <;> field_simp
+    · convert hf.secant_mono_aux3 hx ha hxy hya using 1 <;> rw [← neg_div_neg_eq] <;> simp [field]
     · convert hf.slope_mono_adjacent hx hy hxa hya using 1
-      rw [← neg_div_neg_eq]; field_simp
+      rw [← neg_div_neg_eq]; simp [field]
   · exact hf.secant_mono_aux2 ha hy hxa hxy
 
 theorem StrictConvexOn.secant_strict_mono_aux1 (hf : StrictConvexOn 𝕜 s f) {x y z : 𝕜} (hx : x ∈ s)
@@ -275,10 +275,10 @@ theorem StrictConvexOn.secant_strict_mono_aux1 (hf : StrictConvexOn 𝕜 s f) {x
     _ < (z - y) / (z - x) * f x + (y - x) / (z - x) * f z := hf.2 hx hz (by linarith) ha hb ?_
     _ = ((z - y) * f x + (y - x) * f z) / (z - x) := ?_
   · congr 1
-    field_simp
+    simp [field]
     ring
-  · field_simp
-  · field_simp
+  · simp [field]
+  · simp [field]
 
 theorem StrictConvexOn.secant_strict_mono_aux2 (hf : StrictConvexOn 𝕜 s f) {x y z : 𝕜} (hx : x ∈ s)
     (hz : z ∈ s) (hxy : x < y) (hyz : y < z) : (f y - f x) / (y - x) < (f z - f x) / (z - x) := by
@@ -302,9 +302,9 @@ theorem StrictConvexOn.secant_strict_mono (hf : StrictConvexOn 𝕜 s f) {a x y 
   rcases lt_or_gt_of_ne hxa with hxa | hxa
   · rcases lt_or_gt_of_ne hya with hya | hya
     · convert hf.secant_strict_mono_aux3 hx ha hxy hya using 1 <;> rw [← neg_div_neg_eq] <;>
-        field_simp
+        simp [field]
     · convert hf.slope_strict_mono_adjacent hx hy hxa hya using 1
-      rw [← neg_div_neg_eq]; field_simp
+      rw [← neg_div_neg_eq]; simp [field]
   · exact hf.secant_strict_mono_aux2 ha hy hxa hxy
 
 /-- If `f : 𝕜 → 𝕜` is strictly concave, then for any point `a` the slope of the secant line of `f`
@@ -315,7 +315,7 @@ theorem StrictConcaveOn.secant_strict_mono (hf : StrictConcaveOn 𝕜 s f) {a x 
   have key := hf.neg.secant_strict_mono ha hx hy hxa hya hxy
   simp only [Pi.neg_apply] at key
   rw [← neg_lt_neg_iff]
-  convert key using 1 <;> field_simp <;> ring
+  convert key using 1 <;> simp [field] <;> ring
 
 /-- If `f` is convex on a set `s` in a linearly ordered field, and `f x < f y` for two points
 `x < y` in `s`, then `f` is strictly monotone on `s ∩ [y, ∞)`. -/

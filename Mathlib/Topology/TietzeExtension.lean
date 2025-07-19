@@ -258,7 +258,7 @@ theorem exists_extension_norm_eq_of_isClosedEmbedding' (f : X →ᵇ ℝ) (e : C
     refine
       (dist_le_of_le_geometric_of_tendsto₀ _ _ (by norm_num1)
         hg_dist hg_cau.tendsto_limUnder).trans_eq ?_
-    field_simp [show (3 - 2 : ℝ) = 1 by norm_num1]
+    simp [field, show (3 - 2 : ℝ) = 1 by norm_num1]
   · rw [← hge]
     exact norm_compContinuous_le _ _
 
@@ -328,7 +328,7 @@ theorem exists_extension_forall_exists_le_ge_of_isClosedEmbedding [Nonempty X] (
   have hac : a < c := left_lt_add_div_two.2 hlt
   have hcb : c < b := add_div_two_lt_right.2 hlt
   have hsub : c - a = b - c := by
-    field_simp [c]
+    simp [c]
     ring
   /- Due to `exists_extension_forall_mem_Icc_of_isClosedEmbedding`, there exists an extension `g`
     such that `g y ∈ [a, b]` for all `y`. However, if `a` and/or `b` do not belong to the range of

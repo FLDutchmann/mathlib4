@@ -7,7 +7,7 @@ import Mathlib.Algebra.ContinuedFractions.Computation.Translations
 import Mathlib.Algebra.ContinuedFractions.TerminatedStable
 import Mathlib.Algebra.ContinuedFractions.ContinuantsRecurrence
 import Mathlib.Order.Filter.AtTopBot.Basic
-import Mathlib.Tactic.FieldSimp2
+import Mathlib.Tactic.FieldSimp
 import Mathlib.Tactic.Ring
 
 /-!
@@ -169,7 +169,7 @@ theorem compExactValue_correctness_of_stream_eq_some :
       have : compExactValue ppconts pconts ifp_n.fr =
           (ppA + ifp_n.fr⁻¹ * pA) / (ppB + ifp_n.fr⁻¹ * pB) := by
         -- unfold compExactValue and the convergent computation once
-        field_simp [ifp_n_fract_ne_zero, compExactValue, nextConts, nextNum, nextDen, ppA, ppB]
+        simp [field, ifp_n_fract_ne_zero, compExactValue, nextConts, nextNum, nextDen, ppA, ppB]
         ac_rfl
       rw [this]
       -- two calculations needed to show the claim

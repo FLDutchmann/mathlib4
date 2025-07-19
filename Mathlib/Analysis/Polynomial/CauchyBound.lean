@@ -87,13 +87,13 @@ theorem IsRoot.norm_lt_cauchyBound {p : K[X]} (hp : p ≠ 0) {a : K} (h : p.IsRo
       calc
         ‖a‖₊ = ‖a‖₊ - 1 + 1 := (tsub_add_cancel_of_le ha.le).symm
         _ = ‖a‖₊ ^ p.natDegree * (‖a‖₊ - 1) / ‖a‖₊ ^ p.natDegree + 1 := by
-          field_simp
+          simp [field]
         _ ≤ (cauchyBound p - 1) * ((‖a‖₊ ^ p.natDegree - 1) / (‖a‖₊ - 1)) * (‖a‖₊ - 1)
             / ‖a‖₊ ^ p.natDegree + 1 := by gcongr
         _ = (cauchyBound p - 1) * (‖a‖₊ ^ p.natDegree - 1) / ‖a‖₊ ^ p.natDegree + 1 := by
           congr 2
           have : ‖a‖₊ - 1 ≠ 0 := fun nh ↦ (ha.trans_le (tsub_eq_zero_iff_le.mp nh)).false
-          field_simp
+          simp [field]
         _ < (cauchyBound p - 1) * ‖a‖₊ ^ p.natDegree / ‖a‖₊ ^ p.natDegree + 1 := by
           gcongr
           · apply lt_of_le_of_ne (by simp)
@@ -102,7 +102,7 @@ theorem IsRoot.norm_lt_cauchyBound {p : K[X]} (hp : p ≠ 0) {a : K} (h : p.IsRo
             apply pow_pos
             exact zero_lt_one.trans ha
           simp [zero_lt_one.trans ha]
-        _ = cauchyBound p := by field_simp [tsub_add_cancel_of_le]
+        _ = cauchyBound p := by simp [field, tsub_add_cancel_of_le]
   apply le_of_eq at h
   have pld : ‖p.leadingCoeff‖₊ ≠ 0 := by simpa
   calc ‖a‖₊ ^ p.natDegree
@@ -122,7 +122,6 @@ theorem IsRoot.norm_lt_cauchyBound {p : K[X]} (hp : p ≠ 0) {a : K} (h : p.IsRo
       apply le_sup (f := (‖p.coeff ·‖₊)) ‹_›
     _ = (cauchyBound p - 1) * ∑ x ∈ range p.natDegree, ‖a‖₊ ^ x := by
       simp only [← mul_sum]
-      field_simp
-      ring
+      simp [field]
 
 end Polynomial

@@ -41,7 +41,7 @@ lemma ConvexOn.lipschitzOnWith_of_abs_le (hf : ConvexOn ℝ (ball x₀ r) f) (h�
         _ = r := by simp
     let a := ε / (ε + ‖x - y‖)
     let b := ‖x - y‖ / (ε + ‖x - y‖)
-    have hab : a + b = 1 := by field_simp [a, b]
+    have hab : a + b = 1 := by simp [field, a, b]
     have hxyz : x = a • y + b • z := by
       calc
         x = a • x + b • x := by rw [Convex.combo_self hab]
