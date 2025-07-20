@@ -286,6 +286,46 @@ example (x z : ℚ≥0) (n : ℕ) : z * ((z / x) ^ n * x) = (z / x) ^ (n + 1) * 
 
 end
 
+/-! ### Tests to distinguish from former implementation -/
+
+example : x ^ 2 * x⁻¹ = x := by simp [field]
+example (hx: x ≠ 0) : x / (x * y) = 1 / y := by simp [field]
+
+/--
+error: unsolved goals
+x y z : ℚ
+⊢ x ^ 2 / x = x
+-/
+#guard_msgs in
+example : x ^ 2 * x⁻¹ = x := by field_simp
+
+/-- error: simp made no progress -/
+#guard_msgs in
+example (hx: x ≠ 0) : x / (x * y) = 1 / y := by field_simp
+
+set_option linter.unusedVariables false in
+/- This example demonstrates a feature/bug of the former implementation: use the `field_simp`
+discharger on the side conditions of other simp-lemmas, not just the `field_simp` simp set. -/
+example (m n : ℕ) (h : m ≤ n) (hm : (2:ℚ) < n - m) : (n:ℚ) / (n - m) = 1 / ↑(n - m) * n := by
+  field_simp
+
+/--
+error: unsolved goals
+x y z : ℚ
+m n : ℕ
+h : m ≤ n
+hm : 2 < ↑n - ↑m
+⊢ ↑n = ↑n * (↑n - ↑m) / ↑(n - m)
+-/
+#guard_msgs in
+example (m n : ℕ) (h : m ≤ n) (hm : (2:ℚ) < n - m) : (n:ℚ) / (n - m) = 1 / ↑(n - m) * n := by
+  simp [field]
+
+set_option linter.unusedVariables false in
+/- The new implementation requires that such a discharger must be invoked explicitly. -/
+example (m n : ℕ) (h : m ≤ n) (hm : (2:ℚ) < n - m) : (n:ℚ) / (n - m) = 1 / ↑(n - m) * n := by
+  simp (disch := assumption) [field]
+
 /-! ### Tests from the former `field_simp` file -/
 
 set_option linter.unusedVariables false in
