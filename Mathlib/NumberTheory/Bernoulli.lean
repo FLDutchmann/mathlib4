@@ -153,8 +153,8 @@ theorem bernoulli'PowerSeries_mul_exp_sub_one :
   simp_rw [mem_antidiagonal]
   rintro ⟨i, j⟩ rfl
   have := factorial_mul_factorial_dvd_factorial_add i j
-  simp [field, mul_comm _ (bernoulli' i), mul_assoc, add_choose,
-    cast_div (K := ℚ) (by assumption) (by positivity)] -- discharger getting used on all simp lemmas
+  -- old field_simp discharger getting used on the simp-lemma `cast_div`
+  simp (disch := field_simp_discharge) [field, add_choose]
 
 /-- Odd Bernoulli numbers (greater than 1) are zero. -/
 theorem bernoulli'_odd_eq_zero {n : ℕ} (h_odd : Odd n) (hlt : 1 < n) : bernoulli' n = 0 := by
