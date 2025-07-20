@@ -94,7 +94,7 @@ def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)
 
 /-- Given a product of powers, split as a quotient: the positive powers divided by (the negations
 of) the negative powers. -/
-def split (iM : Q(GroupWithZero $M)) (l : qNF M) :
+def split (iM : Q(CommGroupWithZero $M)) (l : qNF M) :
     MetaM (Σ l_n l_d : qNF M, Q(NF.eval $(l.toNF)
       = NF.eval $(l_n.toNF) / NF.eval $(l_d.toNF))) := do
   match l with
@@ -102,11 +102,12 @@ def split (iM : Q(GroupWithZero $M)) (l : qNF M) :
   | ((r, x), i) :: t =>
     let ⟨t_n, t_d, pf⟩ ← split iM t
     if r > 0 then
-      return ⟨((r, x), i) :: t_n, t_d, q(sorry)⟩
+      return ⟨((r, x), i) :: t_n, t_d, (q(NF.cons_eq_div_of_eq_div $r $x $pf):)⟩
     else if r = 0 then
-      return ⟨((1, x), i) :: t_n, ((1, x), i) :: t_d, q(sorry)⟩
+      return ⟨((1, x), i) :: t_n, ((1, x), i) :: t_d, (q(NF.cons_zero_eq_div_of_eq_div $x $pf):)⟩
     else
-      return ⟨t_n, ((-r, x), i) :: t_d, q(sorry)⟩
+      let r' : ℤ := -r
+      return ⟨t_n, ((r', x), i) :: t_d, (q(NF.cons_eq_div_of_eq_div' $r' $x $pf):)⟩
 
 private def evalPrettyAux (iM : Q(GroupWithZero $M)) (l : qNF M) :
     MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
@@ -121,15 +122,18 @@ private def evalPrettyAux (iM : Q(GroupWithZero $M)) (l : qNF M) :
     return ⟨q($t' * $e), (q(congr_arg₂ HMul.hMul $pf $pf_e):)⟩
 
 /-- Build a transparent expression for the product of powers represented by `l : qNF M`. -/
-def evalPretty (iM : Q(GroupWithZero $M)) (l : qNF M) :
+def evalPretty (iM : Q(CommGroupWithZero $M)) (l : qNF M) :
     MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
   let ⟨l_n, l_d, pf⟩ ← split iM l
-  let ⟨num, pf_n⟩ ← evalPrettyAux iM l_n
+  let ⟨num, pf_n⟩ ← evalPrettyAux q(inferInstance) l_n
   match l_d with
-  | [] => return ⟨num, q(Eq.trans $pf sorry)⟩
+  | [] => return ⟨num, q(eq_div_of_eq_one_of_subst $pf $pf_n)⟩
   | _ =>
-    let ⟨den, pf_d⟩ ← evalPrettyAux iM l_d
-    return ⟨q($num / $den), q(sorry)⟩
+    let ⟨den, pf_d⟩ ← evalPrettyAux q(inferInstance) l_d
+    let pf_d : Q(NF.eval $(l_d.toNF) = $den) := pf_d
+    let pf : Q(NF.eval $(l.toNF) = NF.eval $(l_n.toNF) / NF.eval $(l_d.toNF)) := pf
+    let pf_tot := q(eq_div_of_subst $pf $pf_n $pf_d)
+    return ⟨q($num / $den), pf_tot⟩
 
 /-- Given two terms `l₁`, `l₂` of type `qNF M`, i.e. lists of `(ℤ × Q($M)) × ℕ`s (an integer, an
 `Expr` and a natural number), construct another such term `l`, which will have the property that in
@@ -365,8 +369,8 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
     let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch false
-    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty q(inferInstance) l₁'
-    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty q(inferInstance) l₂'
+    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
+    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
     let e : Q($M) := q($e₁ + $e₂)
     let ⟨sum, pf_atom⟩ ← baseCase e
     let L' := qNF.mul L sum
@@ -380,8 +384,8 @@ partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWi
     let ⟨l₁, pf₁⟩ ← normalize disch iM a
     let ⟨l₂, pf₂⟩ ← normalize disch iM b
     let ⟨L, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch false
-    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty q(inferInstance) l₁'
-    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty q(inferInstance) l₂'
+    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
+    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
     let e : Q($M) := q($e₁ - $e₂)
     let ⟨sum, pf_atom⟩ ← baseCase e
     let L' := qNF.mul L sum
@@ -415,10 +419,8 @@ def normalizePretty (disch : Expr → MetaM (Option Expr))
     (iM : Q(CommGroupWithZero $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
   let ⟨l, pf⟩ ← normalize disch iM x
   let ⟨l', pf'⟩ ← qNF.removeZeros disch q(inferInstance) l
-  let ⟨x', pf''⟩ ← qNF.evalPretty q(inferInstance) l'
+  let ⟨x', pf''⟩ ← qNF.evalPretty iM l'
   return ⟨x', q(Eq.trans $pf (Eq.trans $pf' $pf''))⟩
-
--- def qNF.expIds (l : qNF M) : List (ℤ × ℕ) := List.map (fun p ↦ (p.1.1, p.2)) l
 
 /-- Given `e₁` and `e₂`, cancel nonzero factors to construct a new equality which is logically
 equivalent to `e₁ = e₂`. -/
@@ -428,8 +430,8 @@ def reduceEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M
   let ⟨l₂, pf_l₂⟩ ← normalize disch iM e₂
   let ⟨L, l₁', l₂', pf_lhs, pf_rhs⟩ ← l₁.gcd iM l₂ disch true
   let pf₀ : Q(NF.eval $(L.toNF) ≠ 0) := q(sorry)
-  let ⟨f₁, pf_l₁'⟩ ← l₁'.evalPretty q(inferInstance)
-  let ⟨f₂, pf_l₂'⟩ ← l₂'.evalPretty q(inferInstance)
+  let ⟨f₁, pf_l₁'⟩ ← l₁'.evalPretty iM
+  let ⟨f₂, pf_l₂'⟩ ← l₂'.evalPretty iM
   assumeInstancesCommute
   return ⟨f₁, f₂, q(eq_eq_cancel_eq $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
 
@@ -439,8 +441,8 @@ def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)
   let ⟨l₁, pf₁⟩ ← normalize disch iM e₁
   let ⟨l₂, pf₂⟩ ← normalize disch iM e₂
   let ⟨_, l₁', l₂', pf₁', pf₂'⟩ ← l₁.gcd iM l₂ disch false
-  let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty q(inferInstance)
-  let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty q(inferInstance)
+  let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty iM
+  let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty iM
   let mvar ← mkFreshExprMVarQ q($e₁' = $e₂')
   return ⟨Expr.mvarId! mvar, q(eq_of_eq_mul $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $mvar)⟩
 

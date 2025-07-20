@@ -169,6 +169,16 @@ theorem subst_neg {M : Type*} [Field M] {x negOne X X' : M}
   rw [pf, ← pf', ← pf_negOne]
   rw [mul_neg, mul_one]
 
+theorem eq_div_of_eq_one_of_subst {M : Type*} [DivInvOneMonoid M] {l l_n n : M} (h : l = l_n / 1)
+    (hn : l_n = n) :
+    l = n := by
+  rw [h, hn, div_one]
+
+theorem eq_div_of_subst {M : Type*} [Div M] {l l_n l_d n d : M} (h : l = l_n / l_d) (hn : l_n = n)
+    (hd : l_d = d) :
+    l = n / d := by
+  rw [h, hn, hd]
+
 theorem eq_of_eq_mul {M : Type*} [Mul M] {x₁ x₂ x₁' x₂' X₁ X₁' X₂ X₂' d : M}
     (h₁ : x₁ = X₁) (h₂ : x₂ = X₂) (h₁' : d * X₁' = X₁) (h₂' : d * X₂' = X₂)
     (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂') (h : x₁' = x₂') :
@@ -295,6 +305,28 @@ theorem eval_cons_mul_eval_cons_neg [CommGroupWithZero M] (n : ℤ) {e : M} (he 
     ((n, e) ::ᵣ L).eval * ((-n, e) ::ᵣ l).eval = l'.eval := by
   rw [mul_eq_eval₂ n (-n) e h]
   simp [zpow'_zero_of_ne_zero he]
+
+theorem cons_eq_div_of_eq_div [CommGroupWithZero M] (n : ℤ) (e : M) {t t_n t_d : NF M}
+    (h : t.eval = t_n.eval / t_d.eval) :
+    ((n, e) ::ᵣ t).eval = ((n, e) ::ᵣ t_n).eval / t_d.eval := by
+  simp only [eval_cons, h, zpow'_neg, div_eq_mul_inv, mul_inv]
+  rw [mul_comm, ← mul_assoc, mul_comm _ t_n.eval]
+
+theorem cons_eq_div_of_eq_div' [CommGroupWithZero M] (n : ℤ) (e : M) {t t_n t_d : NF M}
+    (h : t.eval = t_n.eval / t_d.eval) :
+    ((-n, e) ::ᵣ t).eval = t_n.eval / ((n, e) ::ᵣ t_d).eval := by
+  simp only [eval_cons, h, zpow'_neg, div_eq_mul_inv, mul_inv]
+  rw [← mul_assoc, mul_comm]
+
+theorem cons_zero_eq_div_of_eq_div [CommGroupWithZero M] (e : M) {t t_n t_d : NF M}
+    (h : t.eval = t_n.eval / t_d.eval) :
+    ((0, e) ::ᵣ t).eval = ((1, e) ::ᵣ t_n).eval / ((1, e) ::ᵣ t_d).eval := by
+  simp only [eval_cons, h, div_eq_mul_inv, mul_inv, mul_assoc]
+  congr! 1
+  rw [← mul_assoc, mul_comm (zpow' e 1), mul_assoc]
+  congr! 1
+  rw [← zpow'_neg, ← zpow'_add]
+  congr
 
 instance : Inv (NF M) where
   inv l := l.map fun (a, x) ↦ (-a, x)
