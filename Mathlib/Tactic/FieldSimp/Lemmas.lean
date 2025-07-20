@@ -41,6 +41,12 @@ lemma zero_zpow' (n : ℤ) : zpow' (0 : α) n = 0 := by
   intro hn
   exact zero_zpow n hn
 
+lemma zpow'_eq_zero_iff (a : α) (n : ℤ) : zpow' a n = 0 ↔ a = 0 := by
+  obtain rfl | hn := eq_or_ne n 0
+  · simp [zpow']
+  · simp [zpow', zpow_eq_zero_iff hn]
+    tauto
+
 @[simp]
 lemma one_zpow' (n : ℤ) : zpow' (1 : α) n = 1 := by
   simp [zpow']
@@ -227,6 +233,12 @@ noncomputable def eval [GroupWithZero M] (l : NF M) : M :=
   unfold eval cons
   rw [List.map_cons]
   rw [List.prod'_cons]
+
+theorem cons_ne_zero [GroupWithZero M] (r : ℤ) {x : M} (hx : x ≠ 0) {l : NF M} (hl : l.eval ≠ 0) :
+    ((r, x) ::ᵣ l).eval ≠ 0 := by
+  rw [eval_cons]
+  apply mul_ne_zero hl
+  simp [zpow'_eq_zero_iff, hx]
 
 theorem atom_eq_eval [GroupWithZero M] (x : M) : x = NF.eval [(1, x)] := by simp [eval]
 
