@@ -92,11 +92,13 @@ def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)
       q(NF.eval_cons_eq_eval_of_eq_of_eq $r $x $pf $pf')
     return ⟨l', pf''⟩
 
+/-- Given a product of powers, split as a quotient: the positive powers divided by (the negations
+of) the negative powers. -/
 def split (iM : Q(GroupWithZero $M)) (l : qNF M) :
     MetaM (Σ l_n l_d : qNF M, Q(NF.eval $(l.toNF)
       = NF.eval $(l_n.toNF) / NF.eval $(l_d.toNF))) := do
   match l with
-  | [] => return ⟨[], [], q(sorry)⟩
+  | [] => return ⟨[], [], q(Eq.symm (div_one (1:$M)))⟩
   | ((r, x), i) :: t =>
     let ⟨t_n, t_d, pf⟩ ← split iM t
     if r > 0 then
