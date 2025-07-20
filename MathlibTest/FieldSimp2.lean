@@ -293,6 +293,53 @@ example (x z : ℚ≥0) (n : ℕ) : z * ((z / x) ^ n * x) = (z / x) ^ (n + 1) * 
 
 end
 
+/-! ### Testing to what extent the simproc discharger picks up hypotheses from the simp args -/
+section
+variable {K : Type*} [Field K] [LinearOrder K] [IsStrictOrderedRing K]
+
+/- `simp [field, ...]` can use the provided arguments to prove nonzeroness directly.
+Same for the old implementation (`field_simp`). -/
+
+example  (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
+  fail_if_success have : |x + 1| ≠ 0 := by positivity
+  have H : |x + 1| ≠ 0 := by simp [hK x] -- this is how `field_simp` will prove nonzeroness
+  clear H
+  field_simp [hK x]
+  guard_target = 1 = 5 * |x + 1|
+  exact test_sorry
+
+example (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
+  fail_if_success have : |x + 1| ≠ 0 := by positivity
+  have H : |x + 1| ≠ 0 := by simp [hK x] -- this is how `simp [field, ...]` will prove nonzeroness
+  clear H
+  simp [field, hK x]
+  guard_target = 1 = |x + 1| * 5
+  exact test_sorry
+
+/- `simp [field, ...]` **can't** pass the provided arguments as hypotheses to `positivity`.
+Same for the old implementation (`field_simp`). -/
+
+/-- error: simp made no progress -/
+#guard_msgs in
+-- doesn't cancel
+example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
+  field_simp [hK x]
+
+-- doesn't cancel
+example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
+  simp [field, hK x]
+  guard_target = 1 / (x + 1) = 5
+  exact test_sorry
+
+-- cancels when the hypothesis is brought out for use by `positivity`
+example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
+  have := hK x
+  field_simp
+  guard_target = 1 = 5 * (x + 1)
+  exact test_sorry
+
+end
+
 /-! ### Tests to distinguish from former implementation -/
 
 example : x ^ 2 * x⁻¹ = x := by simp only [field]

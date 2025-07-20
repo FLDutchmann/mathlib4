@@ -43,8 +43,7 @@ theorem tendsto_add_mul_div_add_mul_atTop_nhds (a b c : 𝕜) {d : 𝕜} (hd : d
   case f₁ => exact fun k ↦ (a * (↑k)⁻¹ + c) / (b * (↑k)⁻¹ + d)
   · refine (eventually_ne_atTop 0).mp (Eventually.of_forall ?_)
     intro h hx
-    have : (h:𝕜) ≠ 0 := mod_cast hx
-    simp [field] -- assumption discharger
+    simp [field, hx]
   · apply Filter.Tendsto.div _ _ hd
     all_goals
       apply zero_add (_ : 𝕜) ▸ Filter.Tendsto.add_const _ _

@@ -470,7 +470,7 @@ open Elab Term in
 
 Copied from fun_prop at https://github.com/leanprover-community/mathlib4/blob/02c6431ffe61ac7571e0281242e025e54638ad42/Mathlib/Tactic/FunProp/Decl.lean#L131
 -/
-def tacticToDischarge (tacticCode : TSyntax `tactic) : Expr → MetaM (Option Expr) := fun e =>
+def tacticToDischarge (tac : TacticM Unit) : Expr → MetaM (Option Expr) := fun e =>
   withTraceNode `Meta.Tactic.fun_prop
     (fun r => do pure s!"[{ExceptToEmoji.toEmoji r}] discharging: {← ppExpr e}") do
     let mvar ← mkFreshExprSyntheticOpaqueMVar e `funProp.discharger
@@ -481,7 +481,7 @@ def tacticToDischarge (tacticCode : TSyntax `tactic) : Expr → MetaM (Option Ex
 
           let _ ←
             withSynthesize (postpone := .no) do
-              Tactic.run mvar.mvarId! (Tactic.evalTactic tacticCode *> Tactic.pruneSolvedGoals)
+              Tactic.run mvar.mvarId! tac
 
           let result ← instantiateMVars mvar
           if result.hasExprMVar then
@@ -494,17 +494,18 @@ def tacticToDischarge (tacticCode : TSyntax `tactic) : Expr → MetaM (Option Ex
 
     return result?
 
-def defaultDischarge : MetaM (Expr → MetaM (Option Expr)) := do
-  pure <| tacticToDischarge (← `(tactic| field_simp_discharge))
+def defaultDischarge : Expr → MetaM (Option Expr) :=
+  tacticToDischarge <| wrapSimpDischarger FieldSimp.discharge (contextual := true)
 
 def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger)) :
   MetaM (Expr → MetaM (Option Expr)) := do
     match d with
-    | none => pure <| ← defaultDischarge
+    | none => pure defaultDischarge
     | some d =>
       match d with
-      | `(discharger| (discharger:=$tac)) => pure <| tacticToDischarge (← `(tactic| ($tac)))
-      | _ => pure <| ← defaultDischarge
+      | `(discharger| (discharger:=$tac)) => pure <| tacticToDischarge <|
+          (Tactic.evalTactic (← `(tactic| ($tac))) *> Tactic.pruneSolvedGoals)
+      | _ => pure defaultDischarge
 
 /-- Conv tactic for field_simp normalisation.
 Wraps the `MetaM` normalization function `normalize`. -/
@@ -522,7 +523,8 @@ elab "field_simp2 " d:(discharger)? : conv => do
   Conv.applySimpResult { expr := e, proof? := some pf }
 
 simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
-  let disch ← parseDischarger none
+  let disch := tacticToDischarge <|
+    wrapSimpDischargerWithCtx FieldSimp.discharge (← Simp.getContext)
   let some ⟨_, a, b⟩ := t.eq? | return .continue
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, a⟩ ← inferTypeQ' a
