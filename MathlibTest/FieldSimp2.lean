@@ -236,6 +236,13 @@ example : x / y ^ 2 = (x + 1) / y := by
   guard_target = x = y * (x + 1)
   exact test_sorry
 
+-- TODO do we want the simproc to reduce this to a common denominator,
+-- i.e. `x / y ^ 2 = y * (x + 1) / y ^ 2`, rather than the current behaviour?
+example : x / y ^ 2 = (x + 1) / y := by
+  simp only [field]
+  guard_target = x / y ^ 2 = (x + 1) / y
+  exact test_sorry
+
 example : x / y = (x + 1) / y ^ 2 := by
   field_simp2
   guard_target = x * y = x + 1
@@ -279,7 +286,7 @@ example {K : Type*} [Field K] (x y z : K) (hy : 1 - y ≠ 0) :
   exact test_sorry
 
 -- from PluenneckeRuzsa
--- FIXME requires handling variable exponents
+-- FIXME? requires handling variable exponents
 example (x z : ℚ≥0) (n : ℕ) : z * ((z / x) ^ n * x) = (z / x) ^ (n + 1) * x * x := by
   field_simp2
   exact test_sorry
@@ -288,8 +295,8 @@ end
 
 /-! ### Tests to distinguish from former implementation -/
 
-example : x ^ 2 * x⁻¹ = x := by simp [field]
-example (hx: x ≠ 0) : x / (x * y) = 1 / y := by simp [field]
+example : x ^ 2 * x⁻¹ = x := by simp only [field]
+example (hx: x ≠ 0) : x / (x * y) = 1 / y := by simp only [field]
 
 /--
 error: unsolved goals
@@ -304,7 +311,7 @@ example : x ^ 2 * x⁻¹ = x := by field_simp
 example (hx: x ≠ 0) : x / (x * y) = 1 / y := by field_simp
 
 set_option linter.unusedVariables false in
-/- This example demonstrates a feature/bug of the former implementation: use the `field_simp`
+/- This example demonstrates a feature/bug of the former implementation: it used the `field_simp`
 discharger on the side conditions of other simp-lemmas, not just the `field_simp` simp set. -/
 example (m n : ℕ) (h : m ≤ n) (hm : (2:ℚ) < n - m) : (n:ℚ) / (n - m) = 1 / ↑(n - m) * n := by
   field_simp
