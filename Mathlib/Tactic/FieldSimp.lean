@@ -444,7 +444,6 @@ def reduceEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M
   let ⟨_, l₁', l₂', pf_lhs, pf_rhs, pf₀⟩ ← l₁.gcd iM l₂ disch true
   let ⟨f₁, pf_l₁'⟩ ← l₁'.evalPretty iM
   let ⟨f₂, pf_l₂'⟩ ← l₂'.evalPretty iM
-  assumeInstancesCommute
   return ⟨f₁, f₂, q(eq_eq_cancel_eq $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
 
 /-- Given `e₁` and `e₂`, construct a new goal which is sufficient to prove `e₁ = e₂`. -/
@@ -494,18 +493,23 @@ def tacticToDischarge (tac : TacticM Unit) : Expr → MetaM (Option Expr) := fun
 
     return result?
 
-def defaultDischarge : Expr → MetaM (Option Expr) :=
-  tacticToDischarge <| wrapSimpDischarger FieldSimp.discharge (contextual := true)
+def atoms {α} (m : AtomM α) : AtomM α := do
+  let a ← m
+  let l ← get
+  trace[Tactic.field_simp] "Atom list for this run is {l.atoms}"
+  pure a
 
 def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger)) :
-  MetaM (Expr → MetaM (Option Expr)) := do
+    MetaM (Expr → MetaM (Option Expr)) := do
+  let defaultDischarge := tacticToDischarge <|
+    wrapSimpDischarger FieldSimp.discharge (contextual := true)
+  match d with
+  | none => pure defaultDischarge
+  | some d =>
     match d with
-    | none => pure defaultDischarge
-    | some d =>
-      match d with
-      | `(discharger| (discharger:=$tac)) => pure <| tacticToDischarge <|
-          (Tactic.evalTactic (← `(tactic| ($tac))) *> Tactic.pruneSolvedGoals)
-      | _ => pure defaultDischarge
+    | `(discharger| (discharger:=$tac)) => pure <| tacticToDischarge <|
+        (Tactic.evalTactic (← `(tactic| ($tac))) *> Tactic.pruneSolvedGoals)
+    | _ => pure defaultDischarge
 
 /-- Conv tactic for field_simp normalisation.
 Wraps the `MetaM` normalization function `normalize`. -/
@@ -518,21 +522,32 @@ elab "field_simp2 " d:(discharger)? : conv => do
   -- find a `CommGroupWithZero` instance on `K`
   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
   -- run the core normalization function `normalizePretty` on `x`
-  let ⟨e, pf⟩ ← AtomM.run .reducible <| normalizePretty disch iK x
+  trace[Tactic.field_simp] "running conv on {x}"
+  let ⟨e, pf⟩ ← AtomM.run .reducible <| atoms <| normalizePretty disch iK x
   -- convert `x` to the output of the normalization
   Conv.applySimpResult { expr := e, proof? := some pf }
 
+/-
+Simprocs are `post` by default (but calling with `↓`, i.e. `simp [↓field, ...]`, makes it `pre`).
+
+Summary of the meaning of the simproc outputs in "post" mode:
+* `done (r : Result)` returns the result.
+* `visit (e : Result)` is passed to `pre` again IF resulting expression is not equal (`==`) to
+  initial expression.
+* `continue (e? : Option Result := none)` is passed to `pre` again
+-/
 simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
-  let disch := tacticToDischarge <|
-    wrapSimpDischargerWithCtx FieldSimp.discharge (← Simp.getContext)
   let some ⟨_, a, b⟩ := t.eq? | return .continue
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, a⟩ ← inferTypeQ' a
   try
     -- find a `CommGroupWithZero` instance on `K`
     let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+    trace[Tactic.field_simp] "running simproc on {a} = {b}"
     -- run the core equality-transforming mechanism on `a = b`
-    let ⟨a', b', pf⟩ ← AtomM.run .reducible <| reduceEq disch iK a b
+    let disch := tacticToDischarge <|
+      wrapSimpDischargerWithCtx FieldSimp.discharge (← Simp.getContext)
+    let ⟨a', b', pf⟩ ← AtomM.run .reducible <| atoms <| reduceEq disch iK a b
     let t' ← mkAppM `Eq #[a', b']
     return .visit { expr := t', proof? := pf }
   catch _ => return .continue
@@ -546,8 +561,9 @@ elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
   let ⟨u, K, a⟩ ← inferTypeQ' a
   -- find a `CommGroupWithZero` instance on `K`
   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+  trace[Tactic.field_simp] "trying to prove {a} = {b}"
   -- run the core equality-proving mechanism on `a = b`
-  let ⟨g', pf⟩ ← AtomM.run .reducible <| proveEq disch iK a b
+  let ⟨g', pf⟩ ← AtomM.run .reducible <| atoms <| proveEq disch iK a b
   g.assign pf
   return [g']
 
