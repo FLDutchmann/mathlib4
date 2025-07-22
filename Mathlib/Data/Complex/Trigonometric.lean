@@ -360,7 +360,7 @@ theorem cos_add_cos : cos x + cos y = 2 * cos ((x + y) / 2) * cos ((x - y) / 2) 
           (cos ((x + y) / 2) * cos ((x - y) / 2) + sin ((x + y) / 2) * sin ((x - y) / 2)) :=
       ?_
     _ = 2 * cos ((x + y) / 2) * cos ((x - y) / 2) := ?_
-  · congr <;> simp [field, -mul_eq_mul_left_iff] <;> ring
+  · congr <;> simp only [field] <;> ring
   · rw [cos_add, cos_sub]
   ring
 

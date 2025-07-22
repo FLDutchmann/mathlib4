@@ -62,7 +62,7 @@ theorem Finset.centerMass_insert [DecidableEq ι] (ha : i ∉ t) (hw : ∑ j ∈
 theorem Finset.centerMass_singleton (hw : w i ≠ 0) : ({i} : Finset ι).centerMass w z = z i := by
   rw [centerMass, sum_singleton, sum_singleton]
   match_scalars
-  simp [field]
+  simp only [field]
 
 @[simp] lemma Finset.centerMass_neg_left : t.centerMass (-w) z = t.centerMass w z := by
   simp [centerMass, inv_neg]

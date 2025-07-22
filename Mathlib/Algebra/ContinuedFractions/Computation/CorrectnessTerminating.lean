@@ -72,7 +72,7 @@ variable [FloorRing K]
 protected theorem compExactValue_correctness_of_stream_eq_some_aux_comp {a : K} (b c : K)
     (fract_a_ne_zero : Int.fract a ≠ 0) :
     ((⌊a⌋ : K) * b + c) / Int.fract a + b = (b * a + c) / Int.fract a := by
-  simp [field]
+  simp only [field]
   rw [Int.fract]
   ring
 

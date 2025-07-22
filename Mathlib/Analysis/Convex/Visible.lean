@@ -104,7 +104,7 @@ lemma IsVisible.of_convexHull_of_pos {ι : Type*} {t : Finset ι} {a : ι → V}
         simp_rw [smul_smul, mul_div_cancel₀ _ hwi.ne']
         exact add_sum_erase _ (fun i ↦ w i • a i) hi
       simp_rw [lineMap_apply_module, ← this, smul_add, smul_smul]
-      match_scalars <;> simp [field] <;> ring
+      match_scalars <;> simp only [field] <;> ring
     refine (convex_convexHull _ _).mem_of_wbtw this hε <| (convex_convexHull _ _).sum_mem ?_ ?_ ?_
     · intros j hj
       have := hw₀ j <| erase_subset _ _ hj

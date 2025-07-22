@@ -41,7 +41,7 @@ theorem isPrimitiveRoot_exp_of_coprime (i n : ℕ) (h0 : n ≠ 0) (hi : i.Coprim
     norm_cast
     rintro l k hk
     have hz : π ≠ 0 := pi_pos.ne'
-    simp [field, hz, I_ne_zero] at hk
+    simp only [field, hz, I_ne_zero] at hk
     norm_cast at hk
     have : n ∣ i * l := by rw [← Int.natCast_dvd_natCast, hk]; apply dvd_mul_right
     exact hi.symm.dvd_of_dvd_mul_left this
@@ -62,7 +62,7 @@ theorem isPrimitiveRoot_iff (ζ : ℂ) (n : ℕ) (hn : n ≠ 0) :
   refine ⟨i, hi, ((isPrimitiveRoot_exp n hn).pow_iff_coprime (Nat.pos_of_ne_zero hn) i).mp h, ?_⟩
   rw [← exp_nat_mul]
   congr 1
-  simp [field, hn0, mul_comm (i : ℂ)]
+  simp only [field]
 
 /-- The complex `n`-th roots of unity are exactly the
 complex numbers of the form `exp (2 * Real.pi * Complex.I * (i / n))` for some `i < n`. -/
@@ -77,11 +77,11 @@ nonrec theorem mem_rootsOfUnity (n : ℕ) [NeZero n] (x : Units ℂ) :
     refine ⟨i, hi, ?_⟩
     rw [← H, ← exp_nat_mul]
     congr 1
-    simp [field, hn0, mul_comm (i : ℂ)]
+    simp only [field]
   · rintro ⟨i, _, H⟩
     rw [← H, ← exp_nat_mul, exp_eq_one_iff]
     use i
-    simp [field, hn0, mul_comm ((n : ℕ) : ℂ), mul_comm (i : ℂ)]
+    simp [field]
 
 theorem card_rootsOfUnity (n : ℕ) [NeZero n] : Fintype.card (rootsOfUnity n ℂ) = n :=
   (isPrimitiveRoot_exp n NeZero.out).card_rootsOfUnity

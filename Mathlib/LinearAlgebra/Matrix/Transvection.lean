@@ -477,7 +477,8 @@ theorem mul_listTransvecRow_last_row (hM : M (inr unit) (inr unit) ≠ 0) (i : F
       have : ¬n.succ ≤ i := by simp only [← hni, n.lt_succ_self, not_le]
       simp only [h, mul_transvection_apply_same, List.take, if_false,
         mul_listTransvecRow_last_col_take _ _ hnr.le, hni.le, this, if_true, IH hnr.le]
-      simp [field]
+      simp only [field]
+      ring
     · have hni : n ≠ i := by
         rintro rfl
         cases i

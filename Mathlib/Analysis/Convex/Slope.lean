@@ -229,10 +229,11 @@ theorem ConvexOn.secant_mono_aux1 (hf : ConvexOn 𝕜 s f) {x y z : 𝕜} (hx : 
     _ ≤ (z - y) / (z - x) * f x + (y - x) / (z - x) * f z := hf.2 hx hz ha hb ?_
     _ = ((z - y) * f x + (y - x) * f z) / (z - x) := ?_
   · congr 1
-    simp [field]
+    simp only [field]
     ring
-  · simp [field]
-  · simp [field]
+  · simp only [field]
+    ring
+  · simp only [field]
 
 theorem ConvexOn.secant_mono_aux2 (hf : ConvexOn 𝕜 s f) {x y z : 𝕜} (hx : x ∈ s) (hz : z ∈ s)
     (hxy : x < y) (hyz : y < z) : (f y - f x) / (y - x) ≤ (f z - f x) / (z - x) := by
@@ -275,10 +276,11 @@ theorem StrictConvexOn.secant_strict_mono_aux1 (hf : StrictConvexOn 𝕜 s f) {x
     _ < (z - y) / (z - x) * f x + (y - x) / (z - x) * f z := hf.2 hx hz (by linarith) ha hb ?_
     _ = ((z - y) * f x + (y - x) * f z) / (z - x) := ?_
   · congr 1
-    simp [field]
+    simp only [field]
     ring
-  · simp [field]
-  · simp [field]
+  · simp only [field]
+    ring
+  · simp only [field]
 
 theorem StrictConvexOn.secant_strict_mono_aux2 (hf : StrictConvexOn 𝕜 s f) {x y z : 𝕜} (hx : x ∈ s)
     (hz : z ∈ s) (hxy : x < y) (hyz : y < z) : (f y - f x) / (y - x) < (f z - f x) / (z - x) := by
@@ -315,7 +317,7 @@ theorem StrictConcaveOn.secant_strict_mono (hf : StrictConcaveOn 𝕜 s f) {a x 
   have key := hf.neg.secant_strict_mono ha hx hy hxa hya hxy
   simp only [Pi.neg_apply] at key
   rw [← neg_lt_neg_iff]
-  convert key using 1 <;> simp [field] <;> ring
+  convert key using 1 <;> simp only [field]
 
 /-- If `f` is convex on a set `s` in a linearly ordered field, and `f x < f y` for two points
 `x < y` in `s`, then `f` is strictly monotone on `s ∩ [y, ∞)`. -/

@@ -143,7 +143,7 @@ lemma UniformContinuousOn.cexp (a : ℝ) : UniformContinuousOn exp {x : ℂ | x.
   apply lt_of_le_of_lt (mul_le_mul h3.le hya (Real.exp_nonneg y.re) (le_of_lt ha))
   have hrr : ε / (2 * a.exp) * a.exp = ε / 2 := by
     nth_rw 2 [mul_comm]
-    simp [field]
+    simp only [field]
   rw [hrr]
   exact div_two_lt_of_pos hε
 
@@ -297,7 +297,7 @@ theorem tendsto_div_pow_mul_exp_add_atTop (b c : ℝ) (n : ℕ) (hb : 0 ≠ b) :
   · exact H b c h
   · convert (H (-b) (-c) (neg_pos.mpr h)).neg using 1
     · ext x
-      simp [field]
+      simp only [field]
     · rw [neg_zero]
 
 /-- `Real.exp` as an order isomorphism between `ℝ` and `(0, +∞)`. -/

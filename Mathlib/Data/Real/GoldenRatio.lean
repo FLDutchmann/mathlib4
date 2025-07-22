@@ -50,7 +50,7 @@ theorem inv_goldConj : ψ⁻¹ = -φ := by
 
 @[simp]
 theorem gold_mul_goldConj : φ * ψ = -1 := by
-  simp [field]
+  simp only [field]
   rw [← sq_sub_sq]
   norm_num
 
@@ -123,7 +123,7 @@ theorem gold_irrational : Irrational φ := by
   have := this.ratCast_add 1
   convert this.ratCast_mul (show (0.5 : ℚ) ≠ 0 by norm_num)
   norm_num
-  simp [field]
+  simp only [field]
 
 /-- The conjugate of the golden ratio is irrational. -/
 theorem goldConj_irrational : Irrational ψ := by
@@ -131,7 +131,7 @@ theorem goldConj_irrational : Irrational ψ := by
   have := this.ratCast_sub 1
   convert this.ratCast_mul (show (0.5 : ℚ) ≠ 0 by norm_num)
   norm_num
-  simp [field]
+  simp only [field]
 
 /-!
 ## Links with Fibonacci sequence

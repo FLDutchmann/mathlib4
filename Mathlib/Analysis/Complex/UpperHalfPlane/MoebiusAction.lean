@@ -87,7 +87,7 @@ theorem normSq_denom_ne_zero (g : GL (Fin 2) ℝ) {z : ℂ} (hz : z.im ≠ 0) :
 lemma denom_cocycle (g h : GL (Fin 2) ℝ) {z : ℂ} (hz : z.im ≠ 0) :
     denom (g * h) z = denom g (num h z / denom h z) * denom h z := by
   change _ = (_ * (_ / _) + _) * _
-  simp [field, denom_ne_zero_of_im h hz]
+  simp only [field, denom_ne_zero_of_im h hz]
   simp only [denom, Units.val_mul, mul_apply, Fin.sum_univ_succ, Finset.univ_unique,
     Fin.default_eq_zero, Finset.sum_singleton, Fin.succ_zero_eq_one, Complex.ofReal_add,
     Complex.ofReal_mul, num]
@@ -161,7 +161,7 @@ lemma denom_cocycle' (g h : GL (Fin 2) ℝ) (z : ℍ) :
     denom (g * h) z = σ h (denom g (smulAux h z)) * denom h z := by
   simp only [smulAux, smulAux', coe_mk, map_div₀, σ_num, σ_denom, σ_sq]
   change _ = (_ * (_ / _) + _) * _
-  simp [field, denom_ne_zero h z]
+  simp only [field, denom_ne_zero h z]
   simp only [denom, Units.val_mul, mul_apply, Fin.sum_univ_succ, Finset.univ_unique,
     Fin.default_eq_zero, Finset.sum_singleton, Fin.succ_zero_eq_one, Complex.ofReal_add,
     Complex.ofReal_mul, num]
@@ -303,9 +303,9 @@ theorem exists_SL2_smul_eq_of_apply_zero_one_ne_zero (g : SL(2, ℝ)) (hc : g 1 
     rw [mul_assoc, ← mul_add, add_comm]
     exact mul_ne_zero hc h_denom
   replace h : (a * d - b * c : ℂ) = (1 : ℂ) := by norm_cast
-  simp [field] -- different denominator normal forms produced
+  simp only [field] -- different denominator normal forms produced
   ring_nf at *
-  simp [field]
+  simp only [field]
   linear_combination -h
 
 end SLAction

@@ -167,7 +167,7 @@ theorem solution_spec' {a₁ : 𝕎 k} (ha₁ : a₁.coeff 0 ≠ 0) (a₂ : 𝕎
     · skip
     · rw [hq]
   rw [pow_succ', hq', this]
-  simp [field]
+  simp only [field]
 
 end RecursionBase
 
