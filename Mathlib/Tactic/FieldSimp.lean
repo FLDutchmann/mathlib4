@@ -527,6 +527,11 @@ elab "field_simp2 " d:(discharger)? : conv => do
   -- convert `x` to the output of the normalization
   Conv.applySimpResult { expr := e, proof? := some pf }
 
+def update (ctx : Simp.Context) : TacticM Simp.Context := do
+  let simpTheorems ← getSimpTheorems
+  let ctxSimpTheorems : SimpTheoremsArray := ctx.simpTheorems.push simpTheorems
+  return ctx.setSimpTheorems ctxSimpTheorems
+
 /-
 Simprocs are `post` by default (but calling with `↓`, i.e. `simp [↓field, ...]`, makes it `pre`).
 
@@ -543,10 +548,16 @@ simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
   try
     -- find a `CommGroupWithZero` instance on `K`
     let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+    -- set up discharger, in particular a simp context including the provided terms plus the library
+    -- simp lemmas
+    let ctx ← Simp.getContext
+    let simpTheorems ← getSimpTheorems
+    let ctxSimpTheorems : SimpTheoremsArray := ctx.simpTheorems.push simpTheorems
+    let ctx' := ctx.setSimpTheorems ctxSimpTheorems
+    let disch := tacticToDischarge <|
+      wrapSimpDischargerWithCtx FieldSimp.discharge ctx'
     trace[Tactic.field_simp] "running simproc on {a} = {b}"
     -- run the core equality-transforming mechanism on `a = b`
-    let disch := tacticToDischarge <|
-      wrapSimpDischargerWithCtx FieldSimp.discharge (← Simp.getContext)
     let ⟨a', b', pf⟩ ← AtomM.run .reducible <| atoms <| reduceEq disch iK a b
     let t' ← mkAppM `Eq #[a', b']
     return .visit { expr := t', proof? := pf }
