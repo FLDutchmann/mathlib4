@@ -36,15 +36,13 @@ theorem isPrimitiveRoot_exp_of_coprime (i n : ℕ) (h0 : n ≠ 0) (hi : i.Coprim
   constructor
   · use i
     simp [field, hn0, mul_comm (i : ℂ), mul_comm (n : ℂ)]
-  · simp only [field, hn0, mul_right_comm _ _ ↑n, mul_left_inj' two_pi_I_ne_zero, Ne, not_false_iff,
-      mul_comm _ (i : ℂ), ← mul_assoc _ (i : ℂ), exists_imp]
-    norm_cast
+  · simp only [forall_exists_index]
     rintro l k hk
     have hz : π ≠ 0 := pi_pos.ne'
     simp only [field, hz, I_ne_zero] at hk
     norm_cast at hk
-    have : n ∣ i * l := by rw [← Int.natCast_dvd_natCast, hk]; apply dvd_mul_right
-    exact hi.symm.dvd_of_dvd_mul_left this
+    have : n ∣ l * i := by rw [← Int.natCast_dvd_natCast, hk]; apply dvd_mul_right
+    exact hi.symm.dvd_of_dvd_mul_right this
 
 theorem isPrimitiveRoot_exp (n : ℕ) (h0 : n ≠ 0) : IsPrimitiveRoot (exp (2 * π * I / n)) n := by
   simpa only [Nat.cast_one, one_div] using
@@ -133,7 +131,7 @@ theorem IsPrimitiveRoot.arg {n : ℕ} {ζ : ℂ} (h : IsPrimitiveRoot ζ n) (hn 
   · convert Complex.arg_cos_add_sin_mul_I _
     · push_cast; rfl
     · push_cast; rfl
-    simp [field, hn]
+    simp [hn]
     refine ⟨(neg_lt_neg Real.pi_pos).trans_le ?_, ?_⟩
     · rw [neg_zero]
       positivity
