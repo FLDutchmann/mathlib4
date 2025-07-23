@@ -506,7 +506,7 @@ discharger, which (among other things) includes a simp-run for the specified arg
 elaborate those arguments. -/
 def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger))
     (args : Option (TSyntax `Lean.Parser.Tactic.simpArgs)) :
-    TacticM (TacticM Unit) := do
+    TacticM (Expr → MetaM (Option Expr)) := tacticToDischarge <$> do
   match d with
   | none => wrapSimpDischargerWithCtx FieldSimp.discharge <$>
       Simp.mkSimpContext (args.getD ⟨.missing⟩) (contextual := true)
@@ -526,10 +526,10 @@ elab "field_simp2" d:(discharger)? args:(simpArgs)? : conv => do
   let ⟨u, K, _⟩ ← inferTypeQ' x
   -- find a `CommGroupWithZero` instance on `K`
   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-  let disch : TacticM Unit ← parseDischarger d args
+  let disch : Expr → MetaM (Option Expr) ← parseDischarger d args
   -- run the core normalization function `normalizePretty` on `x`
   trace[Tactic.field_simp] "running conv on {x}"
-  let ⟨e, pf⟩ ← AtomM.run .reducible <| atoms <| normalizePretty (tacticToDischarge disch) iK x
+  let ⟨e, pf⟩ ← AtomM.run .reducible <| atoms <| normalizePretty disch iK x
   -- convert `x` to the output of the normalization
   Conv.applySimpResult { expr := e, proof? := some pf }
 
@@ -542,7 +542,7 @@ Summary of the meaning of the simproc outputs in "post" mode:
   initial expression.
 * `continue (e? : Option Result := none)` is passed to `pre` again
 -/
-def fieldSimpStep (disch : TacticM Unit) (t : Expr) : MetaM Simp.Step := do
+def fieldSimpStep (disch : Expr → MetaM (Option Expr)) (t : Expr) : MetaM Simp.Step := do
   let some ⟨_, a, b⟩ := t.eq? | return .continue
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, a⟩ ← inferTypeQ' a
@@ -551,23 +551,21 @@ def fieldSimpStep (disch : TacticM Unit) (t : Expr) : MetaM Simp.Step := do
     let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
     trace[Tactic.field_simp] "running simproc on {a} = {b}"
     -- run the core equality-transforming mechanism on `a = b`
-    let ⟨a', b', pf⟩ ← AtomM.run .reducible <| atoms <| reduceEq (tacticToDischarge disch) iK a b
+    let ⟨a', b', pf⟩ ← AtomM.run .reducible <| atoms <| reduceEq disch iK a b
     let t' ← mkAppM `Eq #[a', b']
     return .visit { expr := t', proof? := pf }
   catch _ => return .continue
 
 simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
   let ctx ← Simp.getContext
-  let disch := wrapSimpDischargerWithCtx FieldSimp.discharge ctx
+  let disch := tacticToDischarge <| wrapSimpDischargerWithCtx FieldSimp.discharge ctx
   fieldSimpStep disch t
 
 elab "field_simp2" cfg:optConfig d:(discharger)? args:(simpArgs)? loc:(location)? : tactic =>
     withMainContext do
   let ctx ← Simp.mkSimpOnlyContext cfg
   let loc := (loc.map expandLocation).getD (.targets #[] true)
-  -- elaborate the provided list of terms as a separate simp context to be passed to the field-simp
-  -- nonzeroness discharger
-  let disch : TacticM Unit ← parseDischarger d args
+  let disch : Expr → MetaM (Option Expr) ← parseDischarger d args
   let field (t : Expr) : SimpM Simp.Step := fieldSimpStep disch t
   let m e := Prod.fst <$> Simp.mainCore e ctx (methods := { post := Simp.rewritePost >> field })
   atLoc m "field_simp" true true loc
