@@ -266,6 +266,12 @@ example {K : Type*} [Semifield K] (x y : K) (hy : y + 1 ≠ 0) : 2 * x / (y + 1)
   guard_target = 2 * x = x * (y + 1)
   exact test_sorry
 
+-- test the assumption discharger
+example {K : Type*} [Semifield K] (x y : K) (hy : y + 1 ≠ 0) : 2 * x / (y + 1) = x := by
+  simp only [field]
+  guard_target = 2 * x = x * (y + 1)
+  exact test_sorry
+
 -- from PythagoreanTriples
 set_option linter.unusedVariables false in
 example {K : Type*} [Semifield K] (hK : ∀ x : K, 1 + x ^ 2 ≠ 0) (x y : K) (hy : y + 1 ≠ 0) :
