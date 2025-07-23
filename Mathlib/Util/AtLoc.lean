@@ -18,10 +18,8 @@ combination of these.
 -/
 
 namespace Mathlib.Tactic
-open Lean Meta
-
-open Elab.Tactic
-variable (m : (e : Expr) → MetaM Simp.Result)
+open Lean Meta Elab.Tactic
+variable (m : Expr → MetaM Simp.Result)
 
 /-- Use the procedure `m` to rewrite the main goal. -/
 def atTarget (proc : String) (failIfUnchanged : Bool) : TacticM Unit := withMainContext do
