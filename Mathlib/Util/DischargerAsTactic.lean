@@ -30,6 +30,5 @@ def wrapSimpDischargerWithCtx (dis : Simp.Discharge) (eC : Simp.Context) : Tacti
 /-- Wrap an simp discharger (a function `Expr → SimpM (Option Expr)`) as a tactic,
 so that it can be passed as an argument to `simp (discharger := foo)`.
 This is inverse to `mkDischargeWrapper`. -/
-def wrapSimpDischarger (dis : Simp.Discharge) (contextual : Bool := false ): TacticM Unit := do
-  let eC : Simp.Context := ← Simp.mkContext { contextual := contextual }
-  wrapSimpDischargerWithCtx dis eC
+def wrapSimpDischarger (dis : Simp.Discharge) : TacticM Unit := do
+  wrapSimpDischargerWithCtx dis (← Simp.mkContext)
