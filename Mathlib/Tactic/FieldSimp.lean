@@ -7,6 +7,7 @@ import Mathlib.Tactic.FieldSimp.Lemmas
 import Mathlib.Tactic.FieldSimp'
 import Mathlib.Util.AtLoc
 import Mathlib.Util.AtomM
+import Mathlib.Util.Simp
 
 
 /-! # A tactic for clearing denominators in fields
@@ -500,38 +501,37 @@ def atoms {α} (m : AtomM α) : AtomM α := do
   trace[Tactic.field_simp] "Atom list for this run is {l.atoms}"
   pure a
 
-def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger)) :
-    MetaM (Expr → MetaM (Option Expr)) := do
-  let defaultDischarge := tacticToDischarge <|
-    wrapSimpDischarger FieldSimp.discharge (contextual := true)
+/-- If the user provided a discharger, elaborate it. If not, we will use the `field_simp`
+discharger, which (among other things) includes a simp-run for the specified argument list, so we
+elaborate those arguments. -/
+def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger))
+    (args : Option (TSyntax `Lean.Parser.Tactic.simpArgs)) :
+    TacticM (TacticM Unit) := do
   match d with
-  | none => pure defaultDischarge
+  | none => wrapSimpDischargerWithCtx FieldSimp.discharge <$>
+      Simp.mkSimpContext (args.getD ⟨.missing⟩) (contextual := true)
   | some d =>
+    -- TODO if `args` is `some`, give user a warning here that it will be ignored
     match d with
-    | `(discharger| (discharger:=$tac)) => pure <| tacticToDischarge <|
+    | `(discharger| (discharger:=$tac)) => pure <|
         (Tactic.evalTactic (← `(tactic| ($tac))) *> Tactic.pruneSolvedGoals)
-    | _ => pure defaultDischarge
+    | _ => throwError "could not parse the provided discharger {d}"
 
 /-- Conv tactic for field_simp normalisation.
 Wraps the `MetaM` normalization function `normalize`. -/
-elab "field_simp2 " d:(discharger)? : conv => do
-  let disch ← parseDischarger d
+elab "field_simp2" d:(discharger)? args:(simpArgs)? : conv => do
   -- find the expression `x` to `conv` on
   let x ← Conv.getLhs
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, _⟩ ← inferTypeQ' x
   -- find a `CommGroupWithZero` instance on `K`
   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+  let disch : TacticM Unit ← parseDischarger d args
   -- run the core normalization function `normalizePretty` on `x`
   trace[Tactic.field_simp] "running conv on {x}"
-  let ⟨e, pf⟩ ← AtomM.run .reducible <| atoms <| normalizePretty disch iK x
+  let ⟨e, pf⟩ ← AtomM.run .reducible <| atoms <| normalizePretty (tacticToDischarge disch) iK x
   -- convert `x` to the output of the normalization
   Conv.applySimpResult { expr := e, proof? := some pf }
-
-def update (ctx : Simp.Context) : TacticM Simp.Context := do
-  let simpTheorems ← getSimpTheorems
-  let ctxSimpTheorems : SimpTheoremsArray := ctx.simpTheorems.push simpTheorems
-  return ctx.setSimpTheorems ctxSimpTheorems
 
 /-
 Simprocs are `post` by default (but calling with `↓`, i.e. `simp [↓field, ...]`, makes it `pre`).
@@ -542,90 +542,34 @@ Summary of the meaning of the simproc outputs in "post" mode:
   initial expression.
 * `continue (e? : Option Result := none)` is passed to `pre` again
 -/
-def fieldSimpStep (ctx : Simp.Context) (t : Expr) : MetaM Simp.Step := do
+def fieldSimpStep (disch : TacticM Unit) (t : Expr) : MetaM Simp.Step := do
   let some ⟨_, a, b⟩ := t.eq? | return .continue
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, a⟩ ← inferTypeQ' a
   try
     -- find a `CommGroupWithZero` instance on `K`
     let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-    let disch := tacticToDischarge <|
-      wrapSimpDischargerWithCtx FieldSimp.discharge ctx
     trace[Tactic.field_simp] "running simproc on {a} = {b}"
     -- run the core equality-transforming mechanism on `a = b`
-    let ⟨a', b', pf⟩ ← AtomM.run .reducible <| atoms <| reduceEq disch iK a b
+    let ⟨a', b', pf⟩ ← AtomM.run .reducible <| atoms <| reduceEq (tacticToDischarge disch) iK a b
     let t' ← mkAppM `Eq #[a', b']
     return .visit { expr := t', proof? := pf }
   catch _ => return .continue
 
 simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
   let ctx ← Simp.getContext
-  -- if we are running this simproc inside a `simp only`, we still want the discharger to operate
-  -- like a `simp`, so we pull in all the library lemmas
-  -- let simpTheorems ← getSimpTheorems
-  -- let ctxSimpTheorems : SimpTheoremsArray := ctx.simpTheorems.push simpTheorems
-  -- let ctx := ctx.setSimpTheorems ctxSimpTheorems
-  fieldSimpStep ctx t
+  let disch := wrapSimpDischargerWithCtx FieldSimp.discharge ctx
+  fieldSimpStep disch t
 
--- adapted from `Lean.Elab.Tactic.mkSimpContext `
-def mkSimpOnlyContext (cfg : Syntax) : TacticM Simp.Context := do
-  let mut simpTheorems ← simpOnlyBuiltins.foldlM (·.addConst ·) ({} : SimpTheorems)
-  let congrTheorems ← getSimpCongrTheorems
-  Simp.mkContext
-    (config := (← elabSimpConfig cfg (kind := SimpKind.simp)))
-    (simpTheorems := #[simpTheorems])
-    congrTheorems
-
--- adapted from `Lean.Elab.Tactic.mkSimpContext `
-def mkSimpContext (args : Syntax) : TacticM Simp.Context := do
-  let simpTheorems ← getSimpTheorems
-  let congrTheorems ← getSimpCongrTheorems
-  let ctx ← Simp.mkContext
-     (config := { (← elabSimpConfig .missing (kind := SimpKind.simp)) with contextual := true } )
-     (simpTheorems := #[simpTheorems])
-     congrTheorems
-  let r ← elabSimpArgs args (eraseLocal := false) (kind := SimpKind.simp) (simprocs := {}) ctx
-  if !r.starArg then
-    return r.ctx
-  else
-    let ctx := r.ctx
-    let mut simpTheorems := ctx.simpTheorems
-    /-
-    When using `zetaDelta := false`, we do not expand let-declarations when using `[*]`.
-    Users must explicitly include it in the list.
-    -/
-    let hs ← getPropHyps
-    for h in hs do
-      unless simpTheorems.isErased (.fvar h) do
-        simpTheorems ← simpTheorems.addTheorem (.fvar h) (← h.getDecl).toExpr
-          (config := ctx.indexConfig)
-    return ctx.setSimpTheorems simpTheorems
-
--- run `simp only [field]`: currently don't support a custom discharger
-elab "field_simp2" cfg:optConfig (discharger)? args:(simpArgs)? loc:(location)? : tactic =>
+elab "field_simp2" cfg:optConfig d:(discharger)? args:(simpArgs)? loc:(location)? : tactic =>
     withMainContext do
-  let ctx ← mkSimpOnlyContext cfg
+  let ctx ← Simp.mkSimpOnlyContext cfg
   let loc := (loc.map expandLocation).getD (.targets #[] true)
   -- elaborate the provided list of terms as a separate simp context to be passed to the field-simp
   -- nonzeroness discharger
-  let dischCtx ← mkSimpContext (args.getD ⟨.missing⟩)
-  let field (t : Expr) : SimpM Simp.Step := fieldSimpStep dischCtx t
+  let disch : TacticM Unit ← parseDischarger d args
+  let field (t : Expr) : SimpM Simp.Step := fieldSimpStep disch t
   let m e := Prod.fst <$> Simp.mainCore e ctx (methods := { post := Simp.rewritePost >> field })
   atLoc m "field_simp" true true loc
-
--- elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
---   let disch ← parseDischarger d
---   -- find the proposition `t` to prove
---   let t ← g.getType''
---   let some ⟨_, a, b⟩ := t.eq? | throwError "field_simp proves only equality goals"
---   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
---   let ⟨u, K, a⟩ ← inferTypeQ' a
---   -- find a `CommGroupWithZero` instance on `K`
---   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
---   trace[Tactic.field_simp] "trying to prove {a} = {b}"
---   -- run the core equality-proving mechanism on `a = b`
---   let ⟨g', pf⟩ ← AtomM.run .reducible <| atoms <| proveEq disch iK a b
---   g.assign pf
---   return [g']
 
 end Mathlib.Tactic.FieldSimp
