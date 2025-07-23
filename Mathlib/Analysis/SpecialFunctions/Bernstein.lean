@@ -111,7 +111,7 @@ theorem probability (n : ℕ) (x : I) : (∑ k : Fin (n + 1), bernstein n k x) =
 theorem variance {n : ℕ} (hn : n ≠ 0) (x : I) :
     (∑ k : Fin (n + 1), (x - k/ₙ : ℝ) ^ 2 * bernstein n k x) = (x : ℝ) * (1 - x) / n := by
   convert congr(Polynomial.aeval (x : ℝ) $(bernsteinPolynomial.variance ℝ n) / n ^ 2) using 1 <;>
-    field_simp [z, ← Finset.sum_div, bernstein_apply, Finset.sum_range, bernsteinPolynomial] <;>
+    simp [fieldExpr, z, ← Finset.sum_div, bernstein_apply, Finset.sum_range, bernsteinPolynomial];
     ring_nf
 
 end bernstein

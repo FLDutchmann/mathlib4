@@ -36,12 +36,12 @@ theorem cos_arg {x : ℂ} (hx : x ≠ 0) : Real.cos (arg x) = x.re / ‖x‖ := 
   rw [arg]
   split_ifs with h₁ h₂
   · rw [Real.cos_arcsin]
-    field_simp [Real.sqrt_sq, (norm_pos_iff.mpr hx).le, *]
+    simp [fieldExpr, Real.sqrt_sq, (norm_pos_iff.mpr hx).le, *]
   · rw [Real.cos_add_pi, Real.cos_arcsin]
-    field_simp [Real.sqrt_div (sq_nonneg _), Real.sqrt_sq_eq_abs,
+    simp [fieldExpr, -neg_mul, -mul_neg, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq_eq_abs,
       _root_.abs_of_neg (not_le.1 h₁), *]
   · rw [Real.cos_sub_pi, Real.cos_arcsin]
-    field_simp [Real.sqrt_div (sq_nonneg _), Real.sqrt_sq_eq_abs,
+    simp [fieldExpr,-neg_mul, -mul_neg, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq_eq_abs,
       _root_.abs_of_neg (not_le.1 h₁), *]
 
 @[simp]

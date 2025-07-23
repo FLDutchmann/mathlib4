@@ -155,10 +155,10 @@ lemma rpow_one_sub' (h : 1 - y ≠ 0) (x : ℝ≥0) : x ^ (1 - y) = x / x ^ y :=
   rw [rpow_sub' h, rpow_one]
 
 theorem rpow_inv_rpow_self {y : ℝ} (hy : y ≠ 0) (x : ℝ≥0) : (x ^ y) ^ (1 / y) = x := by
-  field_simp [← rpow_mul]
+  simp [fieldExpr, -one_div, ← rpow_mul]
 
 theorem rpow_self_rpow_inv {y : ℝ} (hy : y ≠ 0) (x : ℝ≥0) : (x ^ (1 / y)) ^ y = x := by
-  field_simp [← rpow_mul]
+  simp [fieldExpr, -one_div, ← rpow_mul]
 
 theorem inv_rpow (x : ℝ≥0) (y : ℝ) : x⁻¹ ^ y = (x ^ y)⁻¹ :=
   NNReal.eq <| Real.inv_rpow x.2 y

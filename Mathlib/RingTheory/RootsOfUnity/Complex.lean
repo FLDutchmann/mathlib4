@@ -5,6 +5,7 @@ Authors: Johan Commelin
 -/
 import Mathlib.Analysis.SpecialFunctions.Complex.Log
 import Mathlib.RingTheory.RootsOfUnity.PrimitiveRoots
+import Mathlib.Tactic.Rify
 
 /-!
 # Complex roots of unity
@@ -142,22 +143,20 @@ theorem IsPrimitiveRoot.arg {n : ℕ} {ζ : ℂ} (h : IsPrimitiveRoot ζ n) (hn 
   rw [← Complex.cos_sub_two_pi, ← Complex.sin_sub_two_pi]
   convert Complex.arg_cos_add_sin_mul_I _
   · push_cast
-    rw [← sub_one_mul, sub_div, div_self]
-    exact mod_cast hn
+    field_simp [hn]
+    ring
   · push_cast
-    rw [← sub_one_mul, sub_div, div_self]
-    exact mod_cast hn
-  field_simp [hn]
-  refine ⟨?_, le_trans ?_ Real.pi_pos.le⟩
-  on_goal 2 =>
-    rw [mul_div_assoc]
-    exact mul_nonpos_of_nonpos_of_nonneg (sub_nonpos.mpr <| mod_cast h.le)
-      (div_nonneg (by simp [Real.pi_pos.le]) <| by simp)
-  rw [← mul_rotate', mul_div_assoc, neg_lt, ← mul_neg, mul_lt_iff_lt_one_right Real.pi_pos, ←
-    neg_div, ← neg_mul, neg_sub, div_lt_iff₀, one_mul, sub_mul, sub_lt_comm, ← mul_sub_one]
-  · norm_num
-    exact mod_cast not_le.mp h₂
-  · exact Nat.cast_pos.mpr hn.bot_lt
+    field_simp [hn]
+    ring
+  simp [fieldExpr, -mul_neg, -neg_mul]
+  constructor
+  · push_neg at h₂
+    rify at h₂
+    rw [lt_div_iff₀ (by positivity)]
+    linear_combination Real.pi * h₂
+  · rify at h
+    rw [div_le_iff₀ (by positivity)]
+    linear_combination 2 * Real.pi * h + (n:ℝ) * Real.pi_pos
 
 lemma Complex.norm_eq_one_of_mem_rootsOfUnity {ζ : ℂˣ} {n : ℕ} [NeZero n]
     (hζ : ζ ∈ rootsOfUnity n ℂ) :

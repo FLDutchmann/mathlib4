@@ -311,6 +311,77 @@ example (x z : ℚ≥0) (n : ℕ) : z * ((z / x) ^ n * x) = (z / x) ^ (n + 1) * 
 
 end
 
+/-! ### A bug with the simp component of the discharger
+
+Previously `pow_ne_zero` was tagged `field_simps` and apparently took precedence in the discharger
+run.
+-/
+
+example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
+  field_simp
+
+/--
+error: unsolved goals
+x y z : ℚ
+K : Type u_1
+inst✝ : Field K
+n : ℕ
+w : K
+h0 : w ≠ 0
+⊢ w ^ n / w ^ n = 1
+-/
+#guard_msgs in
+example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
+  field_simp2 [pow_ne_zero]
+
+example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
+  field_simp2 [↓pow_ne_zero]
+
+example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
+  field_simp2 [pow_ne_zero, -pow_eq_zero_iff, -pow_eq_zero_iff']
+
+/-! ### Examples which currently create an infinite loop -/
+
+/--
+error: tactic 'simp' failed, nested error:
+maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+-/
+#guard_msgs in
+example {K : Type u_1} [Field K] {a b c s x : K} (P : K → Prop) : P (-(c * a * x) + -b) := by
+  simp [fieldExpr]
+
+/--
+error: tactic 'simp' failed, nested error:
+maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+-/
+#guard_msgs in
+example (a : ℚ) (P : ℚ → Prop) : P (a * a⁻¹) := by
+  simp [fieldExpr]
+
+example {K : Type u_1} [Field K] {a b c s x : K} (P : K → Prop) : P (-(c * a * x) + -b) := by
+  simp [fieldExpr, -mul_neg, -neg_mul]
+  sorry
+
+example (a : ℚ) (P : ℚ → Prop) : P (a * a⁻¹) := by
+  simp [fieldExpr, -one_div]
+  sorry
+
+/--
+error: tactic 'simp' failed, nested error:
+maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+-/
+#guard_msgs in
+-- this one, from LinearAlgebra.QuadraticForm.Real, is undiagnosed
+example (t : ℚ) (ht : t ≠ 0) (a : ∀ t, t ≠ 0 → ℚ) :
+    (if h : t = 0 then 1 else a t h) = 1 := by
+  simp only [field]
+
 /-! ### Testing to what extent the simproc discharger picks up hypotheses from the simp args -/
 section
 variable {K : Type*} [Field K] [LinearOrder K] [IsStrictOrderedRing K]
