@@ -525,7 +525,15 @@ def reduceEqStep (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (t
     MetaM Simp.Step := do
   try
     return .visit (← reduceEq disch t)
-  catch _ => return .continue
+  catch _ =>
+    return .continue
+
+def reduceExprStep (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (t : Expr) :
+    MetaM Simp.Step := do
+  try
+    return .visit (← reduceExpr disch t)
+  catch _ =>
+    return .continue
 
 simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
   let ctx ← Simp.getContext
@@ -533,11 +541,19 @@ simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
     wrapSimpDischargerWithCtx FieldSimp.discharge ctx
   reduceEqStep disch t
 
+simproc_decl _root_.fieldExpr (_) := fun (t : Expr) ↦ do
+  let ctx ← Simp.getContext
+  let disch {u} e := synthesizeUsing' (u := u) e <|
+    wrapSimpDischargerWithCtx FieldSimp.discharge ctx
+  reduceExprStep disch t
+
 elab "field_simp2" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => withMainContext do
   let disch ← parseDischarger d args
   let eqProc (t : Expr) : SimpM Simp.Step := reduceEqStep disch t
+  let exprProc (t : Expr) : SimpM Simp.Step := reduceExprStep disch t
   let ctx ← Simp.mkSimpOnlyContext
-  let m e := Prod.fst <$> Simp.mainCore e ctx (methods := { post := Simp.rewritePost >> eqProc })
+  let m e := Prod.fst <$>
+    Simp.mainCore e ctx (methods := { post := Simp.rewritePost >> exprProc >> eqProc })
   let loc := (loc.map expandLocation).getD (.targets #[] true)
   atLoc m "field_simp" (failIfUnchanged := true) (mayCloseGoalFromHyp := true) loc
 
