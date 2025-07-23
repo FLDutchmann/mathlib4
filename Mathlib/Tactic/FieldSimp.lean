@@ -8,6 +8,7 @@ import Mathlib.Tactic.FieldSimp'
 import Mathlib.Util.AtLoc
 import Mathlib.Util.AtomM
 import Mathlib.Util.Simp
+import Mathlib.Util.SynthesizeUsing
 
 
 /-! # A tactic for clearing denominators in fields
@@ -70,19 +71,22 @@ def evalPrettyMonomial (iM : Q(GroupWithZero $M)) (r : ℤ) (x : Q($M)) :
     let pf ← mkDecideProofQ q($r ≠ 0)
     return ⟨q($x ^ $r), q(zpow'_of_ne_zero_right _ _ $pf)⟩
 
-def tryClearZero (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M))
+def tryClearZero
+    (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (iM : Q(GroupWithZero $M))
     (r : ℤ) (x : Q($M)) (i : ℕ) (l : qNF M) :
     MetaM <| Σ l' : qNF M, Q(NF.eval $(qNF.toNF (((r, x), i) :: l)) = NF.eval $(l'.toNF)) := do
   if r != 0 then
     return ⟨((r, x), i) :: l, q(rfl)⟩
-  match ← disch q($x ≠ 0) with
-  | some (pf' : Q($x ≠ 0)) =>
+  try
+    let pf' : Q($x ≠ 0) ← disch q($x ≠ 0)
     have pf_r : Q($r = 0) := ← mkDecideProofQ q($r = 0)
     return ⟨l, (q(NF.eval_cons_of_pow_eq_zero $pf_r $pf' $(l.toNF)):)⟩
-  | none =>
+  catch _=>
     return ⟨((r, x), i) :: l, q(rfl)⟩
 
-def removeZeros (disch : Expr → MetaM (Option Expr)) (iM : Q(GroupWithZero $M)) (l : qNF M) :
+def removeZeros
+    (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (iM : Q(GroupWithZero $M))
+    (l : qNF M) :
     MetaM <| Σ l' : qNF M, Q(NF.eval $(l.toNF) = NF.eval $(l'.toNF)) :=
   match l with
   | [] => return ⟨[], q(rfl)⟩
@@ -233,8 +237,8 @@ The boolean flag `nonzero` specifies whether we extract a *certified nonzero* (a
 potentially smaller) common factor. The metaprogram returns a "proof" that this common factor is
 nonzero, i.e. an expression `Q(NF.eval $(L.toNF) ≠ 0)`, but this will be junk if the boolean flag
 `nonzero` is set to `false`. -/
-partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) (disch : Expr → MetaM (Option Expr))
-    (nonzero : Bool) :
+partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M)
+    (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (nonzero : Bool) :
   MetaM <| Σ (L l₁' l₂' : qNF M),
     Q((NF.eval $(L.toNF)) * NF.eval $(l₁'.toNF) = NF.eval $(l₁.toNF)) ×
     Q((NF.eval $(L.toNF)) * NF.eval $(l₂'.toNF) = NF.eval $(l₂.toNF)) ×
@@ -255,14 +259,13 @@ partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) (disch : Expr
       let ⟨l₁'', pf''⟩ ← tryClearZero disch q(inferInstance) 0 e i l₁'
       let pf'' : Q(NF.eval ((0, $e) ::ᵣ $(l₁'.toNF)) = NF.eval $(l₁''.toNF)) := pf''
       return ⟨L, l₁'', l₂', (q(NF.eval_mul_eval_cons_zero $pf₁ $pf''):), q($pf₂), pf₀⟩
-    match ← disch q($e ≠ 0) with
-    | .some pf =>
-      -- if we can prove nonzeroness
-      have pf : Q($e ≠ 0) := pf
+    try
+      let pf : Q($e ≠ 0) ← disch q($e ≠ 0)
+      -- if nonzeroness proof succeeds
       return ⟨((n, e), i) :: L, l₁', ((-n, e), i) :: l₂', (q(NF.eval_cons_mul_eval $n $e $pf₁):),
         (q(NF.eval_cons_mul_eval_cons_neg $n $pf $pf₂):),
         (q(NF.cons_ne_zero $n $pf $pf₀):)⟩
-    | .none =>
+    catch _ =>
       -- if we can't prove nonzeroness, don't pull out e.
       return ⟨L, ((n, e), i) :: l₁', l₂', (q(NF.eval_mul_eval_cons $n $e $pf₁):), q($pf₂), pf₀⟩
 
@@ -303,11 +306,11 @@ partial def gcd (iM : Q(CommGroupWithZero $M)) (l₁ l₂ : qNF M) (disch : Expr
       return ⟨L, l₁', l₂', q($pf₁), q($pf₂), pf₀⟩
     else if i₁ == i₂ then
       if nonzero then
-        match ← disch q($e₁ ≠ 0) with
-        | .some pf_e =>
+        try
+          let pf_e ← disch q($e₁ ≠ 0)
           -- if we can prove nonzeroness
           bothPresent t₁ t₂ n₁ n₂ e₁ pf_e i₁
-        | .none =>
+        catch _ =>
           -- if we can't prove nonzeroness, don't pull out e.
           let ⟨L, l₁', l₂', pf₁, pf₂, pf₀⟩ ← gcd iM t₁ t₂ disch nonzero
           return ⟨L, ((n₁, e₁), i₁) :: l₁', ((n₂, e₂), i₂) :: l₂',
@@ -332,7 +335,8 @@ where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
 Possible TODO, if poor performance on large problems is witnessed: switch the implementation from
 `AtomM` to `CanonM`, per the discussion
 https://github.com/leanprover-community/mathlib4/pull/16593/files#r1749623191 -/
-partial def normalize (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M))
+partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
+    (iM : Q(CommGroupWithZero $M))
     (x : Q($M)) : AtomM (Σ l : qNF M, Q($x = NF.eval $(l.toNF))) := do
   let baseCase (y : Q($M)) : AtomM (Σ l : qNF M, Q($y = NF.eval $(l.toNF))) := do
     let (k, ⟨x', _⟩) ← AtomM.addAtomQ y
@@ -430,7 +434,7 @@ expression in a field `M` into the form x1 ^ c1 * x2 ^ c2 * ... x_k ^ c_k,
 where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
 
 Version with "pretty" output. -/
-def normalizePretty (disch : Expr → MetaM (Option Expr))
+def normalizePretty (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
     (iM : Q(CommGroupWithZero $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
   let ⟨l, pf⟩ ← normalize disch iM x
   let ⟨l', pf'⟩ ← qNF.removeZeros disch q(inferInstance) l
@@ -439,7 +443,8 @@ def normalizePretty (disch : Expr → MetaM (Option Expr))
 
 /-- Given `e₁` and `e₂`, cancel nonzero factors to construct a new equality which is logically
 equivalent to `e₁ = e₂`. -/
-def reduceEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)) (e₁ e₂ : Q($M)) :
+def reduceEqQ (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
+    (iM : Q(CommGroupWithZero $M)) (e₁ e₂ : Q($M)) :
     AtomM (Σ f₁ f₂ : Q($M), Q(($e₁ = $e₂) = ($f₁ = $f₂))) := do
   let ⟨l₁, pf_l₁⟩ ← normalize disch iM e₁
   let ⟨l₂, pf_l₂⟩ ← normalize disch iM e₂
@@ -448,90 +453,64 @@ def reduceEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M
   let ⟨f₂, pf_l₂'⟩ ← l₂'.evalPretty iM
   return ⟨f₁, f₂, q(eq_eq_cancel_eq $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
 
-/-- Given `e₁` and `e₂`, construct a new goal which is sufficient to prove `e₁ = e₂`. -/
-def proveEq (disch : Expr → MetaM (Option Expr)) (iM : Q(CommGroupWithZero $M)) (e₁ e₂ : Q($M)) :
-    AtomM (MVarId × Q($e₁ = $e₂)) := do
-  let ⟨l₁, pf₁⟩ ← normalize disch iM e₁
-  let ⟨l₂, pf₂⟩ ← normalize disch iM e₂
-  let ⟨_, l₁', l₂', pf₁', pf₂', _⟩ ← l₁.gcd iM l₂ disch false
-  let ⟨e₁', pf₁''⟩ ← l₁'.evalPretty iM
-  let ⟨e₂', pf₂''⟩ ← l₂'.evalPretty iM
-  let mvar ← mkFreshExprMVarQ q($e₁' = $e₂')
-  return ⟨Expr.mvarId! mvar, q(eq_of_eq_mul $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $mvar)⟩
-
-open Elab Tactic Lean.Parser.Tactic
-
-/-
-example of how to get a tactic out of disch:
-https://github.com/leanprover-community/mathlib4/blob/02c6431ffe61ac7571e0281242e025e54638ad42/Mathlib/Tactic/FunProp/Elab.lean#L54
--/
-
-open Elab Term in
-/-- Turn tactic syntax into a discharger function.
-
-Copied from fun_prop at https://github.com/leanprover-community/mathlib4/blob/02c6431ffe61ac7571e0281242e025e54638ad42/Mathlib/Tactic/FunProp/Decl.lean#L131
--/
-def tacticToDischarge (tac : TacticM Unit) : Expr → MetaM (Option Expr) := fun e =>
-  withTraceNode `Meta.Tactic.fun_prop
-    (fun r => do pure s!"[{ExceptToEmoji.toEmoji r}] discharging: {← ppExpr e}") do
-    let mvar ← mkFreshExprSyntheticOpaqueMVar e `funProp.discharger
-    let runTac? : TermElabM (Option Expr) :=
-      try
-        withoutModifyingStateWithInfoAndMessages do
-          instantiateMVarDeclMVars mvar.mvarId!
-
-          let _ ←
-            withSynthesize (postpone := .no) do
-              Tactic.run mvar.mvarId! tac
-
-          let result ← instantiateMVars mvar
-          if result.hasExprMVar then
-            return none
-          else
-            return some result
-      catch _ =>
-        return none
-    let (result?, _) ← runTac?.run {} {}
-
-    return result?
-
-def atoms {α} (m : AtomM α) : AtomM α := do
-  let a ← m
-  let l ← get
-  trace[Tactic.field_simp] "Atom list for this run is {l.atoms}"
-  pure a
-
-/-- If the user provided a discharger, elaborate it. If not, we will use the `field_simp`
-discharger, which (among other things) includes a simp-run for the specified argument list, so we
-elaborate those arguments. -/
-def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger))
-    (args : Option (TSyntax `Lean.Parser.Tactic.simpArgs)) :
-    TacticM (Expr → MetaM (Option Expr)) := tacticToDischarge <$> do
-  match d with
-  | none => wrapSimpDischargerWithCtx FieldSimp.discharge <$>
-      Simp.mkSimpContext (args.getD ⟨.missing⟩) (contextual := true)
-  | some d =>
-    -- TODO if `args` is `some`, give user a warning here that it will be ignored
-    match d with
-    | `(discharger| (discharger:=$tac)) => pure <|
-        (Tactic.evalTactic (← `(tactic| ($tac))) *> Tactic.pruneSolvedGoals)
-    | _ => throwError "could not parse the provided discharger {d}"
-
-/-- Conv tactic for field_simp normalisation.
-Wraps the `MetaM` normalization function `normalize`. -/
-elab "field_simp2" d:(discharger)? args:(simpArgs)? : conv => do
-  -- find the expression `x` to `conv` on
-  let x ← Conv.getLhs
+/-- Given `x` in a commutative group-with-zero, construct a new expression in the standard form
+*** / *** (all denominators at the end) which is equal to `x`. -/
+def reduceExpr (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (x : Expr) :
+    MetaM Simp.Result := do
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, _⟩ ← inferTypeQ' x
   -- find a `CommGroupWithZero` instance on `K`
   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-  let disch : Expr → MetaM (Option Expr) ← parseDischarger d args
   -- run the core normalization function `normalizePretty` on `x`
   trace[Tactic.field_simp] "running conv on {x}"
-  let ⟨e, pf⟩ ← AtomM.run .reducible <| atoms <| normalizePretty disch iK x
+  let ⟨e, pf⟩ ← AtomM.run .reducible <| normalizePretty disch iK x
+  return { expr := e, proof? := some pf }
+
+/-- Given an equality `a = b`, cancel nonzero factors to construct a new equality which is logically
+equivalent to `a = b`. -/
+def reduceEq (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (t : Expr) :
+    MetaM Simp.Result := do
+  let some ⟨_, a, b⟩ := t.eq? | throwError "not an equality"
+  -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
+  let ⟨u, K, a⟩ ← inferTypeQ' a
+  -- find a `CommGroupWithZero` instance on `K`
+  let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+  trace[Tactic.field_simp] "clearing denominators in {a} = {b}"
+  -- run the core equality-transforming mechanism on `a = b`
+  let ⟨a', b', pf⟩ ← AtomM.run .reducible <| reduceEqQ disch iK a b
+  let t' ← mkAppM `Eq #[a', b']
+  return { expr := t', proof? := pf }
+
+open Elab Tactic Lean.Parser.Tactic
+
+/-- If the user provided a discharger, elaborate it. If not, we will use the `field_simp` default
+discharger, which (among other things) includes a simp-run for the specified argument list, so we
+elaborate those arguments. -/
+def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger))
+    (args : Option (TSyntax `Lean.Parser.Tactic.simpArgs)) :
+    TacticM (∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) := do
+  match d with
+  | none =>
+    let ctx ← Simp.mkSimpContext (args.getD ⟨.missing⟩) (contextual := true)
+    let tac := wrapSimpDischargerWithCtx FieldSimp.discharge ctx
+    return (synthesizeUsing' · tac)
+  | some d =>
+    -- TODO if `args` is `some`, give user a warning here that it will be ignored
+    match d with
+    | `(discharger| (discharger:=$tac)) =>
+      let tac := (evalTactic (← `(tactic| ($tac))) *> pruneSolvedGoals)
+      return (synthesizeUsing' · tac)
+    | _ => throwError "could not parse the provided discharger {d}"
+
+/-- Conv tactic for field_simp normalisation. -/
+elab "field_simp2" d:(discharger)? args:(simpArgs)? : conv => do
+  -- find the expression `x` to `conv` on
+  let x ← Conv.getLhs
+  let disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type) ← parseDischarger d args
+  -- bring into field_simp standard form
+  let r ← reduceExpr disch x
   -- convert `x` to the output of the normalization
-  Conv.applySimpResult { expr := e, proof? := some pf }
+  Conv.applySimpResult r
 
 /-
 Simprocs are `post` by default (but calling with `↓`, i.e. `simp [↓field, ...]`, makes it `pre`).
@@ -542,32 +521,24 @@ Summary of the meaning of the simproc outputs in "post" mode:
   initial expression.
 * `continue (e? : Option Result := none)` is passed to `pre` again
 -/
-def fieldSimpStep (disch : Expr → MetaM (Option Expr)) (t : Expr) : MetaM Simp.Step := do
-  let some ⟨_, a, b⟩ := t.eq? | return .continue
-  -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
-  let ⟨u, K, a⟩ ← inferTypeQ' a
+def reduceEqStep (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (t : Expr) :
+    MetaM Simp.Step := do
   try
-    -- find a `CommGroupWithZero` instance on `K`
-    let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-    trace[Tactic.field_simp] "running simproc on {a} = {b}"
-    -- run the core equality-transforming mechanism on `a = b`
-    let ⟨a', b', pf⟩ ← AtomM.run .reducible <| atoms <| reduceEq disch iK a b
-    let t' ← mkAppM `Eq #[a', b']
-    return .visit { expr := t', proof? := pf }
+    return .visit (← reduceEq disch t)
   catch _ => return .continue
 
 simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
   let ctx ← Simp.getContext
-  let disch := tacticToDischarge <| wrapSimpDischargerWithCtx FieldSimp.discharge ctx
-  fieldSimpStep disch t
+  let disch {u} e := synthesizeUsing' (u := u) e <|
+    wrapSimpDischargerWithCtx FieldSimp.discharge ctx
+  reduceEqStep disch t
 
-elab "field_simp2" cfg:optConfig d:(discharger)? args:(simpArgs)? loc:(location)? : tactic =>
-    withMainContext do
-  let ctx ← Simp.mkSimpOnlyContext cfg
+elab "field_simp2" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => withMainContext do
+  let disch ← parseDischarger d args
+  let eqProc (t : Expr) : SimpM Simp.Step := reduceEqStep disch t
+  let ctx ← Simp.mkSimpOnlyContext
+  let m e := Prod.fst <$> Simp.mainCore e ctx (methods := { post := Simp.rewritePost >> eqProc })
   let loc := (loc.map expandLocation).getD (.targets #[] true)
-  let disch : Expr → MetaM (Option Expr) ← parseDischarger d args
-  let field (t : Expr) : SimpM Simp.Step := fieldSimpStep disch t
-  let m e := Prod.fst <$> Simp.mainCore e ctx (methods := { post := Simp.rewritePost >> field })
-  atLoc m "field_simp" true true loc
+  atLoc m "field_simp" (failIfUnchanged := true) (mayCloseGoalFromHyp := true) loc
 
 end Mathlib.Tactic.FieldSimp

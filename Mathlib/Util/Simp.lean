@@ -26,13 +26,13 @@ on the proof expression returned by `discharge?`
 def Methods.dischargeQ? (M : Methods) (a : Q(Prop)) : SimpM <| Option Q($a) := M.discharge? a
 
 -- adapted from `Lean.Elab.Tactic.mkSimpContext `
-/-- Build a `Simp.Context` for a specified `optConfig`, following the same algorithm that would be
-done in a "simp only" run: no simp-lemmas except for the small `simpOnlyBuiltins` set. -/
-def mkSimpOnlyContext (cfg : Syntax) : TacticM Simp.Context := do
+/-- Build a `Simp.Context` with the default configuration, following the same algorithm that would
+be done in a "simp only" run: no simp-lemmas except for the small `simpOnlyBuiltins` set. -/
+def mkSimpOnlyContext : TacticM Simp.Context := do
   let mut simpTheorems ← simpOnlyBuiltins.foldlM (·.addConst ·) ({} : SimpTheorems)
   let congrTheorems ← Meta.getSimpCongrTheorems
   Simp.mkContext
-    (config := (← elabSimpConfig cfg (kind := SimpKind.simp)))
+    (config := (← elabSimpConfigCore .missing))
     (simpTheorems := #[simpTheorems])
     congrTheorems
 
@@ -44,7 +44,7 @@ def mkSimpContext (args : Syntax) (contextual : Bool := false) : TacticM Simp.Co
   let simpTheorems ← Meta.getSimpTheorems
   let congrTheorems ← Meta.getSimpCongrTheorems
   let ctx ← Simp.mkContext
-     (config := { (← elabSimpConfig .missing (kind := SimpKind.simp)) with contextual } )
+     (config := { (← elabSimpConfigCore .missing) with contextual } )
      (simpTheorems := #[simpTheorems])
      congrTheorems
   let r ← elabSimpArgs args (eraseLocal := false) (kind := SimpKind.simp) (simprocs := {}) ctx
