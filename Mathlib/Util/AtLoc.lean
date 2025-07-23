@@ -1,19 +1,20 @@
 /-
-Copyright (c) 2018 Mario Carneiro. All rights reserved.
+Copyright (c) 2022 Mario Carneiro. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Mario Carneiro, Anne Baanen
+Authors: Mario Carneiro
 -/
 import Lean.Elab.Tactic.Location
 import Lean.Meta.Tactic.Simp.Main
 
 /-!
-# `ring_nf` tactic
+# Rewriting at specified locations
 
-A tactic which uses `ring` to rewrite expressions. This can be used non-terminally to normalize
-ring expressions in the goal such as `⊢ P (x + x + x)` ~> `⊢ P (x * 3)`, as well as being able to
-prove some equations that `ring` cannot because they involve ring reasoning inside a subterm,
-such as `sin (x + y) + sin (y + x) = 2 * sin (x + y)`.
+Many metaprograms have the following general structure: the input is an expression `e` and the
+output is a new expression `e'`, together with a proof that `e = e'`.
 
+This file provides convenience functions to turn such a metaprogram into a variety of tactics:
+using the metaprogram to modify the goal, a specified hypothesis, or (via `Tactic.Location`) a
+combination of these.
 -/
 
 namespace Mathlib.Tactic
