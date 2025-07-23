@@ -91,7 +91,7 @@ private theorem gosper_trick {n i : ℕ} (h : i ≤ n) :
   rw [show n + 1 - i = n - i + 1 by rw [Nat.add_comm (n - i) 1, ← (Nat.add_sub_assoc h 1),
     add_comm]]
   rw [h₁, h₂, h₃, h₄]
-  simp only [field]
+  field_simp2
   ring
 
 private theorem gosper_catalan_sub_eq_central_binom_div (n : ℕ) : gosperCatalan (n + 1) (n + 1) -

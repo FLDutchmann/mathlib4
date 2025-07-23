@@ -204,7 +204,7 @@ theorem surjOn_closedBall_of_nonlinearRightInverse
         rw [mul_one]
         gcongr
         exact mem_closedBall'.1 hy
-      _ = ε * (1 - c * f'symm.nnnorm) := by simp only [field]
+      _ = ε * (1 - c * f'symm.nnnorm) := by field_simp2
   /- Main inductive control: `f (u n)` becomes exponentially close to `y`, and therefore
     `dist (u (n+1)) (u n)` becomes exponentally small, making it possible to get an inductive
     bound on `dist (u n) b`, from which one checks that `u n` remains in the ball on which we
@@ -229,7 +229,7 @@ theorem surjOn_closedBall_of_nonlinearRightInverse
               (1 - (c : ℝ) * f'symm.nnnorm) * dist (f b) y := by
           simp [field, pow_succ]
           ring_nf at Jcf' ⊢
-          simp only [field] -- different normal form for denom
+          field_simp2 -- different normal form for denom
           ring
     refine ⟨?_, Ign⟩
     calc

@@ -176,7 +176,7 @@ theorem tendsto_div_of_monotone_of_exists_subseq_tendsto_div (u : ℕ → ℝ) (
     filter_upwards [A ε εpos, Ioi_mem_atTop 0] with n hn (npos : 0 < n)
     calc
       u n / n ≤ (n * l + ε * (1 + ε + l) * n) / n := by gcongr; linarith only [hn]
-      _ = (l + ε * (1 + ε + l)) := by simp only [field]
+      _ = (l + ε * (1 + ε + l)) := by field_simp2
       _ < d := hε
 
 /-- If a monotone sequence `u` is such that `u ⌊c^n⌋₊ / ⌊c^n⌋₊` converges to a limit `l` for all
@@ -208,7 +208,7 @@ theorem tendsto_div_of_monotone_of_tendsto_div_floor_pow (u : ℕ → ℝ) (l : 
     simp only [one_mul, div_one] at A
     convert A using 1
     ext1 n
-    simp only [field, (zero_lt_one.trans (cone k)).ne', (H n).ne']
+    field_simp2 [(zero_lt_one.trans (cone k)).ne', (H n).ne']
     ring
   filter_upwards [(tendsto_order.1 B).2 a hk] with n hn
   exact (div_le_iff₀ (H n)).1 hn.le
@@ -255,7 +255,7 @@ theorem sum_div_pow_sq_le_div_sq (N : ℕ) {j : ℝ} (hj : 0 < j) {c : ℝ} (hc 
         · rw [Set.mem_Ioi]; positivity
         rw [Real.log_rpow A]
         simp only [one_div, Real.log_inv, Real.log_pow, Nat.cast_one, mul_neg, neg_inj]
-        simp only [field, (Real.log_pos hc).ne']
+        field_simp2 [(Real.log_pos hc).ne']
       rw [Real.rpow_sub A, I]
       have : c ^ 2 - 1 ≠ 0 := (sub_pos.2 (one_lt_pow₀ hc two_ne_zero)).ne'
       simp
@@ -302,4 +302,4 @@ theorem sum_div_nat_floor_pow_sq_le_div_sq (N : ℕ) {j : ℝ} (hj : 0 < j) {c :
       exact sum_div_pow_sq_le_div_sq N hj hc
     _ = c ^ 5 * (c - 1)⁻¹ ^ 3 / j ^ 2 := by
       congr 1
-      simp only [field, (sub_pos.2 hc).ne']
+      field_simp2 [(sub_pos.2 hc).ne']
