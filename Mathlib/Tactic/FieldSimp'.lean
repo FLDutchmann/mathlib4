@@ -36,11 +36,11 @@ open private Simp.dischargeUsingAssumption? from Lean.Meta.Tactic.Simp.Rewrite
 /-- Discharge strategy for the `field_simp` tactic. -/
 partial def discharge (prop : Expr) : SimpM (Option Expr) :=
   withTraceNode `Tactic.field_simp (dischargerTraceMessage prop) do
-    -- Discharge strategy 1: Use assumptions
     if let some r ← Simp.dischargeUsingAssumption? prop then
+      trace[Tactic.field_simp] "discharged {prop} by finding it in the assumptions"
       return some r
 
-    -- Discharge strategy 2: Normalize inequalities using NormNum
+    -- Discharge strategy 2: Normalize disequalities using NormNum
     let prop : Q(Prop) ← (do pure prop)
     let pf? ← match prop with
     | ~q(($e : $α) ≠ $b) =>
@@ -52,13 +52,17 @@ partial def discharge (prop : Expr) : SimpM (Option Expr) :=
         catch _ =>
           pure none
     | _ => pure none
-    if let some pf := pf? then return some pf
+    if let some pf := pf? then
+      trace[Tactic.field_simp] "discharged {prop} by norm_num"
+      return some pf
 
     -- Discharge strategy 3: Use positivity
     let pf? ←
       try some <$> Mathlib.Meta.Positivity.solve prop
       catch _ => pure none
-    if let some pf := pf? then return some pf
+    if let some pf := pf? then
+      trace[Tactic.field_simp] "discharged {prop} by positivity"
+      return some pf
 
     -- Discharge strategy 4: Use the simplifier
     Simp.withIncDischargeDepth do
@@ -77,6 +81,7 @@ partial def discharge (prop : Expr) : SimpM (Option Expr) :=
       set { (← get) with usedTheorems := stats'.usedTheorems, diag := stats'.diag }
       if simpResult.expr.isConstOf ``True then
         try
+          trace[Tactic.field_simp] "discharged {prop} by simp"
           return some (← mkOfEqTrue (← simpResult.getProof))
         catch _ =>
           return none
