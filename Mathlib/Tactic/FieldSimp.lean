@@ -5,6 +5,7 @@ Authors: Sébastien Gouëzel, David Renshaw, Heather Macbeth, Arend Mellendijk, 
 -/
 import Mathlib.Tactic.FieldSimp.Lemmas
 import Mathlib.Tactic.FieldSimp'
+import Mathlib.Util.AtLoc
 import Mathlib.Util.AtomM
 
 
@@ -541,21 +542,15 @@ Summary of the meaning of the simproc outputs in "post" mode:
   initial expression.
 * `continue (e? : Option Result := none)` is passed to `pre` again
 -/
-simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
+def fieldSimpStep (ctx : Simp.Context) (t : Expr) : MetaM Simp.Step := do
   let some ⟨_, a, b⟩ := t.eq? | return .continue
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, a⟩ ← inferTypeQ' a
   try
     -- find a `CommGroupWithZero` instance on `K`
     let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-    -- set up discharger, in particular a simp context including the provided terms plus the library
-    -- simp lemmas
-    let ctx ← Simp.getContext
-    let simpTheorems ← getSimpTheorems
-    let ctxSimpTheorems : SimpTheoremsArray := ctx.simpTheorems.push simpTheorems
-    let ctx' := ctx.setSimpTheorems ctxSimpTheorems
     let disch := tacticToDischarge <|
-      wrapSimpDischargerWithCtx FieldSimp.discharge ctx'
+      wrapSimpDischargerWithCtx FieldSimp.discharge ctx
     trace[Tactic.field_simp] "running simproc on {a} = {b}"
     -- run the core equality-transforming mechanism on `a = b`
     let ⟨a', b', pf⟩ ← AtomM.run .reducible <| atoms <| reduceEq disch iK a b
@@ -563,19 +558,74 @@ simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
     return .visit { expr := t', proof? := pf }
   catch _ => return .continue
 
-elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
-  let disch ← parseDischarger d
-  -- find the proposition `t` to prove
-  let t ← g.getType''
-  let some ⟨_, a, b⟩ := t.eq? | throwError "field_simp proves only equality goals"
-  -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
-  let ⟨u, K, a⟩ ← inferTypeQ' a
-  -- find a `CommGroupWithZero` instance on `K`
-  let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-  trace[Tactic.field_simp] "trying to prove {a} = {b}"
-  -- run the core equality-proving mechanism on `a = b`
-  let ⟨g', pf⟩ ← AtomM.run .reducible <| atoms <| proveEq disch iK a b
-  g.assign pf
-  return [g']
+simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
+  let ctx ← Simp.getContext
+  -- if we are running this simproc inside a `simp only`, we still want the discharger to operate
+  -- like a `simp`, so we pull in all the library lemmas
+  -- let simpTheorems ← getSimpTheorems
+  -- let ctxSimpTheorems : SimpTheoremsArray := ctx.simpTheorems.push simpTheorems
+  -- let ctx := ctx.setSimpTheorems ctxSimpTheorems
+  fieldSimpStep ctx t
+
+-- adapted from `Lean.Elab.Tactic.mkSimpContext `
+def mkSimpOnlyContext (cfg : Syntax) : TacticM Simp.Context := do
+  let mut simpTheorems ← simpOnlyBuiltins.foldlM (·.addConst ·) ({} : SimpTheorems)
+  let congrTheorems ← getSimpCongrTheorems
+  Simp.mkContext
+    (config := (← elabSimpConfig cfg (kind := SimpKind.simp)))
+    (simpTheorems := #[simpTheorems])
+    congrTheorems
+
+-- adapted from `Lean.Elab.Tactic.mkSimpContext `
+def mkSimpContext (args : Syntax) : TacticM Simp.Context := do
+  let simpTheorems ← getSimpTheorems
+  let congrTheorems ← getSimpCongrTheorems
+  let ctx ← Simp.mkContext
+     (config := { (← elabSimpConfig .missing (kind := SimpKind.simp)) with contextual := true } )
+     (simpTheorems := #[simpTheorems])
+     congrTheorems
+  let r ← elabSimpArgs args (eraseLocal := false) (kind := SimpKind.simp) (simprocs := {}) ctx
+  if !r.starArg then
+    return r.ctx
+  else
+    let ctx := r.ctx
+    let mut simpTheorems := ctx.simpTheorems
+    /-
+    When using `zetaDelta := false`, we do not expand let-declarations when using `[*]`.
+    Users must explicitly include it in the list.
+    -/
+    let hs ← getPropHyps
+    for h in hs do
+      unless simpTheorems.isErased (.fvar h) do
+        simpTheorems ← simpTheorems.addTheorem (.fvar h) (← h.getDecl).toExpr
+          (config := ctx.indexConfig)
+    return ctx.setSimpTheorems simpTheorems
+
+-- run `simp only [field]`: currently don't support a custom discharger
+elab "field_simp2" cfg:optConfig (discharger)? args:(simpArgs)? loc:(location)? : tactic =>
+    withMainContext do
+  let ctx ← mkSimpOnlyContext cfg
+  let loc := (loc.map expandLocation).getD (.targets #[] true)
+  -- elaborate the provided list of terms as a separate simp context to be passed to the field-simp
+  -- nonzeroness discharger
+  let dischCtx ← mkSimpContext (args.getD ⟨.missing⟩)
+  let field (t : Expr) : SimpM Simp.Step := fieldSimpStep dischCtx t
+  let m e := Prod.fst <$> Simp.mainCore e ctx (methods := { post := Simp.rewritePost >> field })
+  atLoc m "field_simp" true true loc
+
+-- elab "field_simp2 " d:(discharger)? : tactic => liftMetaTactic fun g ↦ do
+--   let disch ← parseDischarger d
+--   -- find the proposition `t` to prove
+--   let t ← g.getType''
+--   let some ⟨_, a, b⟩ := t.eq? | throwError "field_simp proves only equality goals"
+--   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
+--   let ⟨u, K, a⟩ ← inferTypeQ' a
+--   -- find a `CommGroupWithZero` instance on `K`
+--   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+--   trace[Tactic.field_simp] "trying to prove {a} = {b}"
+--   -- run the core equality-proving mechanism on `a = b`
+--   let ⟨g', pf⟩ ← AtomM.run .reducible <| atoms <| proveEq disch iK a b
+--   g.assign pf
+--   return [g']
 
 end Mathlib.Tactic.FieldSimp

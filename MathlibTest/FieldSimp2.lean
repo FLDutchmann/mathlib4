@@ -207,14 +207,20 @@ example (hy : y ≠ 0) (hz : z ≠ 0) (hx : x = 0) : x / y = x / z := by
 
 example : (1:ℚ) / 3 + 1 / 6 = 1 / 2 := by
   field_simp2
-  guard_target = ((6:ℚ) + 3) * 2 = 3 * 6
+  guard_target = ((6:ℚ) + 3) * 2 = 6 * 3
   norm_num
 
+-- check that `field_simp` closes goals when the equality reduces to an identity
 example : x / (x + y) + y / (x + y) = 1 := by
   have : x + y ≠ 0 := test_sorry
   field_simp2
-  -- TODO decide desired behaviour on this example
-  rfl
+
+-- check that `field_simp` closes goals when the equality reduces to an identity
+example : x ^ 2 * x⁻¹ = x := by field_simp2
+
+-- -- FIXME
+-- -- check that `field_simp` closes goals when a hypothesis reduces to the negation of an identity
+-- example (hx : x ≠ 0) (h : x ^ 2 * x⁻¹ ≠ x) : True := by field_simp2 at h
 
 example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) + (-1) / b = 0 := by
   field_simp2
@@ -233,11 +239,11 @@ example {a b : ℚ} (h : b ≠ 0) : a / b + 2 * a / b + (-a) / b + (- (2 * a)) /
 
 example : x / y ^ 2 = (x + 1) / y := by
   field_simp2
-  guard_target = x = y * (x + 1)
+  guard_target = x / y ^ 2 = (x + 1) / y
   exact test_sorry
 
 -- TODO do we want the simproc to reduce this to a common denominator,
--- i.e. `x / y ^ 2 = y * (x + 1) / y ^ 2`, rather than the current behaviour?
+-- i.e. `x / y ^ 2 = y * (x + 1) / y ^ 2`, rather than `x * y = x + 1`?
 example : x / y ^ 2 = (x + 1) / y := by
   simp only [field]
   guard_target = x / y ^ 2 = (x + 1) / y
@@ -245,13 +251,19 @@ example : x / y ^ 2 = (x + 1) / y := by
 
 example : x / y = (x + 1) / y ^ 2 := by
   field_simp2
-  guard_target = x * y = x + 1
+  guard_target = x / y = (x + 1) / y ^ 2
   exact test_sorry
 
 example (hx : 0 < x) :
     ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
   field_simp2
   guard_target = (x ^ 2 - y ^ 2) ^ 2 + x ^ 2 * y ^ 2 * 2 ^ 2 = (x ^ 2 + y ^ 2) ^ 2
+  exact test_sorry
+
+-- test the assumption discharger
+example {K : Type*} [Semifield K] (x y : K) (hy : y + 1 ≠ 0) : 2 * x / (y + 1) = x := by
+  field_simp2
+  guard_target = 2 * x = x * (y + 1)
   exact test_sorry
 
 -- from PythagoreanTriples
@@ -261,9 +273,9 @@ example {K : Type*} [Semifield K] (hK : ∀ x : K, 1 + x ^ 2 ≠ 0) (x y : K) (h
   /- TODO: re-extract this test, `Semifield` is not a strong enough typeclass. -/
   have : (y+1)^2 + x^2 ≠ 0 := test_sorry
   field_simp2
-  /- TODO: do we want field_simp to cancel the x on either side? This is a consequence of how
-    we defined qNF.gcd -/
-  guard_target = 2 *  (y + 1) = ((y + 1) ^ 2 + x ^ 2)
+  /- TODO: do we want field_simp to cancel the x on either side? This is a consequence of which
+  common factors we strip (currently the nonzero ones). -/
+  guard_target = 2 * x * (y + 1) = x * ((y + 1) ^ 2 + x ^ 2)
   exact test_sorry
 
 -- from Set.IsoIoo
@@ -310,6 +322,14 @@ example  (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
 
 example (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
   fail_if_success have : |x + 1| ≠ 0 := by positivity
+  have H : |x + 1| ≠ 0 := by simp [hK x] -- this is how `field_simp2` will prove nonzeroness
+  clear H
+  field_simp2 [hK x]
+  guard_target = 1 = |x + 1| * 5
+  exact test_sorry
+
+example (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
+  fail_if_success have : |x + 1| ≠ 0 := by positivity
   have H : |x + 1| ≠ 0 := by simp [hK x] -- this is how `simp [field, ...]` will prove nonzeroness
   clear H
   simp [field, hK x]
@@ -326,6 +346,7 @@ example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
   field_simp [hK x]
 
 -- doesn't cancel
+set_option linter.unusedVariables false in
 example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
   simp [field, hK x]
   guard_target = 1 / (x + 1) = 5
@@ -341,6 +362,9 @@ example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
 end
 
 /-! ### Tests to distinguish from former implementation -/
+
+example : x ^ 2 * x⁻¹ = x := by field_simp2
+example (hx: x ≠ 0) : x / (x * y) = 1 / y := by field_simp2
 
 example : x ^ 2 * x⁻¹ = x := by simp only [field]
 example (hx: x ≠ 0) : x / (x * y) = 1 / y := by simp only [field]
