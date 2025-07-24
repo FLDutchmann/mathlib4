@@ -56,7 +56,7 @@ variable {k : ℤ}
 
 end
 
-/-- info: 1 / x ^ 3 -/
+/-- info: (x ^ 3)⁻¹ -/
 #guard_msgs in
 #conv field_simp2 => x ^ (-1 : ℤ) * x ^ (-2 : ℤ)
 
@@ -78,7 +78,7 @@ end
 #guard_msgs in
 #conv field_simp2 => x ^ 3 * x⁻¹
 
-/-- info: 1 / x ^ 3 -/
+/-- info: (x ^ 3)⁻¹ -/
 #guard_msgs in
 #conv field_simp2 => x / x ^ 4
 
@@ -102,7 +102,7 @@ variable {hx : x ≠ 0}
 #guard_msgs in
 #conv field_simp2 => x ^ 3 * x⁻¹
 
-/-- info: 1 / x ^ 3 -/
+/-- info: (x ^ 3)⁻¹ -/
 #guard_msgs in
 #conv field_simp2 => x / x ^ 4
 
@@ -183,11 +183,11 @@ example : x ^ (0:ℤ) * y = y := by conv_lhs => field_simp2
 example : y * (y + x) ^ (0:ℤ) * y = y ^ 2 := by conv_lhs => field_simp2
 example : x * y * z = x * y * z := by conv_lhs => field_simp2
 example : x * y + x * z = x * (y + z) := by conv_lhs => field_simp2
-example (hx : x ≠ 0) : x / (x * y + x * z) = 1 / (y + z) := by conv_lhs => field_simp2
+example (hx : x ≠ 0) : x / (x * y + x * z) = (y + z)⁻¹ := by conv_lhs => field_simp2
 example : x / (x * y + x * z) = x / (x * (y + z)) := by conv_lhs => field_simp2
 example : ((x ^ (2:ℤ)) ^ 3) = x ^ 6 := by conv_lhs => field_simp2
 example : x ^ 3 * x⁻¹ = x ^ 2 := by conv_lhs => field_simp2
-example : x / x ^ 4 = 1 / x ^ 3 := by conv_lhs => field_simp2
+example : x / x ^ 4 = (x ^ 3)⁻¹ := by conv_lhs => field_simp2
 example : x ^ 1 * x ^ 2 = x ^ 3 := by conv_lhs => field_simp2
 example : x * x = x ^ 2 := by conv_lhs => field_simp2
 example : x ^ 3 * x ^ 42 = x ^ 45 := by conv_lhs => field_simp2
@@ -352,22 +352,13 @@ use `set_option diagnostics true` to get diagnostic information
 example {K : Type u_1} [Field K] {a b c s x : K} (P : K → Prop) : P (-(c * a * x) + -b) := by
   simp [fieldExpr]
 
-/--
-error: tactic 'simp' failed, nested error:
-maximum recursion depth has been reached
-use `set_option maxRecDepth <num>` to increase limit
-use `set_option diagnostics true` to get diagnostic information
--/
-#guard_msgs in
+-- this initially had an infinite loop because the normalization didn't respect simp-lemma `one_div`
 example (a : ℚ) (P : ℚ → Prop) : P (a * a⁻¹) := by
   simp [fieldExpr]
+  exact test_sorry
 
 example {K : Type u_1} [Field K] {a b c s x : K} (P : K → Prop) : P (-(c * a * x) + -b) := by
   simp [fieldExpr, -mul_neg, -neg_mul]
-  sorry
-
-example (a : ℚ) (P : ℚ → Prop) : P (a * a⁻¹) := by
-  simp [fieldExpr, -one_div]
   sorry
 
 /--
@@ -426,7 +417,7 @@ example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
 set_option linter.unusedVariables false in
 example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
   simp [field, hK x]
-  guard_target = 1 / (x + 1) = 5
+  guard_target = (x + 1)⁻¹ = 5
   exact test_sorry
 
 -- cancels when the hypothesis is brought out for use by `positivity`

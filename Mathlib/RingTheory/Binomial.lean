@@ -258,7 +258,7 @@ noncomputable instance {R : Type*} [AddCommMonoid R] [Module ℚ≥0 R] [Pow R �
   multichoose r n := (n.factorial : ℚ≥0)⁻¹ • Polynomial.smeval (ascPochhammer ℕ n) r
   factorial_nsmul_multichoose r n := by
     simp only [← smul_assoc]
-    simp [fieldExpr, -one_div]
+    simp [fieldExpr]
 
 end Basic_Instances
 
