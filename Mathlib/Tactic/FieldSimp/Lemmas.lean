@@ -180,6 +180,11 @@ theorem eq_div_of_eq_one_of_subst {M : Type*} [DivInvOneMonoid M] {l l_n n : M} 
     l = n := by
   rw [h, hn, div_one]
 
+theorem eq_div_of_eq_one_of_subst' {M : Type*} [DivInvOneMonoid M] {l l_d d : M} (h : l = 1 / l_d)
+    (hn : l_d = d) :
+    l = d⁻¹ := by
+  rw [h, hn, one_div]
+
 theorem eq_div_of_subst {M : Type*} [Div M] {l l_n l_d n d : M} (h : l = l_n / l_d) (hn : l_n = n)
     (hd : l_d = d) :
     l = n / d := by

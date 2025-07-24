@@ -132,10 +132,14 @@ def evalPretty (iM : Q(CommGroupWithZero $M)) (l : qNF M) :
     MetaM (Σ e : Q($M), Q(NF.eval $(l.toNF) = $e)) := do
   let ⟨l_n, l_d, pf⟩ ← split iM l
   let ⟨num, pf_n⟩ ← evalPrettyAux q(inferInstance) l_n
-  match l_d with
-  | [] => return ⟨num, q(eq_div_of_eq_one_of_subst $pf $pf_n)⟩
-  | _ =>
-    let ⟨den, pf_d⟩ ← evalPrettyAux q(inferInstance) l_d
+  let ⟨den, pf_d⟩ ← evalPrettyAux q(inferInstance) l_d
+  match l_n, l_d with
+  | _, [] => return ⟨num, q(eq_div_of_eq_one_of_subst $pf $pf_n)⟩
+  | [], _ =>
+    -- we choose this normal form rather than `1 / den` because `one_div` is a Mathlib simp-lemma
+    return ⟨q($den⁻¹), q(eq_div_of_eq_one_of_subst' $pf $pf_d)⟩
+  | _, _ =>
+    let pf_n : Q(NF.eval $(l_n.toNF) = $num) := pf_n
     let pf_d : Q(NF.eval $(l_d.toNF) = $den) := pf_d
     let pf : Q(NF.eval $(l.toNF) = NF.eval $(l_n.toNF) / NF.eval $(l_d.toNF)) := pf
     let pf_tot := q(eq_div_of_subst $pf $pf_n $pf_d)
