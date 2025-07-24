@@ -303,10 +303,9 @@ theorem exists_SL2_smul_eq_of_apply_zero_one_ne_zero (g : SL(2, ℝ)) (hc : g 1 
     rw [mul_assoc, ← mul_add, add_comm]
     exact mul_ne_zero hc h_denom
   replace h : (a * d - b * c : ℂ) = (1 : ℂ) := by norm_cast
-  field_simp2 -- takes a while until we get a stable atom ordering
-  ring_nf at *
   field_simp2
-  ring_nf at *
+  -- new field_simp changes denominator normalization
+  ring_nf
   field_simp2
   linear_combination -h
 

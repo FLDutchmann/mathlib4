@@ -227,9 +227,9 @@ theorem surjOn_closedBall_of_nonlinearRightInverse
                   · exact IH.2
         _ = f'symm.nnnorm * (1 - ((c : ℝ) * f'symm.nnnorm) ^ n.succ) /
               (1 - (c : ℝ) * f'symm.nnnorm) * dist (f b) y := by
-          simp [field, pow_succ]
-          ring_nf at Jcf' ⊢
-          field_simp2 -- different normal form for denom
+          -- new field_simp changes denominator normalization
+          replace Jcf' : (1:ℝ) - f'symm.nnnorm * c ≠ 0 := by convert Jcf' using 1; ring
+          simp [field, pow_succ, -mul_eq_mul_left_iff]
           ring
     refine ⟨?_, Ign⟩
     calc

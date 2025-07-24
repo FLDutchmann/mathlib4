@@ -143,11 +143,11 @@ theorem IsPrimitiveRoot.arg {n : ℕ} {ζ : ℂ} (h : IsPrimitiveRoot ζ n) (hn 
   rw [← Complex.cos_sub_two_pi, ← Complex.sin_sub_two_pi]
   convert Complex.arg_cos_add_sin_mul_I _
   · push_cast
-    field_simp [hn]
-    ring
+    rw [← sub_one_mul, sub_div, div_self]
+    exact mod_cast hn
   · push_cast
-    field_simp [hn]
-    ring
+    rw [← sub_one_mul, sub_div, div_self]
+    exact mod_cast hn
   simp [fieldExpr, -mul_neg, -neg_mul]
   constructor
   · push_neg at h₂
