@@ -298,6 +298,7 @@ theorem tendsto_div_pow_mul_exp_add_atTop (b c : ℝ) (n : ℕ) (hb : 0 ≠ b) :
   · convert (H (-b) (-c) (neg_pos.mpr h)).neg using 1
     · ext x
       field_simp2
+      rw [← neg_add (b * exp x) c, div_neg, neg_neg]
     · rw [neg_zero]
 
 /-- `Real.exp` as an order isomorphism between `ℝ` and `(0, +∞)`. -/

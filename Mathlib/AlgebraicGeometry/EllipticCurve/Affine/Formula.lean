@@ -268,7 +268,7 @@ lemma addPolynomial_slope {x₁ x₂ y₁ y₂ : F} (h₁ : W.Equation x₁ y₁
     rw [slope_of_Y_ne rfl hy]
     rw [negY, ← sub_ne_zero] at hy
     -- new field_simp changes denominator normalization
-    replace hy : y₁ - (y₁ * -1 - x₁ * W.a₁ - W.a₃) ≠ 0 := by convert hy using 1; ring
+    replace hy : y₁ - (-y₁ - x₁ * W.a₁ - W.a₃) ≠ 0 := by convert hy using 1; ring
     ext
     · rfl
     · simp only [addX]

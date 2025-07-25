@@ -38,10 +38,10 @@ theorem cos_arg {x : ℂ} (hx : x ≠ 0) : Real.cos (arg x) = x.re / ‖x‖ := 
   · rw [Real.cos_arcsin]
     simp [fieldExpr, Real.sqrt_sq, (norm_pos_iff.mpr hx).le, *]
   · rw [Real.cos_add_pi, Real.cos_arcsin]
-    simp [fieldExpr, -neg_mul, -mul_neg, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq_eq_abs,
+    simp [fieldExpr, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq_eq_abs,
       _root_.abs_of_neg (not_le.1 h₁), *]
   · rw [Real.cos_sub_pi, Real.cos_arcsin]
-    simp [fieldExpr,-neg_mul, -mul_neg, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq_eq_abs,
+    simp [fieldExpr, Real.sqrt_div (sq_nonneg _), Real.sqrt_sq_eq_abs,
       _root_.abs_of_neg (not_le.1 h₁), *]
 
 @[simp]

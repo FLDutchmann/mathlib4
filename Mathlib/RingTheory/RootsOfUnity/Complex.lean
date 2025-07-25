@@ -148,7 +148,7 @@ theorem IsPrimitiveRoot.arg {n : ℕ} {ζ : ℂ} (h : IsPrimitiveRoot ζ n) (hn 
   · push_cast
     rw [← sub_one_mul, sub_div, div_self]
     exact mod_cast hn
-  simp [fieldExpr, -mul_neg, -neg_mul]
+  simp [fieldExpr]
   constructor
   · push_neg at h₂
     rify at h₂

@@ -163,6 +163,14 @@ end
 #guard_msgs in
 #conv field_simp2 => x / y
 
+/-- info: -(x / y) -/
+#guard_msgs in
+#conv field_simp2 => x / -y
+
+/-- info: -(x / y) -/
+#guard_msgs in
+#conv field_simp2 => -x / y
+
 variable (hx : x + 1 ≠ 0) in
 /-- info: (x + (x + 1) * y / (y + 1)) / (x + 1) -/
 #guard_msgs in
@@ -234,7 +242,7 @@ example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) - 1 / b = 0 := by
 
 example {a b : ℚ} (h : b ≠ 0) : a / b + 2 * a / b + (-a) / b + (- (2 * a)) / b = 0 := by
   field_simp2
-  guard_target = a * (1 + 2 + -1 + 2 * -1) = b * 0
+  guard_target = a * (1 + 2 + -1 + -2) = b * 0
   ring
 
 example : x / y ^ 2 = (x + 1) / y := by
@@ -299,7 +307,6 @@ example {K : Type*} [Field K] (x y z : K) (hy : 1 - y ≠ 0) :
     x / (1 - y) / (1 + y / (1 - y)) = z := by
   field_simp2
   ring_nf
-  field_simp2
   guard_target = x = z
   exact test_sorry
 
@@ -342,24 +349,17 @@ example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n =
 
 /-! ### Examples which currently create an infinite loop -/
 
-/--
-error: tactic 'simp' failed, nested error:
-maximum recursion depth has been reached
-use `set_option maxRecDepth <num>` to increase limit
-use `set_option diagnostics true` to get diagnostic information
--/
-#guard_msgs in
-example {K : Type u_1} [Field K] {a b c s x : K} (P : K → Prop) : P (-(c * a * x) + -b) := by
-  simp [fieldExpr]
-
--- this initially had an infinite loop because the normalization didn't respect simp-lemma `one_div`
-example (a : ℚ) (P : ℚ → Prop) : P (a * a⁻¹) := by
+-- this initially had an infinite loop because the normalization didn't respect the simp-lemmas
+-- `neg_mul` and `mul_neg`
+example {K : Type*} [Field K] {a b c x : K} (P : K → Prop) : P (-(c * a * x) + -b) := by
   simp [fieldExpr]
   exact test_sorry
 
-example {K : Type u_1} [Field K] {a b c s x : K} (P : K → Prop) : P (-(c * a * x) + -b) := by
-  simp [fieldExpr, -mul_neg, -neg_mul]
-  sorry
+-- this initially had an infinite loop because the normalization didn't respect the simp-lemma
+-- `one_div`
+example (a : ℚ) (P : ℚ → Prop) : P (a * a⁻¹) := by
+  simp [fieldExpr]
+  exact test_sorry
 
 /--
 error: tactic 'simp' failed, nested error:

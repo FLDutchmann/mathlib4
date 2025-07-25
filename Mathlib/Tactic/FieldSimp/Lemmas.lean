@@ -4,8 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Heather Macbeth, Arend Mellendijk, Michael Rothgang
 -/
 import Mathlib.Algebra.BigOperators.Group.List.Basic
-import Mathlib.Algebra.Field.Defs
-import Mathlib.Algebra.GroupWithZero.Units.Basic
+import Mathlib.Algebra.Field.Power
 
 /-! # Lemmas for the field_simp tactic
 
@@ -143,29 +142,77 @@ end List
 
 namespace Mathlib.Tactic.FieldSimp
 
-theorem subst_add {M : Type*} [Semiring M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a b y : M}
+theorem subst_add00 {M : Type*} [Semiring M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a y : M}
     (h₁ : x₁ = X₁) (h₂ : x₂ = X₂)
     (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
     (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
-    (H_atom : x₁' + x₂' = y)
-    (H_mul : a * y = b) :
-    x₁ + x₂ = b := by
-  rw [h₁, h₂, ← h₁'', ← h₂''] at *
-  rw [← H_mul, ← H_atom] at *
-  rw [← h₁', ← h₂'] at *
-  simp only at *
-  rw [mul_add]
+    (H_atom : x₁' + x₂' = y) :
+    x₁ + x₂ = a * y := by
+  subst h₁ h₂ h₁' h₂' h₁'' h₂'' H_atom
+  simp [mul_add]
 
-theorem subst_sub {M : Type*} [Field M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a b y : M}
+theorem subst_add01 {M : Type*} [Field M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a y : M}
+    (h₁ : x₁ = X₁) (h₂ : x₂ = -X₂)
+    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
+    (H_atom : x₁' + -x₂' = y) :
+    x₁ + x₂ = a * y := by
+  subst h₁ h₂ h₁' h₂' h₁'' h₂'' H_atom
+  simp [mul_add, mul_neg]
+
+theorem subst_add10 {M : Type*} [Field M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a y : M}
+    (h₁ : x₁ = -X₁) (h₂ : x₂ = X₂)
+    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
+    (H_atom : -x₁' + x₂' = y) :
+    x₁ + x₂ = a * y := by
+  subst h₁ h₂ h₁' h₂' h₁'' h₂'' H_atom
+  simp [mul_add, mul_neg]
+
+theorem subst_add11 {M : Type*} [Field M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a y : M}
+    (h₁ : x₁ = -X₁) (h₂ : x₂ = -X₂)
+    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
+    (H_atom : -x₁' + -x₂' = y) :
+    x₁ + x₂ = a * y := by
+  subst h₁ h₂ h₁' h₂' h₁'' h₂'' H_atom
+  simp [mul_add, mul_neg]
+
+theorem subst_sub00 {M : Type*} [Ring M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a y : M}
     (h₁ : x₁ = X₁) (h₂ : x₂ = X₂)
     (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
     (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
-    (H_atom : x₁' - x₂' = y)
-    (H_mul : a * y = b) :
-    x₁ - x₂ = b := by
-  rw [sub_eq_add_neg] at H_atom ⊢
-  rw [subst_add h₁ congr(-$h₂) h₁' ?_ h₁'' congr(-$h₂'') H_atom H_mul]
-  rw [mul_neg, h₂']
+    (H_atom : x₁' - x₂' = y) :
+    x₁ - x₂ = a * y := by
+  subst h₁ h₂ h₁' h₂' h₁'' h₂'' H_atom
+  simp [mul_sub]
+
+theorem subst_sub01 {M : Type*} [Field M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a y : M}
+    (h₁ : x₁ = X₁) (h₂ : x₂ = -X₂)
+    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
+    (H_atom : x₁' - -x₂' = y) :
+    x₁ - x₂ = a * y := by
+  subst h₁ h₂ h₁' h₂' h₁'' h₂'' H_atom
+  simp [mul_add]
+
+theorem subst_sub10 {M : Type*} [Field M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a y : M}
+    (h₁ : x₁ = -X₁) (h₂ : x₂ = X₂)
+    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
+    (H_atom : -x₁' - x₂' = y) :
+    x₁ - x₂ = a * y := by
+  subst h₁ h₂ h₁' h₂' h₁'' h₂'' H_atom
+  simp [mul_sub]
+
+theorem subst_sub11 {M : Type*} [Field M] {x₁ x₂ x₁' x₂' X₁ X₂ X₁' X₂' a y : M}
+    (h₁ : x₁ = -X₁) (h₂ : x₂ = -X₂)
+    (h₁' : a * X₁' = X₁) (h₂' : a * X₂' = X₂)
+    (h₁'' : X₁' = x₁') (h₂'' : X₂' = x₂')
+    (H_atom : -x₁' - -x₂' = y) :
+    x₁ - x₂ = a * y := by
+  subst h₁ h₂ h₁' h₂' h₁'' h₂'' H_atom
+  simp [mul_add]
 
 theorem subst_neg {M : Type*} [Field M] {x negOne X X' : M}
     (pf : x = X)
@@ -196,13 +243,43 @@ theorem eq_of_eq_mul {M : Type*} [Mul M] {x₁ x₂ x₁' x₂' X₁ X₁' X₂ 
     x₁ = x₂ := by
   rw [h₁, h₂, ← h₁', ← h₂', h₁'', h₂'', h]
 
-theorem eq_eq_cancel_eq {M : Type*} [CancelMonoidWithZero M] {e₁ e₂ f₁ f₂ l₁ l₂ l₁' l₂' L : M}
+theorem eq_eq_cancel_eq00 {M : Type*} [CancelMonoidWithZero M] {e₁ e₂ f₁ f₂ l₁ l₂ l₁' l₂' L : M}
     (h₁ : e₁ = l₁) (h₂ : e₂ = l₂)
     (h₁' : l₁' = f₁) (h₂' : l₂' = f₂)
     (HL : L ≠ 0)
     (H₁ : L * l₁' = l₁) (H₂ : L * l₂' = l₂) :
     (e₁ = e₂) = (f₁ = f₂) := by
   subst h₁ h₂ h₁' h₂' H₁ H₂
+  rw [mul_right_inj' HL]
+
+theorem eq_eq_cancel_eq01 {M : Type*} [Field M] {e₁ e₂ f₁ f₂ l₁ l₂ l₁' l₂' L : M}
+    (h₁ : e₁ = l₁) (h₂ : e₂ = -l₂)
+    (h₁' : l₁' = f₁) (h₂' : l₂' = f₂)
+    (HL : L ≠ 0)
+    (H₁ : L * l₁' = l₁) (H₂ : L * l₂' = l₂) :
+    (e₁ = e₂) = (f₁ = -f₂) := by
+  subst h₁ h₂ h₁' h₂' H₁ H₂
+  rw [← mul_neg]
+  rw [mul_right_inj' HL]
+
+theorem eq_eq_cancel_eq10 {M : Type*} [Field M] {e₁ e₂ f₁ f₂ l₁ l₂ l₁' l₂' L : M}
+    (h₁ : e₁ = -l₁) (h₂ : e₂ = l₂)
+    (h₁' : l₁' = f₁) (h₂' : l₂' = f₂)
+    (HL : L ≠ 0)
+    (H₁ : L * l₁' = l₁) (H₂ : L * l₂' = l₂) :
+    (e₁ = e₂) = (-f₁ = f₂) := by
+  subst h₁ h₂ h₁' h₂' H₁ H₂
+  rw [← mul_neg]
+  rw [mul_right_inj' HL]
+
+theorem eq_eq_cancel_eq11 {M : Type*} [Field M] {e₁ e₂ f₁ f₂ l₁ l₂ l₁' l₂' L : M}
+    (h₁ : e₁ = -l₁) (h₂ : e₂ = -l₂)
+    (h₁' : l₁' = f₁) (h₂' : l₂' = f₂)
+    (HL : L ≠ 0)
+    (H₁ : L * l₁' = l₁) (H₂ : L * l₂' = l₂) :
+    (e₁ = e₂) = (-f₁ = -f₂) := by
+  subst h₁ h₂ h₁' h₂' H₁ H₂
+  rw [← mul_neg, ← mul_neg]
   rw [mul_right_inj' HL]
 
 /-! ### Theory of lists of pairs (exponent, atom)
@@ -269,10 +346,25 @@ theorem mul_eq_eval₃ [GroupWithZero M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l�
   simp [← h]
   simp only [eval_cons, ← h, mul_assoc]
 
-theorem mul_eq_eval [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
+theorem mul_eq_eval00 [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
     (hx₂ : x₂ = l₂.eval) (h : l₁.eval * l₂.eval = l.eval) :
     x₁ * x₂ = l.eval := by
   rw [hx₁, hx₂, h]
+
+theorem mul_eq_eval01 [DivisionRing M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
+    (hx₂ : x₂ = -l₂.eval) (h : l₁.eval * l₂.eval = l.eval) :
+    x₁ * x₂ = -l.eval := by
+  rw [hx₁, hx₂, ← h, mul_neg]
+
+theorem mul_eq_eval10 [DivisionRing M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = -l₁.eval)
+    (hx₂ : x₂ = l₂.eval) (h : l₁.eval * l₂.eval = l.eval) :
+    x₁ * x₂ = -l.eval := by
+  rw [hx₁, hx₂, ← h, neg_mul]
+
+theorem mul_eq_eval11 [DivisionRing M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = -l₁.eval)
+    (hx₂ : x₂ = -l₂.eval) (h : l₁.eval * l₂.eval = l.eval) :
+    x₁ * x₂ = l.eval := by
+  rw [hx₁, hx₂, ← h, neg_mul_neg]
 
 theorem div_eq_eval₁ [CommGroupWithZero M] (a₁ : ℤ × M) {a₂ : ℤ × M} {l₁ l₂ l : NF M}
     (h : l₁.eval / (a₂ ::ᵣ l₂).eval = l.eval) :
@@ -295,10 +387,25 @@ theorem div_eq_eval₃ [CommGroupWithZero M] {a₁ : ℤ × M} (a₂ : ℤ × M)
     (a₁ ::ᵣ l₁).eval / (a₂ ::ᵣ l₂).eval = ((-a₂.1, a₂.2) ::ᵣ l).eval := by
   simp only [eval_cons, ← h, zpow'_neg, div_eq_mul_inv, mul_inv, mul_assoc]
 
-theorem div_eq_eval [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
+theorem div_eq_eval00 [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
     (hx₂ : x₂ = l₂.eval) (h : l₁.eval / l₂.eval = l.eval) :
     x₁ / x₂ = l.eval := by
   rw [hx₁, hx₂, h]
+
+theorem div_eq_eval01 [DivisionRing M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
+    (hx₂ : x₂ = -l₂.eval) (h : l₁.eval / l₂.eval = l.eval) :
+    x₁ / x₂ = -l.eval := by
+  rw [hx₁, hx₂, ←h, div_neg]
+
+theorem div_eq_eval10 [DivisionRing M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = -l₁.eval)
+    (hx₂ : x₂ = l₂.eval) (h : l₁.eval / l₂.eval = l.eval) :
+    x₁ / x₂ = -l.eval := by
+  rw [hx₁, hx₂, ←h, neg_div]
+
+theorem div_eq_eval11 [DivisionRing M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = -l₁.eval)
+    (hx₂ : x₂ = -l₂.eval) (h : l₁.eval / l₂.eval = l.eval) :
+    x₁ / x₂ = l.eval := by
+  rw [hx₁, hx₂, ←h, neg_div_neg_eq]
 
 theorem eval_mul_eval_cons [GroupWithZero M] (n : ℤ) (e : M) {L l l' : NF M}
     (h : L.eval * l.eval = l'.eval) :
@@ -363,9 +470,13 @@ theorem eval_inv [CommGroupWithZero M] (l : NF M) : (l⁻¹).eval = l.eval⁻¹ 
 theorem one_div_eq_eval [CommGroupWithZero M] (l : NF M) : 1 / l.eval = (l⁻¹).eval := by
   simp [eval_inv]
 
-theorem inv_eq_eval [CommGroupWithZero M] {l : NF M} {x : M} (h : x = l.eval) :
+theorem inv_eq_eval0 [CommGroupWithZero M] {l : NF M} {x : M} (h : x = l.eval) :
     x⁻¹ = (l⁻¹).eval := by
   rw [h, eval_inv]
+
+theorem inv_eq_eval1 [Field M] {l : NF M} {x : M} (h : x = -l.eval) :
+    x⁻¹ = -(l⁻¹).eval := by
+  rw [h, eval_inv, inv_neg]
 
 instance : Pow (NF M) ℤ where
   pow l r := l.map fun (a, x) ↦ (r * a, x)
@@ -392,6 +503,26 @@ theorem zpow_eq_eval [CommGroupWithZero M] {l : NF M} {r : ℤ} (hr : r ≠ 0) {
     x ^ r = (l ^ r).eval := by
   rw [← zpow'_of_ne_zero_right x r hr, eval_zpow', hx]
 
+theorem zpow_eq_eval_of_eq_neg [Field M] {l : NF M} {r : ℤ} (hr : r ≠ 0) (hr' : Even r)
+    {x : M} (hx : x = -l.eval) :
+    x ^ r = (l ^ r).eval := by
+  rw [eval_zpow', zpow'_of_ne_zero_right _ r hr, hx]
+  trans ((-1) * l.eval) ^ r
+  · simp
+  rw [mul_zpow, hr'.neg_one_zpow]
+  simp
+
+theorem zpow_eq_eval_of_eq_neg' [Field M] {l : NF M} {r : ℤ} (hr' : ¬ Even r) {x : M}
+    (hx : x = -l.eval) :
+    x ^ r = -(l ^ r).eval := by
+  rw [Int.not_even_iff_odd] at hr'
+  have hr : r ≠ 0 := by rintro rfl; contradiction
+  rw [eval_zpow', zpow'_of_ne_zero_right _ r hr, hx]
+  trans ((-1) * l.eval) ^ r
+  · simp
+  rw [mul_zpow, hr'.neg_one_zpow]
+  simp
+
 theorem zpow_zero_eq_eval [GroupWithZero M] (x : M) : x ^ (0:ℤ) = NF.eval [] := by
   rw [zpow_zero, one_eq_eval]
 
@@ -415,6 +546,27 @@ theorem pow_eq_eval [CommGroupWithZero M] {l : NF M} {r : ℕ} (hr : r ≠ 0) {x
     x ^ r = (l ^ r).eval := by
   rw [eval_pow, hx]
   rw [zpow'_ofNat _ hr]
+
+theorem pow_eq_eval_of_eq_neg [Field M] {l : NF M} {r : ℕ} (hr : r ≠ 0) (hr' : Even r)
+    {x : M} (hx : x = -l.eval) :
+    x ^ r = (l ^ r).eval := by
+  rw [eval_pow, hx]
+  rw [zpow'_ofNat _ hr]
+  trans ((-1) * l.eval) ^ r
+  · simp
+  rw [mul_pow, hr'.neg_one_pow]
+  simp
+
+theorem pow_eq_eval_of_eq_neg' [Field M] {l : NF M} {r : ℕ} (hr' : ¬ Even r) {x : M}
+    (hx : x = -l.eval) :
+    x ^ r = -(l ^ r).eval := by
+  have hr : r ≠ 0 := by rintro rfl; contradiction
+  rw [eval_pow, hx]
+  rw [zpow'_ofNat _ hr]
+  trans ((-1) * l.eval) ^ r
+  · simp
+  rw [mul_pow, neg_one_pow_eq_ite, if_neg hr']
+  simp
 
 theorem pow_zero_eq_eval [GroupWithZero M] (x : M) : x ^ (0:ℕ) = NF.eval [] := by
   rw [pow_zero, one_eq_eval]

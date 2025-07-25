@@ -240,7 +240,7 @@ theorem arctan_add_eq_add_pi {x y : ℝ} (h : 1 < x * y) (hx : 0 < x) :
     sub_eq_iff_eq_add, ← sub_eq_iff_eq_add', sub_eq_add_neg, ← arctan_neg, add_comm] at k
   convert k.symm using 3
   simp [field]
-  rw [neg_div, ← div_neg]
+  rw [← div_neg]
   ring_nf
 
 theorem arctan_add_eq_sub_pi {x y : ℝ} (h : 1 < x * y) (hx : x < 0) :

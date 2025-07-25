@@ -317,7 +317,7 @@ theorem StrictConcaveOn.secant_strict_mono (hf : StrictConcaveOn 𝕜 s f) {a x 
   have key := hf.neg.secant_strict_mono ha hx hy hxa hya hxy
   simp only [Pi.neg_apply] at key
   rw [← neg_lt_neg_iff]
-  convert key using 1 <;> field_simp2
+  convert key using 1 <;> field_simp2 <;> ring
 
 /-- If `f` is convex on a set `s` in a linearly ordered field, and `f x < f y` for two points
 `x < y` in `s`, then `f` is strictly monotone on `s ∩ [y, ∞)`. -/
