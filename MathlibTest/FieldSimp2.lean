@@ -347,7 +347,7 @@ example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n =
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
   field_simp2 [pow_ne_zero, -pow_eq_zero_iff, -pow_eq_zero_iff']
 
-/-! ### Examples which currently create an infinite loop -/
+/-! ### Non-confluence issues -/
 
 -- this initially had an infinite loop because the normalization didn't respect the simp-lemmas
 -- `neg_mul` and `mul_neg`
