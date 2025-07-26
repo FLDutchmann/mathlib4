@@ -223,7 +223,7 @@ theorem abs_log_sub_add_sum_range_le {x : ℝ} (h : |x| < 1) (n : ℕ) :
     convert this using 1
     calc
       -y ^ n / (1 - y) = ∑ i ∈ Finset.range n, y ^ i + -1 / (1 - y) := by
-        field_simp [geom_sum_eq hy.2.ne, sub_ne_zero.2 hy.2.ne, sub_ne_zero.2 hy.2.ne']
+        simp [field, geom_sum_eq hy.2.ne, sub_ne_zero.2 hy.2.ne, sub_ne_zero.2 hy.2.ne']
         ring
       _ = ∑ i ∈ Finset.range n, ↑(i + 1) * y ^ i / (↑i + 1) + -1 / (1 - y) := by
         congr with i
@@ -307,11 +307,11 @@ theorem hasSum_log_one_add_inv {a : ℝ} (h : 0 < a) :
   have h₃ := h.ne'
   rw [← log_div]
   · congr
-    field_simp
-    linarith
-  · field_simp
-    linarith
-  · field_simp
+    simp [field]
+    ring
+  · field_simp2
+    positivity
+  · simp [field, h₃]
 
 /-- Expansion of `log (1 + a)` as a series in powers of `a / (a + 2)`. -/
 theorem hasSum_log_one_add {a : ℝ} (h : 0 ≤ a) :
@@ -320,15 +320,15 @@ theorem hasSum_log_one_add {a : ℝ} (h : 0 ≤ a) :
   obtain (rfl | ha0) := eq_or_ne a 0
   · simp [hasSum_zero]
   · convert hasSum_log_one_add_inv (inv_pos.mpr (lt_of_le_of_ne h ha0.symm)) using 4
-    all_goals field_simp [add_comm]
+    all_goals simp [field, add_comm]
 
 lemma le_log_one_add_of_nonneg {x : ℝ} (hx : 0 ≤ x) : 2 * x / (x + 2) ≤ log (1 + x) := by
   convert le_hasSum (hasSum_log_one_add hx) 0 (by intros; positivity) using 1
-  field_simp
+  simp [field]
 
 lemma lt_log_one_add_of_pos {x : ℝ} (hx : 0 < x) : 2 * x / (x + 2) < log (1 + x) := by
   convert lt_hasSum (hasSum_log_one_add hx.le) 0 (by intros; positivity)
     1 (by positivity) (by positivity) using 1
-  field_simp
+  simp [field]
 
 end Real

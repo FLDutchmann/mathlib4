@@ -72,9 +72,8 @@ theorem lhopital_zero_right_on_Ioo (hab : a < b) (hff' : ∀ x ∈ Ioo a b, HasD
   have : ∀ x ∈ Ioo a b, ((fun x' => f' x' / g' x') ∘ c) x = f x / g x := by
     intro x hx
     rcases hc x hx with ⟨h₁, h₂⟩
-    field_simp [hg x hx, hg' (c x) ((sub x hx) h₁)]
-    simp only [h₂]
-    rw [mul_comm]
+    simp [field, hg x hx, hg' (c x) ((sub x hx) h₁)]
+    linear_combination -h₂
   have cmp : ∀ x ∈ Ioo a b, a < c x ∧ c x < x := fun x hx => (hc x hx).1
   rw [← nhdsWithin_Ioo_eq_nhdsGT hab]
   apply tendsto_nhdsWithin_congr this

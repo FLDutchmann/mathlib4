@@ -155,11 +155,10 @@ lemma hf_zero (P : WeakFEPair E) (r : ℝ) :
   convert hC' using 1
   · congr 3
     rw [rpow_neg hx.le]
-    field_simp
+    simp [field]
   · simp_rw [norm_mul, norm_real, one_div, inv_rpow hx.le, rpow_neg hx.le, inv_inv, norm_inv,
       norm_of_nonneg (rpow_pos_of_pos hx _).le, rpow_add hx]
-    field_simp
-    ring
+    field_simp2
 
 /-- Power asymptotic for `f - f₀` as `x → 0`. -/
 lemma hf_zero' (P : WeakFEPair E) :
@@ -296,7 +295,7 @@ lemma hf_modif_FE (x : ℝ) (hx : 0 < x) :
       indicator_of_notMem (notMem_Ioi.mpr hx'.le),
       indicator_of_mem (mem_Ioo.mpr ⟨hx, hx'⟩), zero_add, P.h_feq _ hx, smul_sub]
     simp_rw [rpow_neg hx.le, ← mul_smul]
-    field_simp [(rpow_pos_of_pos hx P.k).ne', P.hε]
+    simp [fieldExpr, (rpow_pos_of_pos hx P.k).ne', P.hε, -mul_inv_rev]
 
 /-- Given a weak FE-pair `(f, g)`, modify it into a strong FE-pair by subtracting suitable
 correction terms from `f` and `g`. -/

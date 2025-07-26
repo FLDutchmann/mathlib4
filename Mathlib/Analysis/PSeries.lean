@@ -381,8 +381,8 @@ theorem sum_Ioc_inv_sq_le_sub {k n : ℕ} (hk : k ≠ 0) (h : k ≤ n) :
   simp only [sub_eq_add_neg, add_assoc, Nat.cast_add, Nat.cast_one, le_add_neg_iff_add_le,
     add_le_iff_nonpos_right, neg_add_le_iff_le_add, add_zero]
   have A : 0 < (n : α) := by simpa using hk.bot_lt.trans_le hn
-  field_simp
-  rw [div_le_div_iff₀ _ A]
+  field_simp2
+  rw [← one_div, div_le_div_iff₀ _ A]
   · linarith
   · positivity
 
@@ -452,7 +452,7 @@ lemma Real.summable_one_div_nat_add_rpow (a : ℝ) (s : ℝ) :
     have : Tendsto (fun x ↦ (x + b) / (x + c)) atTop (𝓝 1) := by
       refine (this.comp (tendsto_id.atTop_add (tendsto_const_nhds (x := c)))).congr' ?_
       filter_upwards [eventually_gt_atTop (-c)] with x hx
-      field_simp [(by linarith : 0 < x + c).ne']
+      simp [field, (by linarith : 0 < x + c).ne']
     apply (one_rpow s ▸ (continuousAt_rpow_const _ s (by simp)).tendsto.comp this).congr'
     filter_upwards [eventually_gt_atTop (-b), eventually_gt_atTop (-c)] with x hb hc
     rw [neg_lt_iff_pos_add] at hb hc

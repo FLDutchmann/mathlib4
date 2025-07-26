@@ -80,8 +80,7 @@ lemma term_one {n : ℕ} (hn : 0 < n) :
       simp_rw [term, one_add_one_eq_two, ← Nat.cast_two (R := ℝ), rpow_natCast]
     _ = ∫ x : ℝ in n..(n + 1), (1 / x - n / x ^ 2) := by
       refine intervalIntegral.integral_congr (fun x hx ↦ ?_)
-      field_simp [(hv x hx).ne']
-      ring
+      field_simp2 [(hv x hx).ne']
     _ = (∫ x : ℝ in n..(n + 1), 1 / x) - n * ∫ x : ℝ in n..(n + 1), 1 / x ^ 2 := by
       simp_rw [← mul_one_div (n : ℝ)]
       rw [intervalIntegral.integral_sub]
@@ -106,7 +105,7 @@ lemma term_one {n : ℕ} (hn : 0 < n) :
         all_goals positivity
     _ = log (↑n + 1) - log ↑n - 1 / (↑n + 1) := by
       congr 1
-      field_simp
+      simp [field]
 
 lemma term_sum_one (N : ℕ) : term_sum 1 N = log (N + 1) - harmonic (N + 1) + 1 := by
   induction N with

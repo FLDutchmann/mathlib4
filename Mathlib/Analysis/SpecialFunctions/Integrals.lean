@@ -75,7 +75,7 @@ theorem intervalIntegrable_rpow' {r : ℝ} (h : -1 < r) :
     have hderiv : ∀ x ∈ Ioo 0 c, HasDerivAt (fun x : ℝ => x ^ (r + 1) / (r + 1)) (x ^ r) x := by
       intro x hx
       convert (Real.hasDerivAt_rpow_const (p := r + 1) (Or.inl hx.1.ne')).div_const (r + 1) using 1
-      field_simp [(by linarith : r + 1 ≠ 0)]
+      simp [(by linarith : r + 1 ≠ 0)]
     apply integrableOn_deriv_of_nonneg _ hderiv
     · intro x hx; apply rpow_nonneg hx.1.le
     · refine (continuousOn_id.rpow_const ?_).div_const _; intro x _; right; linarith
@@ -275,7 +275,7 @@ theorem intervalIntegrable_one_div_one_add_sq :
 @[simp]
 theorem intervalIntegrable_inv_one_add_sq :
     IntervalIntegrable (fun x : ℝ => (↑1 + x ^ 2)⁻¹) μ a b := by
-  field_simp; exact mod_cast intervalIntegrable_one_div_one_add_sq
+  simp [fieldExpr]; simp_rw [← one_div]; exact mod_cast intervalIntegrable_one_div_one_add_sq
 
 /-! ### Integrals of the form `c * ∫ x in a..b, f (c * x + d)` -/
 section
@@ -500,8 +500,7 @@ lemma integral_exp_mul_I_eq_sinc (r : ℝ) :
   · simp [hr]
   rw [sinc_of_ne_zero hr]
   norm_cast
-  field_simp
-  ring
+  field_simp2
 
 /-- Helper lemma for `integral_log`: case where `a = 0` and `b` is positive. -/
 lemma integral_log_from_zero_of_pos (ht : 0 < b) : ∫ s in (0)..b, log s = b * log b - b := by
@@ -608,10 +607,9 @@ theorem integral_mul_cpow_one_add_sq {t : ℂ} (ht : t ≠ -1) :
       intro z hz
       convert (HasDerivAt.cpow_const (c := t + 1) (hasDerivAt_id _)
         (Or.inl hz)).div_const (2 * (t + 1)) using 1
-      field_simp
-      ring
+      simp [field]
     convert (HasDerivAt.comp (↑x) (g _) f).comp_ofReal using 1
-    · field_simp; ring
+    · field_simp2
     · exact mod_cast add_pos_of_pos_of_nonneg zero_lt_one (sq_nonneg x)
   · apply Continuous.intervalIntegrable
     refine continuous_ofReal.mul ?_
@@ -680,7 +678,7 @@ theorem integral_sin_pow :
 
 @[simp]
 theorem integral_sin_sq : ∫ x in a..b, sin x ^ 2 = (sin a * cos a - sin b * cos b + b - a) / 2 := by
-  field_simp [integral_sin_pow, add_sub_assoc]
+  simp [field, integral_sin_pow, add_sub_assoc]
 
 theorem integral_sin_pow_odd :
     (∫ x in (0)..π, sin x ^ (2 * n + 1)) = 2 * ∏ i ∈ range n, (2 * (i : ℝ) + 2) / (2 * i + 3) := by
@@ -747,7 +745,7 @@ theorem integral_cos_pow :
 
 @[simp]
 theorem integral_cos_sq : ∫ x in a..b, cos x ^ 2 = (cos b * sin b - cos a * sin a + b - a) / 2 := by
-  field_simp [integral_cos_pow, add_sub_assoc]
+  simp [field, integral_cos_pow, add_sub_assoc]
 
 /-! ### Integral of `sin x ^ m * cos x ^ n` -/
 
@@ -820,7 +818,7 @@ theorem integral_sin_pow_three :
 theorem integral_sin_pow_even_mul_cos_pow_even (m n : ℕ) :
     (∫ x in a..b, sin x ^ (2 * m) * cos x ^ (2 * n)) =
       ∫ x in a..b, ((1 - cos (2 * x)) / 2) ^ m * ((1 + cos (2 * x)) / 2) ^ n := by
-  field_simp [pow_mul, sin_sq, cos_sq, ← sub_sub, (by ring : (2 : ℝ) - 1 = 1)]
+  simp [fieldExpr, pow_mul, sin_sq, cos_sq, ← sub_sub, (by ring : (2 : ℝ) - 1 = 1)]
 
 @[simp]
 theorem integral_sin_sq_mul_cos_sq :

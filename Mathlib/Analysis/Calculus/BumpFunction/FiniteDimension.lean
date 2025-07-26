@@ -298,7 +298,7 @@ variable (E)
 theorem w_integral {D : ℝ} (Dpos : 0 < D) : ∫ x : E, w D x ∂μ = 1 := by
   simp_rw [w, integral_smul]
   rw [integral_comp_inv_smul_of_nonneg μ (u : E → ℝ) Dpos.le, abs_of_nonneg Dpos.le, mul_comm]
-  field_simp [(u_int_pos E).ne']
+  simp [field, (u_int_pos E).ne']
 
 theorem w_support {D : ℝ} (Dpos : 0 < D) : support (w D : E → ℝ) = ball 0 D := by
   have B : D • ball (0 : E) 1 = ball 0 D := by

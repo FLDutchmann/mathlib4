@@ -106,7 +106,7 @@ theorem sum_mongePointWeightsWithCircumcenter (n : ℕ) :
     ∑ i, mongePointWeightsWithCircumcenter n i = 1 := by
   simp_rw [sum_pointsWithCircumcenter, mongePointWeightsWithCircumcenter, sum_const, card_fin,
     nsmul_eq_mul]
-  field_simp
+  simp [field]
   ring
 
 /-- The Monge point of an (n+2)-simplex, in terms of
@@ -134,7 +134,7 @@ theorem mongePoint_eq_affineCombination_of_pointsWithCircumcenter {n : ℕ}
     -- have hn3 : (n + 2 + 1 : ℝ) ≠ 0 := mod_cast Nat.succ_ne_zero _
     have hn3 : (n + 2 + 1 : ℝ) ≠ 0 := by norm_cast
     field_simp [hn1, hn3, mul_comm]
-  · field_simp [hn1]
+  · simp [field]
     ring
 
 /-- The weights for the Monge point of an (n+2)-simplex, minus the

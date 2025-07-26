@@ -373,6 +373,17 @@ example (t : ℚ) (ht : t ≠ 0) (a : ∀ t, t ≠ 0 → ℚ) :
     (if h : t = 0 then 1 else a t h) = 1 := by
   simp only [field]
 
+/--
+error: tactic 'simp' failed, nested error:
+maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+-/
+#guard_msgs in
+-- this one, from Analysis.SpecialFunctions.Stirling, is due to the simp-lemma `mul_inv_rev`
+example (n : ℚ) (P : ℚ → Prop ): P ((4 * n)⁻¹) := by
+  simp [fieldExpr]
+
 /-! ### Testing to what extent the simproc discharger picks up hypotheses from the simp args -/
 section
 variable {K : Type*} [Field K] [LinearOrder K] [IsStrictOrderedRing K]
