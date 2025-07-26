@@ -318,6 +318,13 @@ example (x z : ℚ≥0) (n : ℕ) : z * ((z / x) ^ n * x) = (z / x) ^ (n + 1) * 
 
 end
 
+-- test for operating in sub-expressions
+set_option linter.unusedVariables false in
+example (hx : y ≠ 0) {f : ℚ → ℚ} (hf : ∀ t, f t ≠ 0) :
+    f (y * x / (y ^ 2 / z)) / f (z / (y / x)) = 1 := by
+  field_simp2 [hf]
+  ring_nf
+
 /-! ### A bug with the simp component of the discharger
 
 Previously `pow_ne_zero` was tagged `field_simps` and apparently took precedence in the discharger
