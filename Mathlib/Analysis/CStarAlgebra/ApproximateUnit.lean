@@ -72,7 +72,7 @@ lemma Set.InvOn.one_sub_one_add_inv : Set.InvOn (fun x ↦ 1 - (1 + x)⁻¹) (fu
   rw [← this]
   constructor <;> intro x (hx : x < 1)
   · have : 0 < 1 - x := tsub_pos_of_lt hx
-    simp [fieldExpr, tsub_add_cancel_of_le hx.le, tsub_tsub_cancel_of_le hx.le]
+    simp [field, tsub_add_cancel_of_le hx.le, tsub_tsub_cancel_of_le hx.le]
   · simp [fieldExpr, mul_tsub]
 
 lemma norm_cfcₙ_one_sub_one_add_inv_lt_one (a : A) :
