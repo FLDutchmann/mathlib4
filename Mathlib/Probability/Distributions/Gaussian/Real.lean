@@ -136,7 +136,7 @@ lemma gaussianPDFReal_inv_mul {μ : ℝ} {v : ℝ≥0} {c : ℝ} (hc : c ≠ 0) 
     Real.sqrt_mul', one_div, mul_inv_rev, NNReal.coe_mul, NNReal.coe_mk, NNReal.coe_pos]
   rw [← mul_assoc]
   refine congr_arg₂ _ ?_ ?_
-  · simp (disch := positivity) [field, fieldExpr, -mul_inv_rev]
+  · simp (disch := positivity) [field, -mul_inv_rev]
     rw [Real.sqrt_sq_eq_abs]
   · congr 1
     field_simp2
@@ -407,7 +407,7 @@ theorem complexMGF_id_gaussianReal (z : ℂ) :
       rw [integral_cexp_quadratic (by simpa using pos_iff_ne_zero.mpr hv), ← mul_assoc]
     _ = 1 * cexp (-μ ^ 2 / (2 * v) - (z + μ / v) ^ 2 / (4 * -(2 * v)⁻¹)) := by
       congr 1
-      simp [field, mul_ne_zero, Real.sqrt_eq_rpow, -mul_inv_rev, -mul_eq_zero]
+      simp [field, ↓mul_ne_zero, Real.sqrt_eq_rpow, -mul_inv_rev]
       rw [Complex.ofReal_cpow (by positivity)]
       push_cast
       ring_nf

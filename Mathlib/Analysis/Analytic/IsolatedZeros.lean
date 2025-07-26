@@ -63,7 +63,7 @@ theorem exists_hasSum_smul_of_apply_eq_zero (hs : HasSum (fun m => z ^ m • a m
     have h2 : HasSum (fun m => z ^ (m + n) • a (m + n)) s := by
       simpa [h1] using (hasSum_nat_add_iff' n).mpr hs
     convert h2.const_smul (z⁻¹ ^ n) using 1
-    · simp [fieldExpr, pow_add, smul_smul, h, pow_ne_zero, -pow_eq_zero_iff, ← pow_eq_zero_iff']
+    · simp [fieldExpr, pow_add, smul_smul, ↓pow_ne_zero]
     · simp only [inv_pow]
 
 end HasSum
