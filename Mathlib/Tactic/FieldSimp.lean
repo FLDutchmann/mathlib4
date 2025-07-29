@@ -579,20 +579,14 @@ def eval (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (e : Expr)
     -- run the core equality-transforming mechanism on `a = b`
     let ⟨a', b', pf⟩ ← reduceEqQ disch iK a b
     let t' ← mkAppM ``Eq #[a', b']
-    let r : Simp.Result := { expr := t', proof? := pf }
-    if ← withReducible (isDefEq a' b') then
-      -- final transform to `True` if the two agree
-      -- maybe a flag for this?
-      let r' := { expr := ← mkAppM ``True #[], proof? := ← mkAppM ``eq_self #[a'] }
-      r.mkEqTrans r'
-    else
-      return r
+    return { expr := t', proof? := pf }
   catch _ =>
     -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
     let ⟨u, K, _⟩ ← inferTypeQ' e
     -- find a `CommGroupWithZero` instance on `K`
     let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-    guard e.isApp <|> throwError "boring unless a function application"
+    -- boring unless a function application
+    guard e.isApp
     let ⟨f, _⟩ := e.getAppFnArgs
     guard <|
       f ∈ [``HMul.hMul, ``HDiv.hDiv, ``Inv.inv, ``HPow.hPow, ``HAdd.hAdd, ``HSub.hSub, ``Neg.neg]
@@ -698,7 +692,8 @@ simproc_decl _root_.fieldExpr (_) := fun (t : Expr) ↦ do
 elab "field_simp2" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => withMainContext do
   let disch ← parseDischarger d args
   let s ← IO.mkRef {}
-  let m := AtomM.recurse s {} (eval disch) pure
+  let cleanup r := do r.mkEqTrans (← simpOnlyNames [``eq_self] r.expr)
+  let m := AtomM.recurse s {} (eval disch) cleanup
   let loc := (loc.map expandLocation).getD (.targets #[] true)
   atLoc m "field_simp" (failIfUnchanged := true) (mayCloseGoalFromHyp := true) loc
 
