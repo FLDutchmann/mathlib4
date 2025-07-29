@@ -6,7 +6,7 @@ Authors: Sébastien Gouëzel, David Renshaw, Heather Macbeth, Arend Mellendijk, 
 import Mathlib.Tactic.FieldSimp.Lemmas
 import Mathlib.Tactic.FieldSimp'
 import Mathlib.Util.AtLoc
-import Mathlib.Util.AtomM
+import Mathlib.Util.AtomM.Recurse
 import Mathlib.Util.Simp
 import Mathlib.Util.SynthesizeUsing
 
@@ -351,8 +351,11 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
     (iM : Q(CommGroupWithZero $M))
     (x : Q($M)) : AtomM (Σ (g : Sign M) (l : qNF M), Q($x = $(g.expr q(NF.eval $(l.toNF))))) := do
   let baseCase (y : Q($M)) : AtomM (Σ (l : qNF M), Q($y = NF.eval $(l.toNF))) := do
-    let (k, ⟨x', _⟩) ← AtomM.addAtomQ y
-    pure ⟨[((1, x'), k)], q(NF.atom_eq_eval $x')⟩
+    let r ← (← read).evalAtom y
+    have y' : Q($M) := r.expr
+    have pf : Q($y = $y') := ← r.getProof
+    let (k, ⟨x', _⟩) ← AtomM.addAtomQ y'
+    pure ⟨[((1, x'), k)], q(Eq.trans $pf (NF.atom_eq_eval $x'))⟩
   match x with
   /- normalize a multiplication: `x₁ * x₂` -/
   | ~q($x₁ * $x₂) =>
@@ -562,6 +565,42 @@ def reduceEqQ (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
     return ⟨q(-$f₁), q(-$f₂),
       q(eq_eq_cancel_eq11 $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
 
+/-- Given an equality `a = b`, cancel nonzero factors to construct a new equality which is logically
+equivalent to `a = b`. -/
+def eval (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (e : Expr) :
+    AtomM Simp.Result := do
+  try
+    let some ⟨_, a, b⟩ := e.eq? | throwError "not an equality"
+    -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
+    let ⟨u, K, a⟩ ← inferTypeQ' a
+    -- find a `CommGroupWithZero` instance on `K`
+    let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+    trace[Tactic.field_simp] "clearing denominators in {a} = {b}"
+    -- run the core equality-transforming mechanism on `a = b`
+    let ⟨a', b', pf⟩ ← reduceEqQ disch iK a b
+    let t' ← mkAppM ``Eq #[a', b']
+    let r : Simp.Result := { expr := t', proof? := pf }
+    if ← withReducible (isDefEq a' b') then
+      -- final transform to `True` if the two agree
+      -- maybe a flag for this?
+      let r' := { expr := ← mkAppM ``True #[], proof? := ← mkAppM ``eq_self #[a'] }
+      r.mkEqTrans r'
+    else
+      return r
+  catch _ =>
+    -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
+    let ⟨u, K, _⟩ ← inferTypeQ' e
+    -- find a `CommGroupWithZero` instance on `K`
+    let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
+    guard e.isApp <|> throwError "boring unless a function application"
+    let ⟨f, _⟩ := e.getAppFnArgs
+    guard <|
+      f ∈ [``HMul.hMul, ``HDiv.hDiv, ``Inv.inv, ``HPow.hPow, ``HAdd.hAdd, ``HSub.hSub, ``Neg.neg]
+    -- run the core normalization function `normalizePretty` on `e`
+    trace[Tactic.field_simp] "running conv on {e}"
+    let ⟨e, pf⟩ ← normalizePretty disch iK e
+    return { expr := e, proof? := some pf }
+
 /-- Given `x` in a commutative group-with-zero, construct a new expression in the standard form
 *** / *** (all denominators at the end) which is equal to `x`. -/
 def reduceExpr (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (x : Expr) :
@@ -658,11 +697,8 @@ simproc_decl _root_.fieldExpr (_) := fun (t : Expr) ↦ do
 
 elab "field_simp2" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => withMainContext do
   let disch ← parseDischarger d args
-  let eqProc (t : Expr) : SimpM Simp.Step := reduceEqStep disch t
-  let exprProc (t : Expr) : SimpM Simp.Step := reduceExprStep disch t
-  let ctx ← Simp.mkSimpOnlyContext
-  let m e := Prod.fst <$>
-    Simp.mainCore e ctx (methods := { post := Simp.rewritePost >> exprProc >> eqProc })
+  let s ← IO.mkRef {}
+  let m := AtomM.recurse s {} (eval disch) pure
   let loc := (loc.map expandLocation).getD (.targets #[] true)
   atLoc m "field_simp" (failIfUnchanged := true) (mayCloseGoalFromHyp := true) loc
 

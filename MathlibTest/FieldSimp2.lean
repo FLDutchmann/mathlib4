@@ -215,7 +215,7 @@ example (hy : y ≠ 0) (hz : z ≠ 0) (hx : x = 0) : x / y = x / z := by
 
 example : (1:ℚ) / 3 + 1 / 6 = 1 / 2 := by
   field_simp2
-  guard_target = ((6:ℚ) + 3) * 2 = 6 * 3
+  guard_target = ((6:ℚ) + 3) * 2 = 3 * 6
   norm_num
 
 -- check that `field_simp` closes goals when the equality reduces to an identity
@@ -323,7 +323,6 @@ set_option linter.unusedVariables false in
 example (hx : y ≠ 0) {f : ℚ → ℚ} (hf : ∀ t, f t ≠ 0) :
     f (y * x / (y ^ 2 / z)) / f (z / (y / x)) = 1 := by
   field_simp2 [hf]
-  ring_nf
 
 /-! ### A bug with the simp component of the discharger
 
