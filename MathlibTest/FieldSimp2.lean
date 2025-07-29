@@ -324,6 +324,27 @@ example (hx : y ≠ 0) {f : ℚ → ℚ} (hf : ∀ t, f t ≠ 0) :
     f (y * x / (y ^ 2 / z)) / f (z / (y / x)) = 1 := by
   field_simp2 [hf]
 
+/-! ### Speed test -/
+
+-- from `InnerProductGeometry.cos_angle_sub_add_angle_sub_rev_eq_neg_cos_angle`
+-- old implementation takes 477ms, new implementation also slow: profile this!
+set_option linter.unusedVariables false
+example {V : Type*} [AddCommGroup V] (F : V → ℚ)
+   {x y : V} (hx : x ≠ 0) (hy : y ≠ 0)
+  (hxn : F x ≠ 0) (hyn : F y ≠ 0) (hxyn : F (x - y) ≠ 0) :
+  (F x * F x - (F x * F x + F y * F y - F (x - y) * F (x - y)) / 2)
+    / (F x * F (x - y))
+    * ((F y * F y - (F x * F x + F y * F y - F (x - y) * F (x - y)) / 2) / (F y * F (x - y)))
+    * F x * F y * F (x - y) * F (x - y)
+  - (F x * F x * (F y * F y)
+    - (F x * F x + F y * F y - F (x - y) * F (x - y))
+      / 2
+      * ((F x * F x + F y * F y - F (x - y) * F (x - y)) / 2))
+  = -((F x * F x + F y * F y - F (x - y) * F (x - y)) / 2 / (F x * F y))
+      * F x * F y * F (x - y) * F (x - y) := by
+  field_simp2
+  ring
+
 /-! ### A bug with the simp component of the discharger
 
 Previously `pow_ne_zero` was tagged `field_simps` and apparently took precedence in the discharger
