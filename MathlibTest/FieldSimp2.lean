@@ -327,7 +327,8 @@ example (hx : y ≠ 0) {f : ℚ → ℚ} (hf : ∀ t, f t ≠ 0) :
 /-! ### Speed test -/
 
 -- from `InnerProductGeometry.cos_angle_sub_add_angle_sub_rev_eq_neg_cos_angle`
--- old implementation takes 477ms, new implementation also slow: profile this!
+-- old implementation: 18450 heartbeats
+-- new implementation: 2657 heartbeats
 set_option linter.unusedVariables false
 example {V : Type*} [AddCommGroup V] (F : V → ℚ)
    {x y : V} (hx : x ≠ 0) (hy : y ≠ 0)
@@ -343,7 +344,11 @@ example {V : Type*} [AddCommGroup V] (F : V → ℚ)
   = -((F x * F x + F y * F y - F (x - y) * F (x - y)) / 2 / (F x * F y))
       * F x * F y * F (x - y) * F (x - y) := by
   field_simp2
-  ring
+  guard_target = (F x ^ 2 * 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2))
+    * (F y ^ 2 * 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2)) -
+    (F x ^ 2 * F y ^ 2 * 2 ^ 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2) ^ 2)
+    = -(F (x - y) ^ 2 * (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2) * 2)
+  exact test_sorry
 
 /-! ### A bug with the simp component of the discharger
 

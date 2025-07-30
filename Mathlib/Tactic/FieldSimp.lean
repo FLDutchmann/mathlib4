@@ -350,12 +350,17 @@ https://github.com/leanprover-community/mathlib4/pull/16593/files#r1749623191 -/
 partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
     (iM : Q(CommGroupWithZero $M))
     (x : Q($M)) : AtomM (Σ (g : Sign M) (l : qNF M), Q($x = $(g.expr q(NF.eval $(l.toNF))))) := do
-  let baseCase (y : Q($M)) : AtomM (Σ (l : qNF M), Q($y = NF.eval $(l.toNF))) := do
-    let r ← (← read).evalAtom y
-    have y' : Q($M) := r.expr
-    have pf : Q($y = $y') := ← r.getProof
-    let (k, ⟨x', _⟩) ← AtomM.addAtomQ y'
-    pure ⟨[((1, x'), k)], q(Eq.trans $pf (NF.atom_eq_eval $x'))⟩
+  let baseCase (y : Q($M)) (normalize? : Bool) :
+      AtomM (Σ (l : qNF M), Q($y = NF.eval $(l.toNF))) := do
+    if normalize? then
+      let r ← (← read).evalAtom y
+      have y' : Q($M) := r.expr
+      have pf : Q($y = $y') := ← r.getProof
+      let (k, ⟨x', _⟩) ← AtomM.addAtomQ y'
+      pure ⟨[((1, x'), k)], q(Eq.trans $pf (NF.atom_eq_eval $x'))⟩
+    else
+      let (k, ⟨x', _⟩) ← AtomM.addAtomQ y
+      pure ⟨[((1, x'), k)], q(NF.atom_eq_eval $x')⟩
   match x with
   /- normalize a multiplication: `x₁ * x₂` -/
   | ~q($x₁ * $x₂) =>
@@ -404,7 +409,7 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
       pure ⟨g, l.onExponent Neg.neg, (q(NF.inv_eq_eval1 $pf):)⟩
   /- normalize an integer exponentiation: `y ^ (s : ℤ)` -/
   | ~q($y ^ ($s : ℤ)) =>
-    let some s := Expr.int? s | Sigma.mk Sign.plus <$> baseCase x
+    let some s := Expr.int? s | Sigma.mk Sign.plus <$> baseCase x true
     if s = 0 then
       pure ⟨Sign.plus, [], (q(NF.zpow_zero_eq_eval $y):)⟩
     else
@@ -424,7 +429,7 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
             (q(NF.zpow_eq_eval_of_eq_neg' $pf_s' $pf):)⟩
   /- normalize a natural number exponentiation: `y ^ (s : ℕ)` -/
   | ~q($y ^ ($s : ℕ)) =>
-    let some s := Expr.nat? s | Sigma.mk Sign.plus <$> baseCase x
+    let some s := Expr.nat? s | Sigma.mk Sign.plus <$> baseCase x true
     if s = 0 then
       pure ⟨Sign.plus, [], (q(NF.pow_zero_eq_eval $y):)⟩
     else
@@ -452,7 +457,7 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
     let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
     let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
     let e : Q($M) := q($(g₁.expr e₁) + $(g₂.expr e₂))
-    let ⟨sum, pf_atom⟩ ← baseCase e
+    let ⟨sum, pf_atom⟩ ← baseCase e false
     let pf_add_eq_mul : Q($a + $b = (NF.eval $(L.toNF)) * NF.eval $(sum.toNF)) ← do
       match g₁, g₂ with
       | .plus, .plus =>
@@ -486,7 +491,7 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
       let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
       let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
       let e : Q($M) := q($(g₁.expr e₁) - $(g₂.expr e₂))
-      let ⟨sum, pf_atom⟩ ← baseCase e
+      let ⟨sum, pf_atom⟩ ← baseCase e false
       let pf_sub_eq_mul : Q($a - $b = (NF.eval $(L.toNF))* NF.eval $(sum.toNF)) ← do
         match g₁, g₂ with
         | .plus, .plus =>
@@ -511,7 +516,7 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
       let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
         qNF.mkMulProof iM L sum
       pure ⟨Sign.plus, L', q(Eq.trans $pf_sub_eq_mul $pf_mul)⟩
-    catch _ => (Sigma.mk Sign.plus <$> baseCase x)
+    catch _ => (Sigma.mk Sign.plus <$> baseCase x true)
   /- normalize a negation: `-a` -/
   | ~q(Neg.neg (self := $i) $a) =>
     let ⟨g, l, pf⟩ ← normalize disch iM a
@@ -522,10 +527,10 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
         assumeInstancesCommute
         pure ⟨.minus iM', l, q(congrArg Neg.neg $pf)⟩
       | .minus _ => pure ⟨.plus, l, (q(neg_eq_iff_eq_neg.mpr $pf):)⟩
-    catch _ => Sigma.mk Sign.plus <$> baseCase x
+    catch _ => Sigma.mk Sign.plus <$> baseCase x true
   -- TODO special-case handling of zero? maybe not necessary
   /- anything else should be treated as an atom -/
-  | _ => Sigma.mk Sign.plus <$> baseCase x
+  | _ => Sigma.mk Sign.plus <$> baseCase x true
 
 /-- The main algorithm behind the `field_simp` tactic: partially-normalizing an
 expression in a field `M` into the form x1 ^ c1 * x2 ^ c2 * ... x_k ^ c_k,
@@ -581,15 +586,15 @@ def eval (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (e : Expr)
     let t' ← mkAppM ``Eq #[a', b']
     return { expr := t', proof? := pf }
   catch _ =>
-    -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
-    let ⟨u, K, _⟩ ← inferTypeQ' e
-    -- find a `CommGroupWithZero` instance on `K`
-    let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
     -- boring unless a function application
     guard e.isApp
     let ⟨f, _⟩ := e.getAppFnArgs
     guard <|
       f ∈ [``HMul.hMul, ``HDiv.hDiv, ``Inv.inv, ``HPow.hPow, ``HAdd.hAdd, ``HSub.hSub, ``Neg.neg]
+    -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
+    let ⟨u, K, _⟩ ← inferTypeQ' e
+    -- find a `CommGroupWithZero` instance on `K`
+    let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
     -- run the core normalization function `normalizePretty` on `e`
     trace[Tactic.field_simp] "running conv on {e}"
     let ⟨e, pf⟩ ← normalizePretty disch iK e
