@@ -37,6 +37,7 @@ def mkSimpOnlyContext : TacticM Simp.Context := do
     congrTheorems
 
 -- adapted from `Lean.Elab.Tactic.mkSimpContext `
+-- FIXME: check this post https://github.com/leanprover/lean4/pull/8815
 /-- Build a `Simp.Context` with the default configuration (except that `contextual` may be
 specified), following the same algorithm that would be done in a "simp" run: look up all the
 simp-lemmas in the library, and adjust (add/erase) as specified by the provided `simpArgs` list. -/
@@ -48,20 +49,6 @@ def mkSimpContext (args : Syntax) (contextual : Bool := false) : TacticM Simp.Co
      (simpTheorems := #[simpTheorems])
      congrTheorems
   let r ← elabSimpArgs args (eraseLocal := false) (kind := SimpKind.simp) (simprocs := {}) ctx
-  if !r.starArg then
-    return r.ctx
-  else
-    let ctx := r.ctx
-    let mut simpTheorems := ctx.simpTheorems
-    /-
-    When using `zetaDelta := false`, we do not expand let-declarations when using `[*]`.
-    Users must explicitly include it in the list.
-    -/
-    let hs ← getPropHyps
-    for h in hs do
-      unless simpTheorems.isErased (.fvar h) do
-        simpTheorems ← simpTheorems.addTheorem (.fvar h) (← h.getDecl).toExpr
-          (config := ctx.indexConfig)
-    return ctx.setSimpTheorems simpTheorems
+  return r.ctx
 
 end Lean.Meta.Simp

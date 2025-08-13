@@ -344,7 +344,7 @@ theorem mul_eq_eval₃ [GroupWithZero M] {a₁ : ℤ × M} (a₂ : ℤ × M) {l�
     (h : (a₁ ::ᵣ l₁).eval * l₂.eval = l.eval) :
     (a₁ ::ᵣ l₁).eval * (a₂ ::ᵣ l₂).eval = (a₂ ::ᵣ l).eval := by
   simp [← h]
-  simp only [eval_cons, ← h, mul_assoc]
+  simp only [mul_assoc]
 
 theorem mul_eq_eval00 [GroupWithZero M] {l₁ l₂ l : NF M} {x₁ x₂ : M} (hx₁ : x₁ = l₁.eval)
     (hx₂ : x₂ = l₂.eval) (h : l₁.eval * l₂.eval = l.eval) :
@@ -376,7 +376,7 @@ theorem div_eq_eval₁ [CommGroupWithZero M] (a₁ : ℤ × M) {a₂ : ℤ × M}
 theorem div_eq_eval₂ [CommGroupWithZero M] (r₁ r₂ : ℤ) (x : M) {l₁ l₂ l : NF M}
     (h : l₁.eval / l₂.eval = l.eval) :
     ((r₁, x) ::ᵣ l₁).eval / ((r₂, x) ::ᵣ l₂).eval = ((r₁ - r₂, x) ::ᵣ l).eval := by
-  simp only [← h, eval_cons, div_eq_mul_inv, mul_inv, mul_zpow, ← zpow'_neg, mul_assoc]
+  simp only [← h, eval_cons, div_eq_mul_inv, mul_inv, ← zpow'_neg, mul_assoc]
   congr! 1
   rw [mul_comm, mul_assoc]
   nth_rewrite 2 [mul_comm]
@@ -433,7 +433,7 @@ theorem eval_cons_mul_eval_cons_neg [CommGroupWithZero M] (n : ℤ) {e : M} (he 
 theorem cons_eq_div_of_eq_div [CommGroupWithZero M] (n : ℤ) (e : M) {t t_n t_d : NF M}
     (h : t.eval = t_n.eval / t_d.eval) :
     ((n, e) ::ᵣ t).eval = ((n, e) ::ᵣ t_n).eval / t_d.eval := by
-  simp only [eval_cons, h, zpow'_neg, div_eq_mul_inv, mul_inv]
+  simp only [eval_cons, h, div_eq_mul_inv]
   rw [mul_comm, ← mul_assoc, mul_comm _ t_n.eval]
 
 theorem cons_eq_div_of_eq_div' [CommGroupWithZero M] (n : ℤ) (e : M) {t t_n t_d : NF M}
