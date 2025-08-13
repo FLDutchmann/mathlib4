@@ -703,3 +703,8 @@ elab "field_simp2" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => 
   atLoc m "field_simp" (failIfUnchanged := true) (mayCloseGoalFromHyp := true) loc
 
 end Mathlib.Tactic.FieldSimp
+
+/-!
+ We register `field_simp` with the `hint` tactic.
+ -/
+register_hint field_simp
