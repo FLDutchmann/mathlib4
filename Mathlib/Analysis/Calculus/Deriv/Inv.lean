@@ -98,7 +98,7 @@ variable {c : 𝕜 → 𝕜} {c' : 𝕜}
 theorem HasDerivWithinAt.fun_inv (hc : HasDerivWithinAt c c' s x) (hx : c x ≠ 0) :
     HasDerivWithinAt (fun y => (c y)⁻¹) (-c' / c x ^ 2) s x := by
   convert (hasDerivAt_inv hx).comp_hasDerivWithinAt x hc using 1
-  field_simp
+  field_simp2
 
 theorem HasDerivWithinAt.inv (hc : HasDerivWithinAt c c' s x) (hx : c x ≠ 0) :
     HasDerivWithinAt (c⁻¹) (-c' / c x ^ 2) s x :=
@@ -146,7 +146,7 @@ theorem HasDerivWithinAt.fun_div (hc : HasDerivWithinAt c c' s x) (hd : HasDeriv
     HasDerivWithinAt (fun y => c y / d y) ((c' * d x - c x * d') / d x ^ 2) s x := by
   convert hc.fun_mul ((hasDerivAt_inv hx).comp_hasDerivWithinAt x hd) using 1
   · simp only [div_eq_mul_inv, (· ∘ ·)]
-  · field_simp
+  · simp [field]
     ring
 
 theorem HasDerivWithinAt.div (hc : HasDerivWithinAt c c' s x) (hd : HasDerivWithinAt d d' s x)

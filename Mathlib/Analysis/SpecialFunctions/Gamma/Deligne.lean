@@ -78,7 +78,7 @@ lemma Gammaℝ_one : Gammaℝ 1 = 1 := by
 @[simp]
 lemma Gammaℂ_one : Gammaℂ 1 = 1 / π := by
   rw [Gammaℂ_def, cpow_neg_one, Complex.Gamma_one]
-  field_simp [pi_ne_zero]
+  field_simp2 [pi_ne_zero]
 
 section analyticity
 

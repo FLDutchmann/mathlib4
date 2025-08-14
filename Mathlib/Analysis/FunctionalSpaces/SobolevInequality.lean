@@ -316,7 +316,7 @@ theorem lintegral_pow_le_pow_lintegral_fderiv_aux [Fintype ι]
         -- a little algebraic manipulation of the exponent
         congr! 2 with x
         rw [← ENNReal.rpow_mul, hp.conjugate_eq]
-        field_simp
+        field_simp2
     _ = ∫⁻ x, ∏ _i : ι, ‖u x‖ₑ ^ (1 / (#ι - 1 : ℝ)) := by
         -- express the left-hand integrand as a product of identical factors
         congr! 2 with x

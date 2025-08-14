@@ -90,12 +90,13 @@ theorem circleAverage_eq_circleIntegral {F : Type*} [NormedAddCommGroup F] [Norm
     simp [circleAverage, ← coe_smul]
   _ = (2 * π * I)⁻¹ • ∫ θ in 0..2 * π, I • f (circleMap c R θ) := by
     rw [intervalIntegral.integral_smul, mul_inv_rev, smul_smul]
-    field_simp
+    match_scalars
+    field_simp2
   _ = (2 * π * I)⁻¹ • (∮ z in C(c, R), (z - c)⁻¹ • f z) := by
     unfold circleIntegral
     congr with θ
     simp [deriv_circleMap, circleMap_sub_center, smul_smul]
-    field_simp [circleMap_ne_center h]
+    field_simp2 [circleMap_ne_center h]
 
 /-!
 ## Congruence Lemmata

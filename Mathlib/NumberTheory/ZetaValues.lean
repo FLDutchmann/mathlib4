@@ -334,7 +334,7 @@ theorem hasSum_zeta_two : HasSum (fun n : ℕ => (1 : ℝ) / (n : ℝ) ^ 2) (π 
 theorem hasSum_zeta_four : HasSum (fun n : ℕ => (1 : ℝ) / (n : ℝ) ^ 4) (π ^ 4 / 90) := by
   convert hasSum_zeta_nat two_ne_zero using 1; norm_num
   rw [bernoulli_eq_bernoulli'_of_ne_one, bernoulli'_four]
-  · norm_num [Nat.factorial]; field_simp; ring
+  · norm_num [Nat.factorial]; field_simp2; ring
   · decide
 
 theorem Polynomial.bernoulli_three_eval_one_quarter :
@@ -361,7 +361,7 @@ theorem hasSum_L_function_mod_four_eval_three :
   · have : (1 / 4 : ℝ) = (algebraMap ℚ ℝ) (1 / 4 : ℚ) := by simp
     rw [this, mul_pow, Polynomial.eval_map, Polynomial.eval₂_at_apply, (by decide : 2 * 1 + 1 = 3),
       Polynomial.bernoulli_three_eval_one_quarter]
-    norm_num [Nat.factorial]; field_simp; ring
+    norm_num [Nat.factorial]; field_simp2; ring
   · rw [mem_Icc]; constructor
     · linarith
     · linarith

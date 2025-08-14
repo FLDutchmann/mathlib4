@@ -433,7 +433,7 @@ theorem integral_sin_pow :
     (∫ x in a..b, sin x ^ (n + 2)) =
       (sin a ^ (n + 1) * cos a - sin b ^ (n + 1) * cos b) / (n + 2) +
         (n + 1) / (n + 2) * ∫ x in a..b, sin x ^ n := by
-  field_simp
+  field_simp2
   convert eq_sub_iff_add_eq.mp (integral_sin_pow_aux n) using 1
   ring
 
@@ -500,7 +500,7 @@ theorem integral_cos_pow :
     (∫ x in a..b, cos x ^ (n + 2)) =
       (cos b ^ (n + 1) * sin b - cos a ^ (n + 1) * sin a) / (n + 2) +
         (n + 1) / (n + 2) * ∫ x in a..b, cos x ^ n := by
-  field_simp
+  field_simp2
   convert eq_sub_iff_add_eq.mp (integral_cos_pow_aux n) using 1
   ring
 

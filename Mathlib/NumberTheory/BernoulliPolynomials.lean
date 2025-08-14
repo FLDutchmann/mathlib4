@@ -236,6 +236,6 @@ theorem bernoulli_generating_function (t : A) :
     RingHom.map_mul, ← Polynomial.C_eq_algebraMap, Polynomial.aeval_mul,
     Polynomial.aeval_C]
   -- finally cancel the Bernoulli polynomial and the algebra_map
-  field_simp
+  field_simp2
 
 end Polynomial

@@ -106,7 +106,7 @@ lemma WeakFEPair.h_feq' (P : WeakFEPair E) (x : ℝ) (hx : 0 < x) :
   rw [(div_div_cancel₀ (one_ne_zero' ℝ) ▸ P.h_feq (1 / x) (one_div_pos.mpr hx) :), ← mul_smul]
   convert (one_smul ℂ (P.g (1 / x))).symm using 2
   rw [one_div, inv_rpow hx.le, ofReal_inv]
-  field_simp [P.hε, (rpow_pos_of_pos hx _).ne']
+  field_simp2 [P.hε, (rpow_pos_of_pos hx _).ne']
 
 /-- The hypotheses are symmetric in `f` and `g`, with the constant `ε` replaced by `ε⁻¹`. -/
 def WeakFEPair.symm (P : WeakFEPair E) : WeakFEPair E where
@@ -236,7 +236,7 @@ theorem functional_equation (s : ℂ) :
   -- some simple `cpow` arithmetic to finish
   rw [cpow_neg, ofReal_cpow (le_of_lt ht)]
   have : (t : ℂ) ^ (P.k : ℂ) ≠ 0 := by simpa [← ofReal_cpow ht.le] using (rpow_pos_of_pos ht _).ne'
-  field_simp [P.hε]
+  field_simp2 [P.hε]
 
 end StrongFEPair
 
@@ -452,7 +452,7 @@ theorem Λ_residue_k :
   · refine (tendsto_const_nhds.mono_left nhdsWithin_le_nhds).congr' ?_
     refine eventually_nhdsWithin_of_forall (fun s (hs : s ≠ P.k) ↦ ?_)
     match_scalars
-    field_simp [sub_ne_zero.mpr hs.symm]
+    field_simp2 [sub_ne_zero.mpr hs.symm]
     ring
 
 /-- The residue of `Λ` at `s = 0` is equal to `-f₀`. -/
@@ -464,7 +464,7 @@ theorem Λ_residue_zero :
   · refine (tendsto_const_nhds.mono_left nhdsWithin_le_nhds).congr' ?_
     refine eventually_nhdsWithin_of_forall (fun s (hs : s ≠ 0) ↦ ?_)
     match_scalars
-    field_simp [sub_ne_zero.mpr hs.symm]
+    field_simp2 [sub_ne_zero.mpr hs.symm]
   · rw [show 𝓝 0 = 𝓝 ((0 : ℂ) • (P.ε / (P.k - 0 : ℂ)) • P.g₀) by rw [zero_smul]]
     exact (continuousAt_id.smul ((continuousAt_const.div ((continuous_sub_left _).continuousAt)
       (by simpa using P.hk.ne')).smul continuousAt_const)).mono_left nhdsWithin_le_nhds

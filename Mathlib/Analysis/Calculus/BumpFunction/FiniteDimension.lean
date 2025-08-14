@@ -149,7 +149,7 @@ theorem IsOpen.exists_smooth_support_eq {s : Set E} (hs : IsOpen s) :
       _ = M⁻¹ * δ n * ‖iteratedFDeriv ℝ i (g n) x‖ := by
         rw [norm_smul _ (iteratedFDeriv ℝ i (g n) x), Real.norm_of_nonneg]; positivity
       _ ≤ M⁻¹ * δ n * M := by gcongr; exact (hR i x).trans (IR i hi)
-      _ = δ n := by field_simp
+      _ = δ n := by simp [field]
   choose r rpos hr using this
   have S : ∀ x, Summable fun n => (r n • g n) x := fun x ↦ by
     refine .of_nnnorm_bounded δc.summable fun n => ?_
@@ -509,14 +509,14 @@ instance (priority := 100) {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E
           abs_of_nonneg A.le]
         calc
           2 / (R + 1) * ‖x‖ ≤ 2 / (R + 1) := mul_le_of_le_one_right (by positivity) hx
-          _ = 1 - (R - 1) / (R + 1) := by field_simp; ring
+          _ = 1 - (R - 1) / (R + 1) := by field_simp2; ring
       support := fun R hR => by
         have A : 0 < (R + 1) / 2 := by linarith
         have C : (R - 1) / (R + 1) < 1 := by apply (div_lt_one _).2 <;> linarith
         simp only [hR, if_true, support_comp_inv_smul₀ A.ne', y_support _ (IR R hR) C,
           _root_.smul_ball A.ne', Real.norm_of_nonneg A.le, smul_zero]
         refine congr (congr_arg ball (Eq.refl 0)) ?_
-        field_simp; ring }
+        field_simp2; ring }
 
 end ExistsContDiffBumpBase
 

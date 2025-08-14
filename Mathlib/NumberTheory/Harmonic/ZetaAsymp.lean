@@ -233,7 +233,7 @@ lemma zeta_limit_aux1 {s : ℝ} (hs : 1 < s) :
     (∑' n : ℕ, 1 / (n + 1 : ℝ) ^ s) - 1 / (s - 1) = 1 - s * term_tsum s := by
   rw [term_tsum_of_lt hs]
   generalize (∑' n : ℕ, 1 / (n + 1 : ℝ) ^ s) = Z
-  field_simp [(show s - 1 ≠ 0 by linarith)]
+  field_simp2 [(show s - 1 ≠ 0 by linarith)]
   ring_nf
 
 end s_gt_one
@@ -343,7 +343,7 @@ theorem _root_.tendsto_riemannZeta_sub_one_div :
         apply riemannZeta_residue_one.sub
         refine Tendsto.congr' ?_ (tendsto_const_nhds.mono_left nhdsWithin_le_nhds)
         filter_upwards [self_mem_nhdsWithin] with x hx
-        field_simp [sub_ne_zero.mpr <| mem_compl_singleton_iff.mp hx]
+        field_simp2 [sub_ne_zero.mpr <| mem_compl_singleton_iff.mp hx]
       · exact ((tendsto_id.sub tendsto_const_nhds).mono_left nhdsWithin_le_nhds).const_mul _
 
 lemma _root_.isBigO_riemannZeta_sub_one_div {F : Type*} [Norm F] [One F] [NormOneClass F] :

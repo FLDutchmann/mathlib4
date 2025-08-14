@@ -118,7 +118,7 @@ theorem IsRoot.norm_lt_cauchyBound {p : K[X]} (hp : p ≠ 0) {a : K} (h : p.IsRo
         ‖p.leadingCoeff‖₊ := by
       gcongr (∑ x ∈ _, ?_ * _) / _
       rw [cauchyBound, add_tsub_cancel_right]
-      field_simp
+      field_simp2
       apply le_sup (f := (‖p.coeff ·‖₊)) ‹_›
     _ = (cauchyBound p - 1) * ∑ x ∈ range p.natDegree, ‖a‖₊ ^ x := by
       simp only [← mul_sum]

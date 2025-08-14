@@ -87,7 +87,7 @@ sum of vectors to the vertices. -/
 theorem smul_mongePoint_vsub_circumcenter_eq_sum_vsub {n : ℕ} (s : Simplex ℝ P (n + 2)) :
     (n + 1) • (s.mongePoint -ᵥ s.circumcenter) = ∑ i, (s.points i -ᵥ s.circumcenter) := by
   rw [mongePoint_eq_smul_vsub_vadd_circumcenter, vadd_vsub, ← smul_assoc]
-  field_simp
+  simp [fieldExpr]
   have h : Invertible (n + 2 + 1 : ℝ) := by norm_cast; apply invertibleOfPos
   rw [smul_eq_iff_eq_invOf_smul, smul_sum]
   unfold Finset.centroid
@@ -146,7 +146,7 @@ theorem mongePoint_eq_affineCombination_of_pointsWithCircumcenter {n : ℕ}
     -- Porting note: replaced
     -- have hn3 : (n + 2 + 1 : ℝ) ≠ 0 := mod_cast Nat.succ_ne_zero _
     have hn3 : (n + 2 + 1 : ℝ) ≠ 0 := by norm_cast
-    field_simp [hn1, hn3, mul_comm]
+    field_simp2 [hn1, hn3, mul_comm]
   · simp [field]
     ring
 
