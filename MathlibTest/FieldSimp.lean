@@ -535,7 +535,10 @@ This feature was dropped in the August 2025 `field_simp` refactor.
 
 -- example : a /ₚ u₁ /ₚ u₂ = a /ₚ (u₂ * u₁) := by field_simp2
 
--- TODO (new implementation): handle `CommGroupWithZero`, not just `Semifield`
+/-! ## Commutative groups-with-zero -/
+
+example {K : Type} [CommGroupWithZero K] {x y : K} : y / x * x ^ 3 * y ^ 3 = x ^ 2 * y ^ 5 / y := by
+  field_simp2
 
 /-! ## Miscellaneous -/
 
