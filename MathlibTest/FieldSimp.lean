@@ -15,7 +15,7 @@ private axiom test_sorry : ∀ {α}, α
 
 open Lean Elab Tactic in
 elab "test_field_simp" : tactic => do
-  evalTactic <| ← `(tactic | field_simp)
+  evalTactic <| ← `(tactic | field_simp2)
   liftMetaFinishingTactic fun g ↦ do
     let ty ← g.getType
     logInfo ty
@@ -28,7 +28,7 @@ section
 
 variable {P : ℚ → Prop} {x y z : ℚ}
 
-/-- error: simp made no progress -/
+/-- error: field_simp made no progress -/
 #guard_msgs in
 example : P (1 : ℚ) := by test_field_simp
 
@@ -42,31 +42,31 @@ example : P (x ^ 0) := by test_field_simp
 #guard_msgs in
 example : P (x ^ 1) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- error: field_simp made no progress -/
 #guard_msgs in
 example : P x := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x ^ 2) -/
 #guard_msgs in
 example : P (x ^ 2) := by test_field_simp
 
-/-- info: P (x * x ^ 2) -/
+/-- info: P (x ^ 3) -/
 #guard_msgs in
 example : P (x ^ 1 * x ^ 2) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x ^ 2) -/
 #guard_msgs in
 example : P (x * x) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x ^ 45) -/
 #guard_msgs in
 example : P (x ^ 3 * x ^ 42) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x ^ k * x ^ 2) -/
 #guard_msgs in
 example {k : ℤ} : P (x ^ k * x ^ 2) := by test_field_simp
 
-/-- info: P (1 / (x * x ^ 2)) -/
+/-- info: P (x ^ 3)⁻¹ -/
 #guard_msgs in
 example : P (x ^ (-1 : ℤ) * x ^ (-2 : ℤ)) := by test_field_simp
 
@@ -84,27 +84,23 @@ example : P (x⁻¹ * x) := by test_field_simp
 #guard_msgs in
 example : P (x * x * x⁻¹) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x / x) -/
 #guard_msgs in
 example : P (x / x) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P x`
-/-- info: P (x ^ 2 / x) -/
+/-- info: P x -/
 #guard_msgs in
 example : P (x ^ 2 * x⁻¹) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (x ^ 2)`
-/-- info: P (x ^ 3 / x) -/
+/-- info: P (x ^ 2) -/
 #guard_msgs in
 example : P (x ^ 3 * x⁻¹) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (1 / x ^ 2)`
-/-- error: simp made no progress -/
+/-- info: P (x ^ 3)⁻¹ -/
 #guard_msgs in
 example : P (x / x ^ 4) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (1 / x ^ 6)`
-/-- info: P (1 / (x ^ 2) ^ 3) -/
+/-- info: P (x ^ 6)⁻¹ -/
 #guard_msgs in
 example : P ((x ^ (-2:ℤ)) ^ 3) := by test_field_simp
 
@@ -122,35 +118,33 @@ example {hx : x ≠ 0} : P (x⁻¹ * x) := by test_field_simp
 #guard_msgs in
 example {hx : x ≠ 0} : P (x / x) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (x ^ 2)`
-/-- info: P (x ^ 3 / x) -/
+/-- info: P (x ^ 2) -/
 #guard_msgs in
 example {hx : x ≠ 0} : P (x ^ 3 * x⁻¹) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (1 / x ^ 2)`
-/-- error: simp made no progress -/
+/-- info: P (x ^ 3)⁻¹ -/
 #guard_msgs in
 example {hx : x ≠ 0} : P (x / x ^ 4) := by test_field_simp
 
 /- ### Two atoms -/
 
-/-- error: simp made no progress -/
+/-- error: field_simp made no progress -/
 #guard_msgs in
 example : P (x + y) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x * y) -/
 #guard_msgs in
 example : P (x * y) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x * y / (x * y)) -/
 #guard_msgs in
 example : P ((x * y) / (y * x)) := by test_field_simp
 
-/-- info: P (x * y + x) -/
+/-- info: P (x * (y + 1)) -/
 #guard_msgs in
 example : P (x * y + x * 1) := by test_field_simp
 
-/-- info: P (x * y / (y * x)) -/
+/-- info: P (x * y / (x * y)) -/
 #guard_msgs in
 example : P ((x * y) * (y * x)⁻¹) := by test_field_simp
 
@@ -158,89 +152,81 @@ example : P ((x * y) * (y * x)⁻¹) := by test_field_simp
 #guard_msgs in
 example : P (x ^ (0:ℤ) * y) := by test_field_simp
 
-/-- info: P (y * y) -/
+/-- info: P (y ^ 2) -/
 #guard_msgs in
 example : P (y * (y + x) ^ (0:ℤ) * y) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x / y) -/
 #guard_msgs in
 example : P (x / y) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (-(x / y)) -/
 #guard_msgs in
 example : P (x / -y) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (-(x / y)) -/
 #guard_msgs in
 example : P (-x / y) := by test_field_simp
 
-/-- info: P ((x + y * (x + 1) / (y + 1)) / (x + 1)) -/
+/-- info: P ((x + (x + 1) * y / (y + 1)) / (x + 1)) -/
 #guard_msgs in
 example (hx : x + 1 ≠ 0) : P (x / (x + 1) + y / (y + 1)) := by test_field_simp
 
-/-- info: P ((x * (y + 1) + y * (x + 1)) / ((x + 1) * (y + 1))) -/
+/-- info: P ((x * (y + 1) + (x + 1) * y) / ((x + 1) * (y + 1))) -/
 #guard_msgs in
 example (hx : 0 < x + 1) (hy : 0 < y + 1) : P (x / (x + 1) + y / (y + 1)) := by test_field_simp
 
--- TODO (new implementation): exploit `AtomM` to combine like terms, i.e. `x * y * x` to `x ^ 2 * y`
-
-/-- info: P (x * x / y) -/
+/-- info: P (x ^ 2 / y) -/
 #guard_msgs in
 example : P (x / (y / x)) := by test_field_simp
 
-/-- info: P (x * (y ^ 3 * x)) -/
+/-- info: P (x ^ 2 * y ^ 3) -/
 #guard_msgs in
 example : P (x / (y ^ (-3:ℤ) / x)) := by test_field_simp
 
-/-- info: P (x * y ^ 3 * x) -/
+/-- info: P (x ^ 2 * y ^ 3) -/
 #guard_msgs in
 example : P ((x / y ^ (-3:ℤ)) * x) := by test_field_simp
 
-/-- info: P (x * y * x ^ 2 * y ^ 3) -/
+/-- info: P (x ^ 3 * y ^ 4) -/
 #guard_msgs in
 example : P (x ^ 1 * y * x ^ 2 * y ^ 3) := by test_field_simp
 
-/-- info: P (x * y * x ^ 2 / y) -/
+/-- info: P (x ^ 3 * y / y) -/
 #guard_msgs in
 example : P (x ^ 1 * y * x ^ 2 * y⁻¹) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (1 / y)`
-/-- error: simp made no progress -/
+/-- info: P y⁻¹ -/
 #guard_msgs in
 example (hx : x ≠ 0) : P (x / (x * y)) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P 1`
-/-- error: simp made no progress -/
+/-- info: P 1 -/
 #guard_msgs in
 example (hx : x ≠ 0) (hy : y ≠ 0) : P ((x * y) / (y * x)) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P 1`
-/-- info: P (x * y / (y * x)) -/
+/-- info: P 1 -/
 #guard_msgs in
 example (hx : x ≠ 0) (hy : y ≠ 0) : P ((x * y) * (y * x)⁻¹) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (x ^ 3)`
-/-- info: P (x * y * x ^ 2 / y) -/
+/-- info: P (x ^ 3) -/
 #guard_msgs in
 example (hy : y ≠ 0) : P (x ^ 1 * y * x ^ 2 * y⁻¹) := by test_field_simp
 
 /- ### Three atoms -/
 
-/-- error: simp made no progress -/
+/-- info: P (x * y * z) -/
 #guard_msgs in
 example : P (x * y * z) := by test_field_simp
 
-/-- error: simp made no progress -/
+/-- info: P (x * (y + z)) -/
 #guard_msgs in
 example : P (x * y + x * z) := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (1 / (y + z))`
-/-- error: simp made no progress -/
+/-- info: P (y + z)⁻¹ -/
 #guard_msgs in
 example (hx : x ≠ 0) : P (x / (x * y + x * z))  := by test_field_simp
 
--- TODO (new implementation): this should reduce to `P (x / (x * (y + z)))`
-/-- error: simp made no progress -/
+/-- info: P (x / (x * (y + z))) -/
 #guard_msgs in
 example : P (x / (x * y + x * z))  := by test_field_simp
 
@@ -253,7 +239,7 @@ end
 When (eventually) this is robust enough, there should be a `field` tactic
 -/
 
-macro "field" : tactic => `(tactic | (try field_simp) <;> ring1)
+macro "field" : tactic => `(tactic | (try field_simp2) <;> ring1)
 
 example : (1:ℚ) / 3 + 1 / 6 = 1 / 2 := by field
 example {x : ℚ} (hx : x ≠ 0) : x * x⁻¹ = 1 := by field
@@ -264,87 +250,68 @@ example {x y : ℚ} (hx : 0 < x) :
     ((x ^ 2 - y ^ 2) / (x ^ 2 + y ^ 2)) ^ 2 + (2 * x * y / (x ^ 2 + y ^ 2)) ^ 2 = 1 := by
   field
 
--- TODO (new implementation): `field` should solve this, no `b ≠ 0` hypothesis required
-/--
-error: ring failed, ring expressions not equal
-a b : ℚ
-ha : a ≠ 0
-⊢ a * a⁻¹ * b⁻¹ - b⁻¹ = 0
--/
-#guard_msgs in
 example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) - 1 / b = 0 := by field
-
--- TODO (new implementation): `field` should solve this, no `x ≠ 0` hypothesis required
-/--
-error: ring failed, ring expressions not equal
-x : ℚ
-⊢ x ^ 2 * x⁻¹ = x
--/
-#guard_msgs in
 example {x : ℚ} : x ^ 2 * x⁻¹ = x := by field
 
 /-! ### Mid-proof use -/
 
 example {K : Type*} [Semifield K] (x y : K) (hy : y + 1 ≠ 0) : 2 * x / (y + 1) = x := by
-  field_simp
+  field_simp2
   guard_target = 2 * x = x * (y + 1)
   exact test_sorry
 
 example {K : Type*} [Semifield K] (x y : K) : 2 * x / (y + 1) = x := by
   have hy : y + 1 ≠ 0 := test_sorry -- test mdata, context updating, etc
-  field_simp
+  field_simp2
   guard_target = 2 * x = x * (y + 1)
   exact test_sorry
 
 example {x y z w : ℚ} (h : x / y = z / w) (hy : y ≠ 0) (hw : w ≠ 0) : True := by
-  field_simp at h
-  guard_hyp h : x * w = z * y
+  field_simp2 at h
+  guard_hyp h : x * w = y * z
   exact trivial
 
 example {K : Type*} [Field K] (x y z : K) (hy : 1 - y ≠ 0) :
     x / (1 - y) / (1 + y / (1 - y)) = z := by
-  field_simp
+  field_simp2
+  guard_target = x = (1 - y + y) * z
+  exact test_sorry
+
+example {K : Type*} [Field K] (x y z : K) (hy : 1 - y ≠ 0) :
+    x / (1 - y) / (1 + y / (1 - y)) = z := by
+  simp [field]
   guard_target = x = z
   exact test_sorry
 
--- TODO: this annoyance happens often, fix it (want `⊢ x * z = x * y`)
--- it is bad behaviour since is does not preserve the property "goal is an equality"
--- `mul_eq_zero` is already on the `fieldSimpExcluded` list and this example suggests that
--- `mul_eq_mul_left_iff` should be too
 example {x y z : ℚ} (hy : y ≠ 0) (hz : z ≠ 0) : x / y = x / z := by
-  field_simp
-  guard_target = z = y ∨ x = 0
+  field_simp2
+  guard_target = x * z = x * y
   exact test_sorry
 
--- TODO (new implementation): here `z ≠ 0`; would be nice to get `⊢ z = y`, not `⊢ x * z = x * y`
 example {x y z : ℚ} (hy : y ≠ 0) (hz : z ≠ 0) (hx : x ≠ 0) : x / y = x / z := by
-  field_simp
-  guard_target = z = y ∨ x = 0
+  field_simp2
+  guard_target = z = y
   exact test_sorry
 
--- TODO: this annoyance happens often, fix it (want "no progress")
--- it is bad behaviour since is does not preserve the property "`h` is an equality"
--- `mul_eq_zero` is already on the `fieldSimpExcluded` list and this example suggests that
--- `mul_eq_mul_left_iff` should be too
 example {x y z : ℚ} (h : x * y = x * z) : True := by
-  field_simp at h
-  guard_hyp h : y = z ∨ x = 0
+  field_simp2 at h
+  guard_hyp h : x * y = x * z
   exact trivial
 
 section
 
 -- TODO (new implementation): do we want `field_simp` to reduce this to `⊢ x * y = z * y ^ 2`?
 -- Or perhaps to `⊢ x / y / y = z / y`?
-/-- error: simp made no progress -/
-#guard_msgs in
 example {x y z : ℚ} : x / y ^ 2 = z / y := by
-  field_simp
+  field_simp2
+  guard_target = x / y ^ 2 = z / y
+  exact test_sorry
 
 -- why the first idea could work
 example {x y z : ℚ} : (x / y ^ 2 = z / y) ↔ (x * y = z * y ^ 2) := by
   obtain rfl | hy := eq_or_ne y 0
   · simp
-  field_simp
+  field_simp2
 
 -- why the second idea could work
 example {x y z : ℚ} : (x / y ^ 2 = z / y) ↔ (x / y / y = z / y) := by
@@ -354,66 +321,53 @@ example {x y z : ℚ} : (x / y ^ 2 = z / y) ↔ (x / y / y = z / y) := by
 
 end
 
--- from PluenneckeRuzsa
-example (x y : ℚ≥0) (n : ℕ) (hx : x ≠ 0) : y * ((y / x) ^ n * x) = (y / x) ^ (n + 1) * x * x := by
-  field_simp
-  ring
+/-! From PluenneckeRuzsa: new `field_simp` doesn't handle variable exponents -/
 
-/-- Specify a simp config. -/
-example (x : ℚ) (h₀ : x ≠ 0) :
-    (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
-  fail_if_success field_simp (maxSteps := 0)
-  field_simp (config := {})
-  ring
+example (x y : ℚ≥0) (n : ℕ) (hx : x ≠ 0) : y * ((y / x) ^ n * x) = (y / x) ^ (n + 1) * x * x := by
+  field_simp2
+  guard_target =  y * (y / x) ^ n = x * (y / x) ^ (n + 1)
+  exact test_sorry
+
+example (x y : ℚ≥0) (n : ℕ) (hx : x ≠ 0) : y * ((y / x) ^ n * x) = (y / x) ^ (n + 1) * x * x := by
+  simp [field, pow_add]
+
+-- /-- Specify a simp config. -/
+-- this feature was dropped in the August 2025 `field_simp` refactor
+-- example (x : ℚ) (h₀ : x ≠ 0) :
+--     (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
+--   fail_if_success field_simp (maxSteps := 0)
+--   field_simp (config := {})
+--   ring
 
 /- ### check that `field_simp` closes goals when the equality reduces to an identity -/
 
-example {x y : ℚ} (h : x + y ≠ 0) : x / (x + y) + y / (x + y) = 1 := by field_simp
-example {x : ℚ} (hx : x ≠ 0) : x * x⁻¹ = 1 := by field_simp
-example {a b : ℚ} (h : b ≠ 0) : a / b + 2 * a / b + (-a) / b - (2 * a) / b = 0 := by field_simp
+example {x y : ℚ} (h : x + y ≠ 0) : x / (x + y) + y / (x + y) = 1 := by field_simp2
+example {x : ℚ} (hx : x ≠ 0) : x * x⁻¹ = 1 := by field_simp2
 
 /-! TODO: cancel denominators from disequalities and inequalities -/
 
--- example (hx : x ≠ 0) (h : x ^ 2 * x⁻¹ ≠ x) : True := by field_simp at h
+-- example (hx : x ≠ 0) (h : x ^ 2 * x⁻¹ ≠ x) : True := by field_simp2 at h
 
 /-! ## Tactic operating recursively -/
 
 example {x y : ℚ} (hx : y ≠ 0) {f : ℚ → ℚ} (hf : ∀ t, f t ≠ 0) :
     f (x * y / y) / f (x / y * y) = 1 := by
-  field_simp [hf]
+  field_simp2 [hf]
 
--- TODO (new implementation): with consistent atom ordering this problem would be solved
-/--
-error: unsolved goals
-x y : ℚ
-hx : y ≠ 0
-f : ℚ → ℚ
-hf : ∀ (t : ℚ), f t ≠ 0
-⊢ f (y * x) = f (x * y)
--/
-#guard_msgs in
+-- test for consistent atom ordering across subterms
 example {x y : ℚ} (hx : y ≠ 0) {f : ℚ → ℚ} (hf : ∀ t, f t ≠ 0) :
     f (y * x * y / y) / f (x * y / y * y) = 1 := by
-  field_simp [hf]
+  field_simp2 [hf]
 
--- TODO (new implementation): this problem should be solved
-/--
-error: unsolved goals
-x y z : ℚ
-hx : y ≠ 0
-f : ℚ → ℚ
-hf : ∀ (t : ℚ), f t ≠ 0
-⊢ f (y * x * z / y ^ 2) = f (z * x / y)
--/
-#guard_msgs in
 example {x y z : ℚ} (hx : y ≠ 0) {f : ℚ → ℚ} (hf : ∀ t, f t ≠ 0) :
     f (y * x / (y ^ 2 / z)) / f (z / (y / x)) = 1 := by
-  field_simp [hf]
+  field_simp2 [hf]
 
 /-! ## Performance -/
 
 -- from `InnerProductGeometry.cos_angle_sub_add_angle_sub_rev_eq_neg_cos_angle`
--- 21794 heartbeats!!!
+-- old implementation: 21794 heartbeats!!!
+-- new implementation: 7691 heartbeats
 example {V : Type*} [AddCommGroup V] (F : V → ℚ)
     {x y : V} (hx : x ≠ 0) (hy : y ≠ 0)
     (hxn : F x ≠ 0) (hyn : F y ≠ 0) (hxyn : F (x - y) ≠ 0) :
@@ -425,19 +379,12 @@ example {V : Type*} [AddCommGroup V] (F : V → ℚ)
         * ((F x * F x + F y * F y - F (x - y) * F (x - y)) / 2))
     = -((F x * F x + F y * F y - F (x - y) * F (x - y)) / 2 / (F x * F y))
         * F x * F y * F (x - y) * F (x - y) := by
-  field_simp
+  field_simp2
   guard_target =
-    ((F x * F x * 2 - (F x * F x + F y * F y - F (x - y) * F (x - y)))
-      * (F y * F y * 2 - (F x * F x + F y * F y - F (x - y) * F (x - y)))
-      * F x * F y * F (x - y) * F (x - y) * (2 * 2)
-      - 2 * (F x * F (x - y)) * (2 * (F y * F (x - y))) *
-        (F x * F x * (F y * F y) * (2 * 2)
-        - (F x * F x + F y * F y - F (x - y) * F (x - y))
-        * (F x * F x + F y * F y - F (x - y) * F (x - y))))
-    * (2 * (F x * F y))
-    = (F (x - y) * F (x - y) - (F x * F x + F y * F y))
-      * F x * F y * F (x - y) * F (x - y)
-      * (2 * (F x * F (x - y)) * (2 * (F y * F (x - y))) * (2 * 2))
+    (F x ^ 2 * 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2))
+      * (F y ^ 2 * 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2))
+      - (F x ^ 2 * F y ^ 2 * 2 ^ 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2) ^ 2)
+    = -(F (x - y) ^ 2 * (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2) * 2)
   exact test_sorry
 
 /-! ## Discharger -/
@@ -447,20 +394,44 @@ Test that the discharger can clear nontrivial denominators in ℚ.
 -/
 example (x : ℚ) (h₀ : x ≠ 0) :
     (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
-  field_simp
+  field_simp2
   ring
 
 /-- Use a custom discharger -/
 example (x : ℚ) (h₀ : x ≠ 0) :
     (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
-  field_simp (discharger := simp; assumption)
+  field_simp2 (discharger := simp; assumption)
   ring
+
+/-! An example where quirks of simp-lemma ordering in the discharger show up -/
 
 -- mimic discharger
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n ≠ 0 := by simp [h0]
 
+/--
+error: target of main goal is
+  w ^ n / w ^ n = ↑n
+not
+  1 = ↑n
+-/
+#guard_msgs in
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = n := by
-  field_simp
+  field_simp2
+  guard_target = (1:K) = n
+
+/--
+error: target of main goal is
+  w ^ n / w ^ n = ↑n
+not
+  1 = ↑n
+-/
+#guard_msgs in
+example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = n := by
+  field_simp2 [pow_ne_zero]
+  guard_target = (1:K) = n
+
+example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = n := by
+  field_simp2 [↓pow_ne_zero]
   guard_target = (1:K) = n
   exact test_sorry
 
@@ -471,8 +442,8 @@ variable {K : Type*} [Field K] [LinearOrder K] [IsStrictOrderedRing K]
 example  (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : |x + 1| ≠ 0 := by simp [hK x]
 
 example  (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
-  field_simp [hK x]
-  guard_target = 1 = 5 * |x + 1|
+  field_simp2 [hK x]
+  guard_target = 1 = |x + 1| * 5
   exact test_sorry
 
 /-! the `positivity` part of the discharger can't take help from user-provided terms -/
@@ -482,64 +453,87 @@ example  (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
 #guard_msgs in
 example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : x + 1 ≠ 0 := by positivity
 
-/-- error: simp made no progress -/
+/--
+error: unsolved goals
+K : Type u_1
+inst✝² : Field K
+inst✝¹ : LinearOrder K
+inst✝ : IsStrictOrderedRing K
+hK : ∀ (ξ : K), 0 < ξ + 1
+x : K
+⊢ (x + 1)⁻¹ = 5
+-/
 #guard_msgs in
-example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by field_simp [hK x]
+example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by field_simp2 [hK x]
 
 -- works when the hypothesis is brought out for use by `positivity`
 example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
   have := hK x
-  field_simp
-  guard_target = 1 = 5 * (x + 1)
+  field_simp2
+  guard_target = 1 = (x + 1) * 5
   exact test_sorry
 
 end
 
-/- Bug (some would say "feature"): the implementation uses the `field_simp` discharger on the side
-conditions of other simp-lemmas, not just the `field_simp` simp set. -/
+/- Bug (some would say "feature") of the old implementation: the implementation used the
+`field_simp` discharger on the side conditions of other simp-lemmas, not just the `field_simp` simp
+set.
+
+Such behaviour can be invoked in the new implementation by running `simp` with the `field_simp`
+simprocs and a discharger.
+-/
+
 example (m n : ℕ) (h : m ≤ n) (hm : (2:ℚ) < n - m) : (n:ℚ) / (n - m) = 1 / ↑(n - m) * n := by
-  field_simp
+  simp [field]
+  guard_target = (n:ℚ) = ↑n * (↑n - ↑m) / ↑(n - m)
+  exact test_sorry
 
-/-! ## Units of a ring, partial division -/
+example (m n : ℕ) (h : m ≤ n) (hm : (2:ℚ) < n - m) : (n:ℚ) / (n - m) = 1 / ↑(n - m) * n := by
+  simp (disch := assumption) [field]
 
-/-
-Check that `field_simp` works for units of a ring.
+/-! ## Units of a ring, partial division
+
+This feature was dropped in the August 2025 `field_simp` refactor.
 -/
 
-variable {R : Type _} [CommRing R] (a b c d e f g : R) (u₁ u₂ : Rˣ)
+-- /-
+-- Check that `field_simp` works for units of a ring.
+-- -/
 
-/--
-Check that `divp_add_divp_same` takes priority over `divp_add_divp`.
--/
-example : a /ₚ u₁ + b /ₚ u₁ = (a + b) /ₚ u₁ := by field_simp
+-- variable {R : Type _} [CommRing R] (a b c d e f g : R) (u₁ u₂ : Rˣ)
 
-/--
-Check that `divp_sub_divp_same` takes priority over `divp_sub_divp`.
--/
-example : a /ₚ u₁ - b /ₚ u₁ = (a - b) /ₚ u₁ := by field_simp
+-- /--
+-- Check that `divp_add_divp_same` takes priority over `divp_add_divp`.
+-- -/
+-- example : a /ₚ u₁ + b /ₚ u₁ = (a + b) /ₚ u₁ := by field_simp2
 
-/-
-Combining `eq_divp_iff_mul_eq` and `divp_eq_iff_mul_eq`.
--/
-example : a /ₚ u₁ = b /ₚ u₂ ↔ a * u₂ = b * u₁ := by field_simp
+-- /--
+-- Check that `divp_sub_divp_same` takes priority over `divp_sub_divp`.
+-- -/
+-- example : a /ₚ u₁ - b /ₚ u₁ = (a - b) /ₚ u₁ := by field_simp2
 
-/--
-Making sure inverses of units are rewritten properly.
--/
-example : ↑u₁⁻¹ = 1 /ₚ u₁ := by field_simp
+-- /-
+-- Combining `eq_divp_iff_mul_eq` and `divp_eq_iff_mul_eq`.
+-- -/
+-- example : a /ₚ u₁ = b /ₚ u₂ ↔ a * u₂ = b * u₁ := by field_simp2
 
-/--
-Checking arithmetic expressions.
--/
-example : (f - (e + c * -(a /ₚ u₁) * b + d) - g) =
-    (f * u₁ - (e * u₁ + c * (-a) * b + d * u₁) - g * u₁) /ₚ u₁ := by field_simp
+-- /--
+-- Making sure inverses of units are rewritten properly.
+-- -/
+-- example : ↑u₁⁻¹ = 1 /ₚ u₁ := by field_simp2
 
-/--
-Division of units.
--/
-example : a /ₚ (u₁ / u₂) = a * u₂ /ₚ u₁ := by field_simp
+-- /--
+-- Checking arithmetic expressions.
+-- -/
+-- example : (f - (e + c * -(a /ₚ u₁) * b + d) - g) =
+--     (f * u₁ - (e * u₁ + c * (-a) * b + d * u₁) - g * u₁) /ₚ u₁ := by field_simp2
 
-example : a /ₚ u₁ /ₚ u₂ = a /ₚ (u₂ * u₁) := by field_simp
+-- /--
+-- Division of units.
+-- -/
+-- example : a /ₚ (u₁ / u₂) = a * u₂ /ₚ u₁ := by field_simp2
+
+-- example : a /ₚ u₁ /ₚ u₂ = a /ₚ (u₂ * u₁) := by field_simp2
 
 -- TODO (new implementation): handle `CommGroupWithZero`, not just `Semifield`
 
