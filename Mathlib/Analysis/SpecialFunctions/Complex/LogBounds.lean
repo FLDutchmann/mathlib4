@@ -73,6 +73,7 @@ lemma logTaylor_at_zero (n : ℕ) : logTaylor n 0 = 0 := by
   | zero => simp [logTaylor_zero]
   | succ n ih => simpa [logTaylor_succ, ih] using ne_or_eq n 0
 
+set_option linter.unusedSimpArgs false in
 lemma hasDerivAt_logTaylor (n : ℕ) (z : ℂ) :
     HasDerivAt (logTaylor (n + 1)) (∑ j ∈ Finset.range n, (-1) ^ j * z ^ j) z := by
   induction n with
@@ -103,7 +104,7 @@ lemma hasDerivAt_log_sub_logTaylor (n : ℕ) {z : ℂ} (hz : 1 + z ∈ slitPlane
     simp only [H, add_neg_cancel] at hz
     exact slitPlane_ne_zero hz rfl
   simp_rw [← mul_pow, neg_one_mul, geom_sum_eq hz', ← neg_add', div_neg, add_comm z]
-  simp [field, slitPlane_ne_zero hz]
+  simp [field]
 
 /-- Give a bound on `‖(1 + t * z)⁻¹‖` for `0 ≤ t ≤ 1` and `‖z‖ < 1`. -/
 lemma norm_one_add_mul_inv_le {t : ℝ} (ht : t ∈ Set.Icc 0 1) {z : ℂ} (hz : ‖z‖ < 1) :
@@ -275,7 +276,7 @@ lemma hasSum_taylorSeries_neg_log {z : ℂ} (hz : ‖z‖ < 1) :
   convert hasSum_taylorSeries_log (z := -z) (norm_neg z ▸ hz) using 2 with n
   rcases n.eq_zero_or_pos with rfl | hn
   · simp
-  simp [field, pow_add, hn.ne']
+  simp [field, pow_add]
   rw [← mul_pow]
   ring_nf
 

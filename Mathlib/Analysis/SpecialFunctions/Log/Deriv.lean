@@ -201,6 +201,7 @@ end LogDifferentiable
 
 namespace Real
 
+set_option linter.unusedSimpArgs false in
 /-- A crude lemma estimating the difference between `log (1-x)` and its Taylor series at `0`,
 where the main point of the bound is that it tends to `0`. The goal is to deduce the series
 expansion of the logarithm, in `hasSum_pow_div_log_of_abs_lt_1`.

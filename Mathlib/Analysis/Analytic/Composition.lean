@@ -474,7 +474,7 @@ theorem comp_summable_nnreal (q : FormalMultilinearSeries 𝕜 F G) (p : FormalM
       _ ≤ Cq * Cp ^ n * r0 ^ n := mul_le_mul' (mul_le_mul' A B) le_rfl
       _ = Cq / 4 ^ n := by
         simp only [r0]
-        simp [field, mul_pow, (zero_lt_one.trans_le hCp1).ne']
+        simp [field, mul_pow]
   refine ⟨r, r_pos, NNReal.summable_of_le I ?_⟩
   simp_rw [div_eq_mul_inv]
   refine Summable.mul_left _ ?_

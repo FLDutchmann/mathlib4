@@ -304,8 +304,9 @@ theorem taylor_mean_remainder {f : ℝ → ℝ} {g g' : ℝ → ℝ} {x x₀ : �
   simp only [taylorWithinEval_self] at h
   rw [mul_comm, ← div_left_inj' (g'_ne y hy), mul_div_cancel_right₀ _ (g'_ne y hy)] at h
   rw [← h]
-  simp [field, g'_ne y hy]
+  simp [field]
 
+set_option linter.unusedSimpArgs false in
 /-- **Taylor's theorem** with the Lagrange form of the remainder.
 
 We assume that `f` is `n+1`-times continuously differentiable in the closed set `Icc x₀ x` and
@@ -370,7 +371,7 @@ theorem taylor_mean_remainder_cauchy {f : ℝ → ℝ} {x x₀ : ℝ} {n : ℕ} 
   rcases taylor_mean_remainder hx hf hf' gcont gdiff fun _ _ => by simp with ⟨y, hy, h⟩
   use y, hy
   rw [h]
-  simp [field, n.factorial_ne_zero]
+  simp [field]
 
 /-- **Taylor's theorem** with a polynomial bound on the remainder
 

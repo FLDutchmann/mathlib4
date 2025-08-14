@@ -30,7 +30,7 @@ lemma Complex.cot_eq_exp_ratio (z : ℂ) :
   rw [Complex.cot, Complex.sin, Complex.cos]
   have h1 : exp (z * I) + exp (-z * I) = exp (-(z * I)) * (exp (2 * I * z) + 1) := by
     rw [mul_add, ← Complex.exp_add]
-    simp only [mul_one, add_left_inj]
+    simp only [mul_one]
     ring_nf
   have h2 : (exp (-z * I) - exp (z * I)) = exp (-(z * I)) * ((1 - exp (2 * I * z))) := by
     ring_nf

@@ -207,7 +207,7 @@ theorem sin_pi_mul_eq (z : ℂ) (n : ℕ) :
     rw [integral_cos_mul_complex (mul_ne_zero two_ne_zero hz), Complex.ofReal_zero,
       mul_zero, Complex.sin_zero, zero_div, sub_zero,
       (by push_cast; field_simp2 : 2 * z * ↑(π / 2) = π * z)]
-    simp [field, Complex.ofReal_ne_zero.mpr pi_pos.ne']
+    simp [field]
   · rw [hn, Finset.prod_range_succ]
     set A := ∏ j ∈ Finset.range n, ((1 : ℂ) - z ^ 2 / ((j : ℂ) + 1) ^ 2)
     set B := ∫ x in (0 : ℝ)..π / 2, Complex.cos (2 * z * x) * (cos x : ℂ) ^ (2 * n)

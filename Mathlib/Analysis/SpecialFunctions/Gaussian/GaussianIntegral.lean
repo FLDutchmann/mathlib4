@@ -215,7 +215,7 @@ theorem integral_gaussian_sq_complex {b : ℂ} (hb : 0 < b.re) :
       simp only [integral_const, MeasurableSet.univ, measureReal_restrict_apply,
         univ_inter, real_smul, mul_one, integral_mul_cexp_neg_mul_sq hb]
       rw [volume_real_Ioo_of_le (by linarith [pi_nonneg])]
-      simp [(by contrapose! hb; rw [hb, zero_re] : b ≠ 0)]
+      simp
       ring
 
 theorem integral_gaussian (b : ℝ) : ∫ x : ℝ, exp (-b * x ^ 2) = √(π / b) := by
@@ -328,6 +328,7 @@ theorem integral_gaussian_Ioi (b : ℝ) :
     · norm_num
     · exact (div_pos pi_pos hb).le
 
+set_option linter.unusedSimpArgs false in
 /-- The special-value formula `Γ(1/2) = √π`, which is equivalent to the Gaussian integral. -/
 theorem Real.Gamma_one_half_eq : Real.Gamma (1 / 2) = √π := by
   rw [Gamma_eq_integral one_half_pos, ← integral_comp_rpow_Ioi_of_pos zero_lt_two]

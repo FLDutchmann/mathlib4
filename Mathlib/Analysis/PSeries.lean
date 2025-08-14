@@ -433,6 +433,7 @@ section shifted
 
 open Filter Asymptotics Topology
 
+set_option linter.unusedSimpArgs false in
 lemma Real.summable_one_div_nat_add_rpow (a : ℝ) (s : ℝ) :
     Summable (fun n : ℕ ↦ 1 / |n + a| ^ s) ↔ 1 < s := by
   suffices ∀ (b c : ℝ), Summable (fun n : ℕ ↦ 1 / |n + b| ^ s) →

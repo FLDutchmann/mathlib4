@@ -36,7 +36,7 @@ theorem isPrimitiveRoot_exp_of_coprime (i n : ℕ) (h0 : n ≠ 0) (hi : i.Coprim
   have hn0 : (n : ℂ) ≠ 0 := mod_cast h0
   constructor
   · use i
-    simp [field, hn0, mul_comm (i : ℂ), mul_comm (n : ℂ)]
+    simp [field, mul_comm (i : ℂ), mul_comm (n : ℂ)]
   · simp only [forall_exists_index]
     rintro l k hk
     have hz : π ≠ 0 := pi_pos.ne'
@@ -132,7 +132,7 @@ theorem IsPrimitiveRoot.arg {n : ℕ} {ζ : ℂ} (h : IsPrimitiveRoot ζ n) (hn 
   · convert Complex.arg_cos_add_sin_mul_I _
     · push_cast; rfl
     · push_cast; rfl
-    simp [hn]
+    simp
     refine ⟨(neg_lt_neg Real.pi_pos).trans_le ?_, ?_⟩
     · rw [neg_zero]
       positivity
