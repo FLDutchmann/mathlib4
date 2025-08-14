@@ -85,7 +85,7 @@ theorem cos_eq_cos_iff {x y : ℂ} : cos x = cos y ↔ ∃ k : ℤ, y = 2 * k * 
     _ ↔ sin ((x - y) / 2) = 0 ∨ sin ((x + y) / 2) = 0 := or_comm
     _ ↔ (∃ k : ℤ, y = 2 * k * π + x) ∨ ∃ k : ℤ, y = 2 * k * π - x := by
       apply or_congr <;>
-        simp [field, sin_eq_zero_iff, (by simp : -(2 : ℂ) ≠ 0), eq_sub_iff_add_eq',
+        simp [field, sin_eq_zero_iff, eq_sub_iff_add_eq',
           sub_eq_iff_eq_add, mul_comm (2 : ℂ), mul_right_comm _ (2 : ℂ)]
       constructor <;> · rintro ⟨k, rfl⟩; use -k; simp
     _ ↔ ∃ k : ℤ, y = 2 * k * π + x ∨ y = 2 * k * π - x := exists_or.symm
@@ -191,7 +191,7 @@ theorem continuous_tan : Continuous fun x : {x | cos x ≠ 0} => tan x :=
 theorem cos_eq_iff_quadratic {z w : ℂ} :
     cos z = w ↔ exp (z * I) ^ 2 - 2 * w * exp (z * I) + 1 = 0 := by
   rw [← sub_eq_zero]
-  simp [field, cos, exp_neg, exp_ne_zero] -- field_simp gets run six times!!
+  simp [field, cos, exp_neg] -- field_simp gets run six times!!
   refine Eq.congr ?_ rfl
   ring
 

@@ -220,6 +220,7 @@ theorem frobenius_frobeniusRotation {a₁ a₂ : 𝕎 k} (ha₁ : a₁.coeff 0 �
 
 local notation "φ" => IsFractionRing.ringEquivOfRingEquiv (frobeniusEquiv p k)
 
+set_option linter.unusedSimpArgs false in
 theorem exists_frobenius_solution_fractionRing_aux (m n : ℕ) (r' q' : 𝕎 k) (hr' : r'.coeff 0 ≠ 0)
     (hq' : q'.coeff 0 ≠ 0) (hq : (p : 𝕎 k) ^ n * q' ∈ nonZeroDivisors (𝕎 k)) :
     let b : 𝕎 k := frobeniusRotation p hr' hq'
@@ -238,8 +239,8 @@ theorem exists_frobenius_solution_fractionRing_aux (m n : ℕ) (r' q' : 𝕎 k) 
   rw [zpow_sub₀ (FractionRing.p_nonzero p k)]
   simp [field, FractionRing.p_nonzero p k]
   convert congr_arg (fun x => algebraMap (𝕎 k) (FractionRing (𝕎 k)) x) key using 1
-  · simp only [RingHom.map_mul, RingHom.map_pow, map_natCast, frobeniusEquiv_apply]
-  · simp only [RingHom.map_mul, RingHom.map_pow, map_natCast]
+  · simp only [RingHom.map_mul]
+  · simp only [RingHom.map_mul]
 
 theorem exists_frobenius_solution_fractionRing {a : FractionRing (𝕎 k)} (ha : a ≠ 0) :
     ∃ᵉ (b ≠ 0) (m : ℤ), φ b * a = (p : FractionRing (𝕎 k)) ^ m * b := by
