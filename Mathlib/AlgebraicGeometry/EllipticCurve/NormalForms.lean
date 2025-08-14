@@ -423,7 +423,7 @@ theorem toCharThreeNF_spec_of_b₂_ne_zero (hb₂ : W.b₂ ≠ 0) :
   · simp [variableChange_a₁]
   · simp [variableChange_a₃]
   · have ha₂ : W'.a₂ ≠ 0 := W.toShortNFOfCharThree_a₂ ▸ hb₂
-    simp [field, ha₂, variableChange_a₄, -mul_eq_zero] -- `or` simp lemmas
+    simp [field, variableChange_a₄, -mul_eq_zero] -- `or` simp lemmas
     linear_combination (W'.a₄ * W'.a₂ ^ 2 + W'.a₄ ^ 2) * CharP.cast_eq_zero F 3
 
 theorem toCharThreeNF_spec_of_b₂_eq_zero (hb₂ : W.b₂ = 0) : (W.toCharThreeNF • W).IsShortNF := by

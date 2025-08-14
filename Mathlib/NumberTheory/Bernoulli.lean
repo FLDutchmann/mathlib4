@@ -252,7 +252,7 @@ theorem bernoulliPowerSeries_mul_exp_sub_one : bernoulliPowerSeries A * (exp A -
   refine congr_arg (algebraMap ℚ A) (sum_congr rfl fun x h => eq_div_of_mul_eq (hfact n.succ) ?_)
   rw [mem_antidiagonal] at h
   rw [← h, add_choose, cast_div_charZero (factorial_mul_factorial_dvd_factorial_add _ _)]
-  simp [field, hfact x.1, mul_comm _ (bernoulli x.1), mul_assoc]
+  simp [field, mul_comm _ (bernoulli x.1), mul_assoc]
 
 section Faulhaber
 
@@ -319,7 +319,7 @@ theorem sum_range_pow (n p : ℕ) :
   -- massage `hps` into our goal
   rw [hps, sum_mul]
   refine sum_congr rfl fun x _ => ?_
-  simp [field, mul_right_comm _ ↑p !, ← mul_assoc _ _ ↑p !, factorial]
+  simp [field, factorial]
 
 /-- Alternate form of **Faulhaber's theorem**, relating the sum of p-th powers to the Bernoulli
 numbers: $$\sum_{k=1}^{n} k^p = \sum_{i=0}^p (-1)^iB_i\binom{p+1}{i}\frac{n^{p+1-i}}{p+1}.$$

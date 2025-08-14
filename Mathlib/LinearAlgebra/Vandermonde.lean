@@ -143,6 +143,7 @@ theorem projVandermonde_map {R' : Type*} [CommRing R'] (φ : R →+* R') (v w : 
   ext i j
   simp [projVandermonde_apply]
 
+set_option linter.unusedSimpArgs false in
 private theorem det_projVandermonde_of_field (v w : Fin n → K) :
     (projVandermonde v w).det = ∏ i : Fin n, ∏ j ∈ Finset.Ioi i, (v j * w i - v i * w j) := by
   induction n with

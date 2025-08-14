@@ -243,6 +243,7 @@ For the classification of Pythagorean triples, we will use a parametrization of 
 
 variable {K : Type*} [Field K]
 
+set_option linter.unusedSimpArgs false in
 /-- A parameterization of the unit circle that is useful for classifying Pythagorean triples.
 (To be applied in the case where `K = ℚ`.) -/
 def circleEquivGen (hk : ∀ x : K, 1 + x ^ 2 ≠ 0) :

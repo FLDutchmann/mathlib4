@@ -96,6 +96,7 @@ instance : Algebra A (ofPrime A P).toSubring := (Subring.inclusion (le_ofPrime A
 
 instance : IsScalarTower A (ofPrime A P).toSubring K := .of_algebraMap_eq (fun _ ↦ rfl)
 
+set_option linter.unusedSimpArgs false in
 /-- The localization of a subring at a prime is indeed isomorphic to its abstract localization. -/
 noncomputable
 def ofPrimeEquiv : Localization.AtPrime P ≃ₐ[A] (ofPrime A P).toSubring := by

@@ -430,6 +430,7 @@ theorem LinearEquiv.isUnit_det' {A : Type*} [CommRing A] [Module A M] (f : M ≃
     IsUnit (LinearMap.det (f : M →ₗ[A] M)) :=
   isUnit_of_mul_eq_one _ _ f.det_mul_det_symm
 
+set_option linter.unusedSimpArgs false in
 /-- The determinant of `f.symm` is the inverse of that of `f` when `f` is a linear equiv. -/
 theorem LinearEquiv.det_coe_symm {𝕜 : Type*} [Field 𝕜] [Module 𝕜 M] (f : M ≃ₗ[𝕜] M) :
     LinearMap.det (f.symm : M →ₗ[𝕜] M) = (LinearMap.det (f : M →ₗ[𝕜] M))⁻¹ := by
