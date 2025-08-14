@@ -100,6 +100,10 @@ example : P (x ^ 3 * x⁻¹) := by test_field_simp
 #guard_msgs in
 example : P (x / x ^ 4) := by test_field_simp
 
+/-- info: P (x ^ 6) -/
+#guard_msgs in
+example : P ((x ^ (2:ℤ)) ^ 3) := by test_field_simp
+
 /-- info: P (x ^ 6)⁻¹ -/
 #guard_msgs in
 example : P ((x ^ (-2:ℤ)) ^ 3) := by test_field_simp
