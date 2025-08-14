@@ -139,9 +139,9 @@ theorem cubic_eq_zero_iff_of_p_eq_zero (ha : a ≠ 0) (hω : IsPrimitiveRoot ω 
     calc
       a * x ^ 3 + b * x ^ 2 + c * x + d =
       a * (x + b / (3 * a)) ^ 3 + (c - b ^ 2 / (3 * a)) * x + (d - b ^ 3 * a / (3 * a) ^ 3) := by
-        field_simp2; ring
+        field_simp; ring
       _ = a * (x + b / (3 * a)) ^ 3 + (d - (9 * a * b * c - 2 * b ^ 3) * a / (3 * a) ^ 3) := by
-        simp only [hb2, hb3]; field_simp2 [ha]; ring
+        simp only [hb2, hb3]; field_simp [ha]; ring
       _ = a * ((x + b / (3 * a)) ^ 3 - s ^ 3) := by rw [hs3, hq]; simp [field, h54]; ring
   have h₃ : ∀ x, a * x = 0 ↔ x = 0 := by intro x; simp [ha]
   have h₄ : ∀ x : K, x ^ 3 - s ^ 3 = (x - s) * (x - s * ω) * (x - s * ω ^ 2) := by
@@ -182,7 +182,7 @@ theorem quartic_depressed_eq_zero_iff
     _ ↔ (2 * (x * x) + 2 * s * x + (u - q / s)) * (2 * (x * x) + -(2 * s) * x + (u + q / s)) =
         0 := by
       apply Eq.congr_left
-      field_simp2
+      field_simp
       linear_combination -hu + (-x ^ 2 * s ^ 2 - x ^ 2 * p + x ^ 2 * u) * hw +
         (x ^ 2 * w ^ 2 + 8 * x ^ 2 * u + 8 * x ^ 2 * q / s - u ^ 2 + 4 * r) * hs
     _ ↔ _ := by

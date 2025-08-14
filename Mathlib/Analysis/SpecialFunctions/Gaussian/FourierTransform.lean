@@ -59,7 +59,7 @@ theorem norm_cexp_neg_mul_sq_add_mul_I' (hb : b.re ≠ 0) (c T : ℝ) :
   have :
     b.re * T ^ 2 - 2 * b.im * c * T - b.re * c ^ 2 =
       b.re * (T - b.im * c / b.re) ^ 2 - c ^ 2 * (b.im ^ 2 / b.re + b.re) := by
-    field_simp2; ring
+    field_simp; ring
   rw [norm_cexp_neg_mul_sq_add_mul_I, this]
 
 theorem verticalIntegral_norm_le (hb : 0 < b.re) (c : ℝ) {T : ℝ} (hT : 0 ≤ T) :
@@ -183,7 +183,7 @@ theorem _root_.integral_cexp_quadratic (hb : b.re < 0) (c d : ℂ) :
       cexp (- -b * (x + c / (2 * b)) ^ 2) * cexp (d - c ^ 2 / (4 * b)) := by
     simp_rw [← Complex.exp_add]
     congr 1
-    field_simp2
+    field_simp
     ring_nf
   simp_rw [h, MeasureTheory.integral_mul_const]
   rw [← re_add_im (c / (2 * b))]
@@ -225,7 +225,7 @@ theorem _root_.fourierIntegral_gaussian_pi' (hb : 0 < b.re) (c : ℂ) :
   · rw [← div_div, div_self <| ofReal_ne_zero.mpr pi_ne_zero, one_div, inv_cpow, ← one_div]
     rw [Ne, arg_eq_pi_iff, not_and_or, not_lt]
     exact Or.inl hb.le
-  · field_simp2 [ofReal_ne_zero.mpr pi_ne_zero]
+  · field_simp [ofReal_ne_zero.mpr pi_ne_zero]
     ring_nf
     simp only [I_sq]
     ring

@@ -311,7 +311,7 @@ theorem dist_eq_dist_mul_sin_angle_div_sin_angle {p₁ p₂ p₃ : P}
     dist p₁ p₂ = dist p₃ p₁ * Real.sin (∠ p₂ p₃ p₁) / Real.sin (∠ p₁ p₂ p₃) := by
   have sin_gt_zero : 0 < Real.sin (∠ p₁ p₂ p₃) := by
     apply sin_pos_of_not_collinear h
-  field_simp2 [sin_gt_zero]
+  field_simp [sin_gt_zero]
   rw [mul_comm, mul_comm (dist p₃ p₁), law_sin]
 
 /-- **Isosceles Triangle Theorem**: Pons asinorum, angle-at-point form. -/

@@ -169,7 +169,7 @@ private local instance isLiouville_of_finiteDimensional_galois [FiniteDimensiona
       case h => simp
       simp only [map_sum, div_mul_eq_mul_div]
       rw [← sum_div, ← add_div]
-      field_simp2
+      field_simp
       -- Here we rewrite logDeriv (∏ x : K ≃ₐ[F] K, x (u i)) to ∑ x : K ≃ₐ[F] K, logDeriv (x (u i))
       conv =>
         enter [2, 1, 2, i, 2]

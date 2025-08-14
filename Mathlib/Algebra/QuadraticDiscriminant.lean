@@ -80,7 +80,7 @@ variable {K : Type*} [Field K] [NeZero (2 : K)] {a b c : K}
 theorem quadratic_eq_zero_iff (ha : a ≠ 0) {s : K} (h : discrim a b c = s * s) (x : K) :
     a * (x * x) + b * x + c = 0 ↔ x = (-b + s) / (2 * a) ∨ x = (-b - s) / (2 * a) := by
   rw [quadratic_eq_zero_iff_discrim_eq_sq ha, h, sq, mul_self_eq_mul_self_iff]
-  field_simp2 [two_ne_zero] -- previously this was baked into discharger, reinsert?
+  field_simp [two_ne_zero] -- previously this was baked into discharger, reinsert?
   grind
 
 /-- A quadratic has roots if its discriminant has square roots -/
@@ -136,7 +136,7 @@ theorem discrim_le_zero (h : ∀ x : K, 0 ≤ a * (x * x) + b * x + c) : discrim
   -- if a > 0
   · have ha' : 0 ≤ 4 * a := mul_nonneg zero_le_four ha.le
     convert neg_nonpos.2 (mul_nonneg ha' (h (-b / (2 * a)))) using 1
-    field_simp2
+    field_simp
     ring
 
 lemma discrim_le_zero_of_nonpos (h : ∀ x : K, a * (x * x) + b * x + c ≤ 0) : discrim a b c ≤ 0 :=

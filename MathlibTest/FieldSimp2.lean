@@ -17,20 +17,20 @@ section
 -- TODO decide desired behaviour on this example
 set_option linter.unusedVariables false in
 example (hy : y ≠ 0) (hz : z ≠ 0) (hx : x = 0) : x / y = x / z := by
-  field_simp2 -- if this cancels the `x` it renders it unsolvable
+  field_simp -- if this cancels the `x` it renders it unsolvable
   exact test_sorry
 
 /-! ### Equality goals -/
 
 -- check that `field_simp` closes goals when the equality reduces to an identity
-example : x ^ 2 * x⁻¹ = x := by field_simp2
+example : x ^ 2 * x⁻¹ = x := by field_simp
 
 -- -- FIXME
 -- -- check that `field_simp` closes goals when a hypothesis reduces to the negation of an identity
--- example (hx : x ≠ 0) (h : x ^ 2 * x⁻¹ ≠ x) : True := by field_simp2 at h
+-- example (hx : x ≠ 0) (h : x ^ 2 * x⁻¹ ≠ x) : True := by field_simp at h
 
 example : x / y ^ 2 = (x + 1) / y := by
-  field_simp2
+  field_simp
   guard_target = x / y ^ 2 = (x + 1) / y
   exact test_sorry
 
@@ -42,7 +42,7 @@ example : x / y ^ 2 = (x + 1) / y := by
   exact test_sorry
 
 example : x / y = (x + 1) / y ^ 2 := by
-  field_simp2
+  field_simp
   guard_target = x / y = (x + 1) / y ^ 2
   exact test_sorry
 
@@ -52,7 +52,7 @@ example {K : Type*} [Semifield K] (hK : ∀ x : K, 1 + x ^ 2 ≠ 0) (x y : K) (h
     2 * (x / (y + 1)) / (1 + (x / (y + 1)) ^ 2) = x := by
   /- TODO: re-extract this test, `Semifield` is not a strong enough typeclass. -/
   have : (y+1)^2 + x^2 ≠ 0 := test_sorry
-  field_simp2
+  field_simp
   /- TODO: do we want field_simp to cancel the x on either side? This is a consequence of which
   common factors we strip (currently the nonzero ones). -/
   guard_target = 2 * x * (y + 1) = x * ((y + 1) ^ 2 + x ^ 2)
@@ -79,13 +79,13 @@ h0 : w ≠ 0
 -/
 #guard_msgs in
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
-  field_simp2 [pow_ne_zero]
+  field_simp [pow_ne_zero]
 
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
-  field_simp2 [↓pow_ne_zero]
+  field_simp [↓pow_ne_zero]
 
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
-  field_simp2 [pow_ne_zero, -pow_eq_zero_iff, -pow_eq_zero_iff']
+  field_simp [pow_ne_zero, -pow_eq_zero_iff, -pow_eq_zero_iff']
 
 /-! ### Non-confluence issues -/
 
@@ -141,9 +141,9 @@ example  (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
 
 example (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
   fail_if_success have : |x + 1| ≠ 0 := by positivity
-  have H : |x + 1| ≠ 0 := by simp [hK x] -- this is how `field_simp2` will prove nonzeroness
+  have H : |x + 1| ≠ 0 := by simp [hK x] -- this is how `field_simp` will prove nonzeroness
   clear H
-  field_simp2 [hK x]
+  field_simp [hK x]
   guard_target = 1 = |x + 1| * 5
   exact test_sorry
 

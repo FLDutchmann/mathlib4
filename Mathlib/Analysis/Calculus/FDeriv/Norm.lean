@@ -48,7 +48,7 @@ theorem not_differentiableAt_norm_zero [Nontrivial E] :
   have : DifferentiableAt ℝ (fun t : ℝ ↦ ‖t • x‖) 0 := DifferentiableAt.comp _ (by simpa) (by simp)
   have : DifferentiableAt ℝ (|·|) (0 : ℝ) := by
     simp_rw [norm_smul, norm_eq_abs] at this
-    have aux : abs = fun t ↦ (1 / ‖x‖) * (|t| * ‖x‖) := by field_simp2
+    have aux : abs = fun t ↦ (1 / ‖x‖) * (|t| * ‖x‖) := by field_simp
     rw [aux]
     exact this.const_mul _
   exact not_differentiableAt_abs_zero this

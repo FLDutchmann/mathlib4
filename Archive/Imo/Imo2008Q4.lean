@@ -44,7 +44,7 @@ theorem imo2008_q4 (f : ℝ → ℝ) (H₁ : ∀ x > 0, f x > 0) :
       rw [h w hw, h x hx, h (y ^ 2) (pow_pos hy 2), h (z ^ 2) (pow_pos hz 2)]
     · intro w x y z hw hx hy hz hprod
       rw [h w hw, h x hx, h (y ^ 2) (pow_pos hy 2), h (z ^ 2) (pow_pos hz 2)]
-      field_simp2
+      field_simp
       linear_combination - (z ^ 2 + y ^ 2) * (w ^ 2 + x ^ 2) * (w * x + y * z) * hprod
   -- proof that the only solutions are f(x) = x or f(x) = 1/x
   intro H₂
@@ -60,7 +60,7 @@ theorem imo2008_q4 (f : ℝ → ℝ) (H₁ : ∀ x > 0, f x > 0) :
     specialize H₂ 1 x (sqrt x) (sqrt x) zero_lt_one hx (sqrt_pos.mpr hx) (sqrt_pos.mpr hx) h1xss
     rw [h₁, one_pow 2, sq_sqrt (le_of_lt hx), ← two_mul (f x), ← two_mul x] at H₂
     have hfx_ne_0 : f x ≠ 0 := by specialize H₁ x hx; exact ne_of_gt H₁
-    field_simp2 at H₂ ⊢
+    field_simp at H₂ ⊢
     linear_combination H₂
   have h₃ : ∀ x > 0, f x = x ∨ f x = 1 / x := by simpa [sub_eq_zero] using h₂
   by_contra! h
@@ -79,7 +79,7 @@ theorem imo2008_q4 (f : ℝ → ℝ) (H₁ : ∀ x > 0, f x > 0) :
   rcases h₃ with hab₁ | hab₂
   -- f(ab) = ab → b^4 = 1 → b = 1 → f(b) = b → false
   · rw [hab₁, div_left_inj' h2ab_ne_0] at H₂
-    field_simp2 at H₂
+    field_simp at H₂
     have hb₁ : b ^ 4 = 1 := by linear_combination -H₂
     obtain hb₂ := abs_eq_one_of_pow_eq_one b 4 (show 4 ≠ 0 by simp) hb₁
     rw [abs_of_pos hb] at hb₂; rw [hb₂] at hfb₁; exact hfb₁ h₁

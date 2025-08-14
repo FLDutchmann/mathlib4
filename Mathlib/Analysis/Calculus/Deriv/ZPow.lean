@@ -150,7 +150,7 @@ theorem iter_deriv_inv_linear (k : ℕ) (c d : 𝕜) :
       have h0 : (fun x ↦ (c * (x + d / c)) ^ (-1 - (k : ℤ))) =
         (fun x ↦ (c * x + d) ^ (-1 - (k : ℤ))) := by
         ext y
-        field_simp2
+        field_simp
       rw [h0, deriv_comp_mul_left c (fun x ↦ (x) ^ (-1 - k : ℤ)) (z + d / c)] at this
       simp [field, fieldExpr, this]
       ring_nf

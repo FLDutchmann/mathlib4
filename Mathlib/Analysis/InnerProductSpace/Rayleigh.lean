@@ -142,7 +142,7 @@ theorem eq_smul_self_of_isLocalExtrOn_real (hT : IsSelfAdjoint T) {x₀ : F}
     simpa [hb] using h₂
   let c : ℝ := -b⁻¹ * a
   have hc : T x₀ = c • x₀ := by
-    have : b * (b⁻¹ * a) = a := by field_simp2
+    have : b * (b⁻¹ * a) = a := by field_simp
     apply smul_right_injective F hb
     simp [c, eq_neg_of_add_eq_zero_left h₂, ← mul_smul, this]
   convert hc

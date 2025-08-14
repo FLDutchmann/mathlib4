@@ -145,7 +145,7 @@ theorem sub_one_ne_zero : p - 1 ≠ 0 := h.sub_one_pos.ne'
 
 theorem conjugate_eq : q = p / (p - 1) := by
   convert inv_inv q ▸ congr($(h.symm.inv_sub_inv_eq_inv.symm)⁻¹) using 1
-  field_simp2 [h.ne_zero]
+  field_simp [h.ne_zero]
 
 lemma conjExponent_eq : conjExponent p = q := h.conjugate_eq.symm
 
@@ -159,7 +159,7 @@ theorem mul_eq_add : p * q = p + q := by
   simpa only [sub_mul, sub_eq_iff_eq_add, one_mul] using h.sub_one_mul_conj
 
 theorem div_conj_eq_sub_one : p / q = p - 1 := by
-  field_simp2 [h.symm.ne_zero]
+  field_simp [h.symm.ne_zero]
   linear_combination -h.sub_one_mul_conj
 
 theorem inv_add_inv_ennreal : (ENNReal.ofReal p)⁻¹ + (ENNReal.ofReal q)⁻¹ = 1 := by
@@ -337,7 +337,7 @@ theorem mul_eq_add : p * q = p + q := by
   simpa [mul_add, add_mul, h.ne_zero, h.symm.ne_zero, add_comm q] using congr(p * $(h.inv_eq) * q)
 
 theorem div_conj_eq_sub_one : p / q = p - 1 := by
-  field_simp2 [h.symm.ne_zero]
+  field_simp [h.symm.ne_zero]
   linear_combination - h.sub_one_mul_conj
 
 lemma inv_add_inv_ennreal : (p⁻¹ + q⁻¹ : ℝ≥0∞) = 1 := by norm_cast; exact h.inv_add_inv_eq_one
@@ -394,7 +394,7 @@ lemma coe_conjExponent {p : ℝ≥0} (hp : 1 < p) : p.conjExponent = conjExponen
   norm_cast
   rw [← coe_inv (tsub_pos_of_lt hp).ne']
   norm_cast
-  field_simp2 [(tsub_pos_of_lt hp).ne']
+  field_simp [(tsub_pos_of_lt hp).ne']
   rw [tsub_add_cancel_of_le hp.le]
 
 

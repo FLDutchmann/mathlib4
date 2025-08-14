@@ -651,7 +651,7 @@ def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger))
     | _ => throwError "could not parse the provided discharger {d}"
 
 /-- Conv tactic for field_simp normalisation. -/
-elab "field_simp2" d:(discharger)? args:(simpArgs)? : conv => do
+elab "field_simp" d:(discharger)? args:(simpArgs)? : conv => do
   -- find the expression `x` to `conv` on
   let x ← Conv.getLhs
   let disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type) ← parseDischarger d args
@@ -695,7 +695,7 @@ simproc_decl _root_.fieldExpr (_) := fun (t : Expr) ↦ do
     wrapSimpDischargerWithCtx FieldSimp.discharge ctx
   reduceExprStep disch t
 
-elab "field_simp2" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => withMainContext do
+elab "field_simp" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => withMainContext do
   let disch ← parseDischarger d args
   let s ← IO.mkRef {}
   let cleanup r := do r.mkEqTrans (← simpOnlyNames [``eq_self] r.expr)

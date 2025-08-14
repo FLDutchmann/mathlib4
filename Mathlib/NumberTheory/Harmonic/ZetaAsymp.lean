@@ -80,7 +80,7 @@ lemma term_one {n : ℕ} (hn : 0 < n) :
       simp_rw [term, one_add_one_eq_two, ← Nat.cast_two (R := ℝ), rpow_natCast]
     _ = ∫ x : ℝ in n..(n + 1), (1 / x - n / x ^ 2) := by
       refine intervalIntegral.integral_congr (fun x hx ↦ ?_)
-      field_simp2 [(hv x hx).ne']
+      field_simp [(hv x hx).ne']
     _ = (∫ x : ℝ in n..(n + 1), 1 / x) - n * ∫ x : ℝ in n..(n + 1), 1 / x ^ 2 := by
       simp_rw [← mul_one_div (n : ℝ)]
       rw [intervalIntegral.integral_sub]
@@ -233,7 +233,7 @@ lemma zeta_limit_aux1 {s : ℝ} (hs : 1 < s) :
     (∑' n : ℕ, 1 / (n + 1 : ℝ) ^ s) - 1 / (s - 1) = 1 - s * term_tsum s := by
   rw [term_tsum_of_lt hs]
   generalize (∑' n : ℕ, 1 / (n + 1 : ℝ) ^ s) = Z
-  field_simp2 [(show s - 1 ≠ 0 by linarith)]
+  field_simp [(show s - 1 ≠ 0 by linarith)]
   ring_nf
 
 end s_gt_one
@@ -343,7 +343,7 @@ theorem _root_.tendsto_riemannZeta_sub_one_div :
         apply riemannZeta_residue_one.sub
         refine Tendsto.congr' ?_ (tendsto_const_nhds.mono_left nhdsWithin_le_nhds)
         filter_upwards [self_mem_nhdsWithin] with x hx
-        field_simp2 [sub_ne_zero.mpr <| mem_compl_singleton_iff.mp hx]
+        field_simp [sub_ne_zero.mpr <| mem_compl_singleton_iff.mp hx]
       · exact ((tendsto_id.sub tendsto_const_nhds).mono_left nhdsWithin_le_nhds).const_mul _
 
 lemma _root_.isBigO_riemannZeta_sub_one_div {F : Type*} [Norm F] [One F] [NormOneClass F] :

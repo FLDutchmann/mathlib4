@@ -146,7 +146,7 @@ theorem mongePoint_eq_affineCombination_of_pointsWithCircumcenter {n : ℕ}
     -- Porting note: replaced
     -- have hn3 : (n + 2 + 1 : ℝ) ≠ 0 := mod_cast Nat.succ_ne_zero _
     have hn3 : (n + 2 + 1 : ℝ) ≠ 0 := by norm_cast
-    field_simp2 [hn1, hn3, mul_comm]
+    field_simp [hn1, hn3, mul_comm]
   · simp [field]
     ring
 
