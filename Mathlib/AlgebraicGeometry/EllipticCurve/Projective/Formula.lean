@@ -170,7 +170,7 @@ lemma dblU_eq (P : Fin 3 → F) : W.dblU P =
 
 lemma dblU_smul (P : Fin 3 → F) (u : F) :
     W.dblU (u • P) = u ^ 4 * W.dblU P := by
-  simp [field, dblU_eq, smul_fin3_ext]
+  simp [field, dblU_eq]
 
 lemma dblU_of_Z_eq_zero {P : Fin 3 → F} (hPz : P z = 0) : W.dblU P = 0 := by
   rw [dblU_eq, hPz, zero_pow two_ne_zero, div_zero]
@@ -231,7 +231,7 @@ private lemma toAffine_slope_of_eq [DecidableEq F]
   have hPy : P y - W.negY P ≠ 0 := sub_ne_zero.mpr <| Y_ne_negY_of_Y_ne' hP hQ hPz hQz hx hy
   simp only [X_eq_iff hPz hQz, ne_eq, Y_eq_iff' hPz hQz] at hx hy
   rw [Affine.slope_of_Y_ne hx <| negY_of_Z_ne_zero hQz ▸ hy, ← negY_of_Z_ne_zero hPz]
-  simp [field, eval_polynomialX, hPz]
+  simp [field, eval_polynomialX]
 
 variable (W') in
 /-- The `X`-coordinate of a representative of `2 • P` for a projective point representative `P` on a
@@ -473,7 +473,7 @@ def addU (P Q : Fin 3 → F) : F :=
   -(P y * Q z - Q y * P z) ^ 3 / (P z * Q z)
 
 lemma addU_smul (P Q : Fin 3 → F) (u v : F) : addU (u • P) (v • Q) = (u * v) ^ 2 * addU P Q := by
-  simp [field, addU, smul_fin3_ext]
+  simp [field, addU]
 
 lemma addU_of_Z_eq_zero_left {P Q : Fin 3 → F} (hPz : P z = 0) : addU P Q = 0 := by
   rw [addU, hPz, zero_mul, div_zero]
