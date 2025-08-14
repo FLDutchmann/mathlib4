@@ -65,7 +65,7 @@ run.
 -/
 
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
-  field_simp
+  field_simp'
 
 /--
 error: unsolved goals
@@ -135,7 +135,7 @@ example  (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
   fail_if_success have : |x + 1| ≠ 0 := by positivity
   have H : |x + 1| ≠ 0 := by simp [hK x] -- this is how `field_simp` will prove nonzeroness
   clear H
-  field_simp [hK x]
+  field_simp' [hK x]
   guard_target = 1 = 5 * |x + 1|
   exact test_sorry
 
@@ -162,7 +162,7 @@ Same for the old implementation (`field_simp`). -/
 #guard_msgs in
 -- doesn't cancel
 example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
-  field_simp [hK x]
+  field_simp' [hK x]
 
 -- doesn't cancel
 set_option linter.unusedVariables false in
@@ -174,7 +174,7 @@ example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
 -- cancels when the hypothesis is brought out for use by `positivity`
 example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by
   have := hK x
-  field_simp
+  field_simp'
   guard_target = 1 = 5 * (x + 1)
   exact test_sorry
 
