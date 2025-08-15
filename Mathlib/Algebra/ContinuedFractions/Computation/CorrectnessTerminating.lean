@@ -146,12 +146,7 @@ theorem compExactValue_correctness_of_stream_eq_some :
       -- ifp_succ_n.fr ≠ 0
       -- use the IH to show that the following equality suffices
       suffices
-        compExactValue ppconts pconts ifp_n.fr = compExactValue pconts conts ifp_succ_n.fr by
-        #adaptation_note /-- 2025-08-10 replace the following with grind after
-        https://github.com/leanprover/lean4/issues/9825 is fixed -/
-        have : v = compExactValue ppconts pconts ifp_n.fr := IH nth_stream_eq
-        conv_lhs => rw [this]
-        assumption
+        compExactValue ppconts pconts ifp_n.fr = compExactValue pconts conts ifp_succ_n.fr by grind
       -- get the correspondence between ifp_n and ifp_succ_n
       obtain ⟨ifp_n', nth_stream_eq', ifp_n_fract_ne_zero, ⟨refl⟩⟩ :
         ∃ ifp_n, IntFractPair.stream v n = some ifp_n ∧
@@ -195,11 +190,8 @@ theorem compExactValue_correctness_of_stream_eq_some :
       dsimp only [conts, pconts, ppconts]
       simp [fieldExpr, compExactValue, contsAux_recurrence s_nth_eq ppconts_eq pconts_eq,
         nextConts, nextNum, nextDen]
-      have hfr : (IntFractPair.of (ifp_n.fr⁻¹)).fr = f := by rw [← one_div]; rfl
-      rw [if_neg _, hfr]
-      · simp [field, pA, pB, ppA, ppB, pconts, ppconts, hA, hB]
-        ac_rfl
-      · rwa [hfr]
+      have hfr : (IntFractPair.of (1 / ifp_n.fr)).fr = f := rfl
+      grind
 
 open GenContFract (of_terminatedAt_n_iff_succ_nth_intFractPair_stream_eq_none)
 
