@@ -463,7 +463,7 @@ theorem _root_.List.prod_inv₀ {K : Type*} [DivisionCommMonoid K] :
 
 theorem eval_inv [CommGroupWithZero M] (l : NF M) : (l⁻¹).eval = l.eval⁻¹ := by
   simp only [NF.eval, List.map_map, List.prod'_inv₀, NF.instInv]
-  congr
+  congr! 2
   ext p
   simp [zpow'_neg]
 
@@ -494,7 +494,7 @@ theorem eval_zpow' [CommGroupWithZero M] (l : NF M) (r : ℤ) :
     (l ^ r).eval = zpow' l.eval r := by
   unfold NF.eval at ⊢
   simp only [List.prod'_zpow', map_map, NF.zpow_apply]
-  congr
+  congr! 2
   ext p
   simp [← zpow'_mul, mul_comm]
 
