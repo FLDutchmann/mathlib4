@@ -63,7 +63,7 @@ theorem heron {p₁ p₂ p₃ : P} (h1 : p₁ ≠ p₂) (h2 : p₃ ≠ p₂) :
       rw [sin_eq_sqrt_one_sub_cos_sq, split_to_frac, sqrt_div numerator_nonneg] <;>
         simp [γ, angle_nonneg, angle_le_pi]
     _ = 1 / 4 * √ ((2 * a * b) ^ 2 - (a * a + b * b - c * c) ^ 2) := by
-      simp (disch := positivity) [fieldExpr, numerator, denominator]; ring
+      simp (disch := positivity) [field, numerator, denominator, -mul_eq_mul_left_iff]; ring
     _ = ↑1 / ↑4 * √ (s * (s - a) * (s - b) * (s - c) * ↑4 ^ 2) := by simp only [s]; ring_nf
     _ = √ (s * (s - a) * (s - b) * (s - c)) := by
       rw [sqrt_mul', sqrt_sq, div_mul_eq_mul_div, one_mul, mul_div_cancel_right₀] <;> norm_num
