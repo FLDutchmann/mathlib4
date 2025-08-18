@@ -469,7 +469,7 @@ example {x y z : ℚ} (hx : y ≠ 0) {f : ℚ → ℚ} (hf : ∀ t, f t ≠ 0) :
 
 -- from `InnerProductGeometry.cos_angle_sub_add_angle_sub_rev_eq_neg_cos_angle`
 -- old implementation: 21794 heartbeats!!!
--- new implementation: 7691 heartbeats
+-- new implementation: 2979 heartbeats
 example {V : Type*} [AddCommGroup V] (F : V → ℚ)
     {x y : V} (hx : x ≠ 0) (hy : y ≠ 0)
     (hxn : F x ≠ 0) (hyn : F y ≠ 0) (hxyn : F (x - y) ≠ 0) :
@@ -482,11 +482,6 @@ example {V : Type*} [AddCommGroup V] (F : V → ℚ)
     = -((F x * F x + F y * F y - F (x - y) * F (x - y)) / 2 / (F x * F y))
         * F x * F y * F (x - y) * F (x - y) := by
   field_simp
-  guard_target =
-    (F x ^ 2 * 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2))
-      * (F y ^ 2 * 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2))
-      - (F x ^ 2 * F y ^ 2 * 2 ^ 2 - (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2) ^ 2)
-    = -(F (x - y) ^ 2 * (F x ^ 2 + F y ^ 2 - F (x - y) ^ 2) * 2)
   exact test_sorry
 
 /-! ## Discharger -/
