@@ -403,44 +403,48 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
   | ~q(1) => pure ⟨q(1), ⟨Sign.plus,  q(rfl)⟩, [], q(NF.one_eq_eval $M)⟩
   /- normalize an addition: `a + b` -/
   | ~q(HAdd.hAdd (self := @instHAdd _ $i) $a $b) =>
-    let ⟨_, ⟨g₁, pf_sgn₁⟩, l₁, pf₁⟩ ← normalize disch iM a
-    let ⟨_, ⟨g₂, pf_sgn₂⟩, l₂, pf₂⟩ ← normalize disch iM b
-    let ⟨L, l₁', l₂', pf₁', pf₂', _⟩ ← l₁.gcd iM l₂ disch false
-    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
-    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
-    have pf_a := ← mkEqMul iM pf_sgn₁ q(Eq.trans $pf₁ (Eq.symm $pf₁')) pf₁''
-    have pf_b := ← mkEqMul iM pf_sgn₂ q(Eq.trans $pf₂ (Eq.symm $pf₂')) pf₂''
-    let e : Q($M) := q($(g₁.expr e₁) + $(g₂.expr e₂))
-    let ⟨sum, pf_atom⟩ ← baseCase e false
-    let _i ← synthInstanceQ q(Semifield $M)
-    assumeInstancesCommute
-    let L' := qNF.mul L sum
-    let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
-      qNF.mkMulProof iM L sum
-    pure ⟨x, ⟨Sign.plus, q(rfl)⟩, L', q(subst_add $pf_a $pf_b $pf_atom $pf_mul)⟩
+    try
+      let _i ← synthInstanceQ q(Semifield $M)
+      assumeInstancesCommute
+      let ⟨_, ⟨g₁, pf_sgn₁⟩, l₁, pf₁⟩ ← normalize disch iM a
+      let ⟨_, ⟨g₂, pf_sgn₂⟩, l₂, pf₂⟩ ← normalize disch iM b
+      let ⟨L, l₁', l₂', pf₁', pf₂', _⟩ ← l₁.gcd iM l₂ disch false
+      let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
+      let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
+      have pf_a := ← mkEqMul iM pf_sgn₁ q(Eq.trans $pf₁ (Eq.symm $pf₁')) pf₁''
+      have pf_b := ← mkEqMul iM pf_sgn₂ q(Eq.trans $pf₂ (Eq.symm $pf₂')) pf₂''
+      let e : Q($M) := q($(g₁.expr e₁) + $(g₂.expr e₂))
+      let ⟨sum, pf_atom⟩ ← baseCase e false
+      let L' := qNF.mul L sum
+      let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
+        qNF.mkMulProof iM L sum
+      pure ⟨x, ⟨Sign.plus, q(rfl)⟩, L', q(subst_add $pf_a $pf_b $pf_atom $pf_mul)⟩
+    catch _ => pure ⟨x, ⟨.plus, q(rfl)⟩, ← baseCase x true⟩
   /- normalize a subtraction: `a - b` -/
   | ~q(HSub.hSub (self := @instHSub _ $i) $a $b) =>
-    let ⟨_, ⟨g₁, pf_sgn₁⟩, l₁, pf₁⟩ ← normalize disch iM a
-    let ⟨_, ⟨g₂, pf_sgn₂⟩, l₂, pf₂⟩ ← normalize disch iM b
-    let ⟨L, l₁', l₂', pf₁', pf₂', _⟩ ← l₁.gcd iM l₂ disch false
-    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
-    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
-    have pf_a := ← mkEqMul iM pf_sgn₁ q(Eq.trans $pf₁ (Eq.symm $pf₁')) pf₁''
-    have pf_b := ← mkEqMul iM pf_sgn₂ q(Eq.trans $pf₂ (Eq.symm $pf₂')) pf₂''
-    let e : Q($M) := q($(g₁.expr e₁) - $(g₂.expr e₂))
-    let ⟨sum, pf_atom⟩ ← baseCase e false
-    let _i ← synthInstanceQ q(Field $M)
-    assumeInstancesCommute
-    let L' := qNF.mul L sum
-    let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
-      qNF.mkMulProof iM L sum
-    pure ⟨x, ⟨Sign.plus, q(rfl)⟩, L', q(subst_sub $pf_a $pf_b $pf_atom $pf_mul)⟩
+    try
+      let _i ← synthInstanceQ q(Field $M)
+      assumeInstancesCommute
+      let ⟨_, ⟨g₁, pf_sgn₁⟩, l₁, pf₁⟩ ← normalize disch iM a
+      let ⟨_, ⟨g₂, pf_sgn₂⟩, l₂, pf₂⟩ ← normalize disch iM b
+      let ⟨L, l₁', l₂', pf₁', pf₂', _⟩ ← l₁.gcd iM l₂ disch false
+      let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
+      let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
+      have pf_a := ← mkEqMul iM pf_sgn₁ q(Eq.trans $pf₁ (Eq.symm $pf₁')) pf₁''
+      have pf_b := ← mkEqMul iM pf_sgn₂ q(Eq.trans $pf₂ (Eq.symm $pf₂')) pf₂''
+      let e : Q($M) := q($(g₁.expr e₁) - $(g₂.expr e₂))
+      let ⟨sum, pf_atom⟩ ← baseCase e false
+      let L' := qNF.mul L sum
+      let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
+        qNF.mkMulProof iM L sum
+      pure ⟨x, ⟨Sign.plus, q(rfl)⟩, L', q(subst_sub $pf_a $pf_b $pf_atom $pf_mul)⟩
+    catch _ => pure ⟨x, ⟨.plus, q(rfl)⟩, ← baseCase x true⟩
   /- normalize a negation: `-a` -/
   | ~q(Neg.neg (self := $i) $a) =>
-    let ⟨y, ⟨g, pf_sgn⟩, l, pf⟩ ← normalize disch iM a
     try
-      let iM' ← synthInstanceQ q(Field $M) -- FIXME don't re-synth if have it in `g`
+      let iM' ← synthInstanceQ q(Field $M)
       assumeInstancesCommute
+      let ⟨y, ⟨g, pf_sgn⟩, l, pf⟩ ← normalize disch iM a
       let ⟨G, pf_y⟩ ← Sign.neg iM' y g
       pure ⟨y, ⟨G, q(Eq.trans (congr_arg Neg.neg $pf_sgn) $pf_y)⟩, l, pf⟩
     catch _ => pure ⟨x, ⟨.plus, q(rfl)⟩, ← baseCase x true⟩
