@@ -333,14 +333,6 @@ end qNF
 
 variable {M : Q(Type v)}
 
-inductive Sign (M : Q(Type v))
-  | plus
-  | minus (iM : Q(Field $M))
-
-def Sign.expr : Sign M → Q($M) → Q($M)
-  | plus, a => a
-  | minus _, a => q(-$a)
-
 /-- The main algorithm behind the `field_simp` tactic: partially-normalizing an
 expression in a field `M` into the form x1 ^ c1 * x2 ^ c2 * ... x_k ^ c_k,
 where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
@@ -349,8 +341,9 @@ Possible TODO, if poor performance on large problems is witnessed: switch the im
 `AtomM` to `CanonM`, per the discussion
 https://github.com/leanprover-community/mathlib4/pull/16593/files#r1749623191 -/
 partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
-    (iM : Q(CommGroupWithZero $M))
-    (x : Q($M)) : AtomM (Σ (g : Sign M) (l : qNF M), Q($x = $(g.expr q(NF.eval $(l.toNF))))) := do
+    (iM : Q(CommGroupWithZero $M)) (x : Q($M)) :
+    AtomM (Σ y : Q($M), (Σ g : Sign M, Q($x = $(g.expr y))) ×
+      Σ l : qNF M, Q($y = NF.eval $(l.toNF))) := do
   let baseCase (y : Q($M)) (normalize? : Bool) :
       AtomM (Σ (l : qNF M), Q($y = NF.eval $(l.toNF))) := do
     if normalize? then
@@ -365,173 +358,99 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
   match x with
   /- normalize a multiplication: `x₁ * x₂` -/
   | ~q($x₁ * $x₂) =>
-    let ⟨g₁, l₁, pf₁⟩ ← normalize disch iM x₁
-    let ⟨g₂, l₂, pf₂⟩ ← normalize disch iM x₂
+    let ⟨y₁, ⟨g₁, pf₁_sgn⟩, l₁, pf₁⟩ ← normalize disch iM x₁
+    let ⟨y₂, ⟨g₂, pf₂_sgn⟩, l₂, pf₂⟩ ← normalize disch iM x₂
     -- build the new list and proof
     have pf := qNF.mkMulProof iM l₁ l₂
-    -- cases according to the signs of `x₁` and `x₂`
-    match g₁, g₂ with
-    | .plus, .plus => pure ⟨.plus, qNF.mul l₁ l₂, (q(NF.mul_eq_eval00 $pf₁ $pf₂ $pf):)⟩
-    | .plus, .minus i =>
-      assumeInstancesCommute
-      pure ⟨.minus i, qNF.mul l₁ l₂, (q(NF.mul_eq_eval01 $pf₁ $pf₂ $pf):)⟩
-    | .minus i, .plus =>
-      assumeInstancesCommute
-      pure ⟨.minus i, qNF.mul l₁ l₂, (q(NF.mul_eq_eval10 $pf₁ $pf₂ $pf):)⟩
-    | .minus _, .minus _ =>
-      assumeInstancesCommute
-      pure ⟨.plus, qNF.mul l₁ l₂, (q(NF.mul_eq_eval11 $pf₁ $pf₂ $pf):)⟩
+    let ⟨G, pf_y⟩ := ← Sign.mul iM y₁ y₂ g₁ g₂
+    pure ⟨q($y₁ * $y₂), ⟨G, q(Eq.trans (congr_arg₂ HMul.hMul $pf₁_sgn $pf₂_sgn) $pf_y)⟩,
+      qNF.mul l₁ l₂, q(NF.mul_eq_eval $pf₁ $pf₂ $pf)⟩
   /- normalize a division: `x₁ / x₂` -/
   | ~q($x₁ / $x₂) =>
-    let ⟨g₁, l₁, pf₁⟩ ← normalize disch iM x₁
-    let ⟨g₂, l₂, pf₂⟩ ← normalize disch iM x₂
+    let ⟨y₁, ⟨g₁, pf₁_sgn⟩, l₁, pf₁⟩ ← normalize disch iM x₁
+    let ⟨y₂, ⟨g₂, pf₂_sgn⟩, l₂, pf₂⟩ ← normalize disch iM x₂
     -- build the new list and proof
     let pf := qNF.mkDivProof iM l₁ l₂
-    -- cases according to the signs of `x₁` and `x₂`
-    match g₁, g₂ with
-    | .plus, .plus => pure ⟨.plus, qNF.div l₁ l₂, (q(NF.div_eq_eval00 $pf₁ $pf₂ $pf):)⟩
-    | .plus, .minus i =>
-      assumeInstancesCommute
-      pure ⟨.minus i, qNF.div l₁ l₂, (q(NF.div_eq_eval01 $pf₁ $pf₂ $pf):)⟩
-    | .minus i, .plus =>
-      assumeInstancesCommute
-      pure ⟨.minus i, qNF.div l₁ l₂, (q(NF.div_eq_eval10 $pf₁ $pf₂ $pf):)⟩
-    | .minus _, .minus _ =>
-      assumeInstancesCommute
-      pure ⟨.plus, qNF.div l₁ l₂, (q(NF.div_eq_eval11 $pf₁ $pf₂ $pf):)⟩
+    let ⟨G, pf_y⟩ := ← Sign.div iM y₁ y₂ g₁ g₂
+    pure ⟨q($y₁ / $y₂), ⟨G, q(Eq.trans (congr_arg₂ HDiv.hDiv $pf₁_sgn $pf₂_sgn) $pf_y)⟩,
+      qNF.div l₁ l₂, q(NF.div_eq_eval $pf₁ $pf₂ $pf)⟩
   /- normalize a inversion: `y⁻¹` -/
   | ~q($y⁻¹) =>
-    let ⟨g, l, pf⟩ ← normalize disch iM y
-    -- build the new list and proof, casing according to the signs of `x₁` and `x₂`
-    match g with
-    | .plus => pure ⟨g, l.onExponent Neg.neg, (q(NF.inv_eq_eval0 $pf):)⟩
-    | .minus _ =>
-      assumeInstancesCommute
-      pure ⟨g, l.onExponent Neg.neg, (q(NF.inv_eq_eval1 $pf):)⟩
+    let ⟨y', ⟨g, pf_sgn⟩, l, pf⟩ ← normalize disch iM y
+    let pf_y ← Sign.inv iM y' g
+    -- build the new list and proof, casing according to the sign of `x`
+    pure ⟨q($y'⁻¹), ⟨g, q(Eq.trans (congr_arg Inv.inv $pf_sgn) $pf_y)⟩,
+      l.onExponent Neg.neg, (q(NF.inv_eq_eval $pf):)⟩
   /- normalize an integer exponentiation: `y ^ (s : ℤ)` -/
   | ~q($y ^ ($s : ℤ)) =>
-    let some s := Expr.int? s | Sigma.mk Sign.plus <$> baseCase x true
+    let some s := Expr.int? s | pure ⟨x, ⟨.plus, q(rfl)⟩, ← baseCase x true⟩
     if s = 0 then
-      pure ⟨Sign.plus, [], (q(NF.zpow_zero_eq_eval $y):)⟩
+      pure ⟨q(1), ⟨Sign.plus, (q(zpow_zero $y):)⟩, [], q(NF.one_eq_eval $M)⟩
     else
-      let ⟨g, l, pf⟩ ← normalize disch iM y
+      let ⟨y', ⟨g, pf_sgn⟩, l, pf⟩ ← normalize disch iM y
       let pf_s ← mkDecideProofQ q($s ≠ 0)
-      -- build the new list and proof
-      match g with
-      | .plus => pure ⟨.plus, l.onExponent (HMul.hMul s), (q(NF.zpow_eq_eval $pf_s $pf):)⟩
-      | .minus i =>
-        assumeInstancesCommute
-        if Even s then
-          let pf_s' ← mkDecideProofQ q(Even $s)
-          pure ⟨.plus, l.onExponent (HMul.hMul s), (q(NF.zpow_eq_eval_of_eq_neg $pf_s $pf_s' $pf):)⟩
-        else
-          let pf_s' ← mkDecideProofQ q(¬ Even $s)
-          pure ⟨.minus i, l.onExponent (HMul.hMul s),
-            (q(NF.zpow_eq_eval_of_eq_neg' $pf_s' $pf):)⟩
+      let ⟨G, pf_y⟩ ← Sign.zpow iM y' g s
+      let pf_y' := q(Eq.trans (congr_arg (· ^ $s) $pf_sgn) $pf_y)
+      pure ⟨q($y' ^ $s), ⟨G, pf_y'⟩, l.onExponent (HMul.hMul s), (q(NF.zpow_eq_eval $pf_s $pf):)⟩
   /- normalize a natural number exponentiation: `y ^ (s : ℕ)` -/
   | ~q($y ^ ($s : ℕ)) =>
-    let some s := Expr.nat? s | Sigma.mk Sign.plus <$> baseCase x true
+    let some s := Expr.nat? s | pure ⟨x, ⟨.plus, q(rfl)⟩, ← baseCase x true⟩
     if s = 0 then
-      pure ⟨Sign.plus, [], (q(NF.pow_zero_eq_eval $y):)⟩
+      pure ⟨q(1), ⟨Sign.plus, (q(pow_zero $y):)⟩, [], q(NF.one_eq_eval $M)⟩
     else
-      let ⟨g, l, pf⟩ ← normalize disch iM y
+      let ⟨y', ⟨g, pf_sgn⟩, l, pf⟩ ← normalize disch iM y
       let pf_s ← mkDecideProofQ q($s ≠ 0)
-      -- build the new list and proof
-      match g with
-      | .plus => pure ⟨.plus, l.onExponent (HMul.hMul s), (q(NF.pow_eq_eval $pf_s $pf):)⟩
-      | .minus i =>
-        assumeInstancesCommute
-        if Even s then
-          let pf_s' ← mkDecideProofQ q(Even $s)
-          pure ⟨.plus, l.onExponent (HMul.hMul s), (q(NF.pow_eq_eval_of_eq_neg $pf_s $pf_s' $pf):)⟩
-        else
-          let pf_s' ← mkDecideProofQ q(¬ Even $s)
-          pure ⟨.minus i, l.onExponent (HMul.hMul s),
-            (q(NF.pow_eq_eval_of_eq_neg' $pf_s' $pf):)⟩
+      let ⟨G, pf_y⟩ ← Sign.pow iM y' g s
+      let pf_y' := q(Eq.trans (congr_arg (· ^ $s) $pf_sgn) $pf_y)
+      pure ⟨q($y' ^ $s), ⟨G, pf_y'⟩, l.onExponent (HMul.hMul s), (q(NF.pow_eq_eval $pf_s $pf):)⟩
   /- normalize a `(1:M)` -/
-  | ~q(1) => pure ⟨Sign.plus, [], q(NF.one_eq_eval $M)⟩
+  | ~q(1) => pure ⟨q(1), ⟨Sign.plus,  q(rfl)⟩, [], q(NF.one_eq_eval $M)⟩
   /- normalize an addition: `a + b` -/
   | ~q(HAdd.hAdd (self := @instHAdd _ $i) $a $b) =>
-    let ⟨g₁, l₁, pf₁⟩ ← normalize disch iM a
-    let ⟨g₂, l₂, pf₂⟩ ← normalize disch iM b
+    let ⟨_, ⟨g₁, pf_sgn₁⟩, l₁, pf₁⟩ ← normalize disch iM a
+    let ⟨_, ⟨g₂, pf_sgn₂⟩, l₂, pf₂⟩ ← normalize disch iM b
     let ⟨L, l₁', l₂', pf₁', pf₂', _⟩ ← l₁.gcd iM l₂ disch false
     let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
     let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
+    have pf_a := ← mkEqMul iM pf_sgn₁ q(Eq.trans $pf₁ (Eq.symm $pf₁')) pf₁''
+    have pf_b := ← mkEqMul iM pf_sgn₂ q(Eq.trans $pf₂ (Eq.symm $pf₂')) pf₂''
     let e : Q($M) := q($(g₁.expr e₁) + $(g₂.expr e₂))
     let ⟨sum, pf_atom⟩ ← baseCase e false
-    let pf_add_eq_mul : Q($a + $b = (NF.eval $(L.toNF)) * NF.eval $(sum.toNF)) ← do
-      match g₁, g₂ with
-      | .plus, .plus =>
-        let _i ← synthInstanceQ q(Semifield $M)
-        let pf_atom : Q($e₁ + $e₂ = NF.eval $(sum.toNF)) := pf_atom
-        assumeInstancesCommute
-        pure q(subst_add00 $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom)
-      | .plus, .minus _ =>
-        let pf_atom' : Q($e₁ + -$e₂ = NF.eval $(sum.toNF)) := pf_atom
-        assumeInstancesCommute
-        pure q(subst_add01 $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom')
-      | .minus _, .plus =>
-        let pf_atom' : Q(-$e₁ + $e₂ = NF.eval $(sum.toNF)) := pf_atom
-        assumeInstancesCommute
-        pure q(subst_add10 $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom')
-      | .minus _, .minus _ =>
-        let pf_atom' : Q(-$e₁ + -$e₂ = NF.eval $(sum.toNF)) := pf_atom
-        assumeInstancesCommute
-        pure q(subst_add11 $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom')
-    let pf_add_eq_mul : Q($a + $b = (NF.eval $(L.toNF)) * NF.eval $(sum.toNF)) := pf_add_eq_mul
+    let _i ← synthInstanceQ q(Semifield $M)
+    assumeInstancesCommute
     let L' := qNF.mul L sum
     let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
       qNF.mkMulProof iM L sum
-    pure ⟨Sign.plus, L', q(Eq.trans $pf_add_eq_mul $pf_mul)⟩
+    pure ⟨x, ⟨Sign.plus, q(rfl)⟩, L', q(subst_add $pf_a $pf_b $pf_atom $pf_mul)⟩
   /- normalize a subtraction: `a - b` -/
   | ~q(HSub.hSub (self := @instHSub _ $i) $a $b) =>
-    try
-      let ⟨g₁, l₁, pf₁⟩ ← normalize disch iM a
-      let ⟨g₂, l₂, pf₂⟩ ← normalize disch iM b
-      let ⟨L, l₁', l₂', pf₁', pf₂', _⟩ ← l₁.gcd iM l₂ disch false
-      let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
-      let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
-      let e : Q($M) := q($(g₁.expr e₁) - $(g₂.expr e₂))
-      let ⟨sum, pf_atom⟩ ← baseCase e false
-      let pf_sub_eq_mul : Q($a - $b = (NF.eval $(L.toNF))* NF.eval $(sum.toNF)) ← do
-        match g₁, g₂ with
-        | .plus, .plus =>
-          let _i ← synthInstanceQ q(Field $M)
-          let pf_atom : Q($e₁ - $e₂ = NF.eval $(sum.toNF)) := pf_atom
-          assumeInstancesCommute
-          pure q(subst_sub00 $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom)
-        | .plus, .minus _ =>
-          let pf_atom' : Q($e₁ - -$e₂ = NF.eval $(sum.toNF)) :=  pf_atom
-          assumeInstancesCommute
-          pure q(subst_sub01 $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom')
-        | .minus _, .plus =>
-          let pf_atom' : Q(-$e₁ - $e₂ = NF.eval $(sum.toNF)) := pf_atom
-          assumeInstancesCommute
-          pure q(subst_sub10 $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom')
-        | .minus _, .minus _ =>
-          let pf_atom' : Q(-$e₁ - -$e₂ = NF.eval $(sum.toNF)) := pf_atom
-          assumeInstancesCommute
-          pure q(subst_sub11 $pf₁ $pf₂ $pf₁' $pf₂' $pf₁'' $pf₂'' $pf_atom')
-      let pf_sub_eq_mul : Q($a - $b = (NF.eval $(L.toNF)) * NF.eval $(sum.toNF)) := pf_sub_eq_mul
-      let L' := qNF.mul L sum
-      let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
-        qNF.mkMulProof iM L sum
-      pure ⟨Sign.plus, L', q(Eq.trans $pf_sub_eq_mul $pf_mul)⟩
-    catch _ => (Sigma.mk Sign.plus <$> baseCase x true)
+    let ⟨_, ⟨g₁, pf_sgn₁⟩, l₁, pf₁⟩ ← normalize disch iM a
+    let ⟨_, ⟨g₂, pf_sgn₂⟩, l₂, pf₂⟩ ← normalize disch iM b
+    let ⟨L, l₁', l₂', pf₁', pf₂', _⟩ ← l₁.gcd iM l₂ disch false
+    let ⟨e₁, pf₁''⟩ ← qNF.evalPretty iM l₁'
+    let ⟨e₂, pf₂''⟩ ← qNF.evalPretty iM l₂'
+    have pf_a := ← mkEqMul iM pf_sgn₁ q(Eq.trans $pf₁ (Eq.symm $pf₁')) pf₁''
+    have pf_b := ← mkEqMul iM pf_sgn₂ q(Eq.trans $pf₂ (Eq.symm $pf₂')) pf₂''
+    let e : Q($M) := q($(g₁.expr e₁) - $(g₂.expr e₂))
+    let ⟨sum, pf_atom⟩ ← baseCase e false
+    let _i ← synthInstanceQ q(Field $M)
+    assumeInstancesCommute
+    let L' := qNF.mul L sum
+    let pf_mul : Q((NF.eval $(L.toNF)) * NF.eval $(sum.toNF) = NF.eval $(L'.toNF)) :=
+      qNF.mkMulProof iM L sum
+    pure ⟨x, ⟨Sign.plus, q(rfl)⟩, L', q(subst_sub $pf_a $pf_b $pf_atom $pf_mul)⟩
   /- normalize a negation: `-a` -/
   | ~q(Neg.neg (self := $i) $a) =>
-    let ⟨g, l, pf⟩ ← normalize disch iM a
+    let ⟨y, ⟨g, pf_sgn⟩, l, pf⟩ ← normalize disch iM a
     try
-      match g with
-      | .plus =>
-        let iM' ← synthInstanceQ q(Field $M)
-        assumeInstancesCommute
-        pure ⟨.minus iM', l, q(congrArg Neg.neg $pf)⟩
-      | .minus _ => pure ⟨.plus, l, (q(neg_eq_iff_eq_neg.mpr $pf):)⟩
-    catch _ => Sigma.mk Sign.plus <$> baseCase x true
+      let iM' ← synthInstanceQ q(Field $M) -- FIXME don't re-synth if have it in `g`
+      assumeInstancesCommute
+      let ⟨G, pf_y⟩ ← Sign.neg iM' y g
+      pure ⟨y, ⟨G, q(Eq.trans (congr_arg Neg.neg $pf_sgn) $pf_y)⟩, l, pf⟩
+    catch _ => pure ⟨x, ⟨.plus, q(rfl)⟩, ← baseCase x true⟩
   -- TODO special-case handling of zero? maybe not necessary
   /- anything else should be treated as an atom -/
-  | _ => Sigma.mk Sign.plus <$> baseCase x true
+  | _ => pure ⟨x, ⟨.plus, q(rfl)⟩, ← baseCase x true⟩
 
 /-- The main algorithm behind the `field_simp` tactic: partially-normalizing an
 expression in a field `M` into the form x1 ^ c1 * x2 ^ c2 * ... x_k ^ c_k,
@@ -540,36 +459,25 @@ where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
 Version with "pretty" output. -/
 def normalizePretty (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
     (iM : Q(CommGroupWithZero $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
-  let ⟨g, l, pf⟩ ← normalize disch iM x
+  let ⟨y, ⟨g, pf_sgn⟩, l, pf⟩ ← normalize disch iM x
   let ⟨l', pf'⟩ ← qNF.removeZeros disch q(inferInstance) l
   let ⟨x', pf''⟩ ← qNF.evalPretty iM l'
-  match g with
-  | .plus => return ⟨x', q(Eq.trans $pf (Eq.trans $pf' $pf''))⟩
-  | .minus _ => return ⟨q(-$x'), q(Eq.trans $pf (congrArg Neg.neg (Eq.trans $pf' $pf'')))⟩
+  let zz : Q($y = $x') := q(Eq.trans (Eq.trans $pf $pf') $pf'')
+  return ⟨g.expr x', q(Eq.trans $pf_sgn $(g.congr zz))⟩
 
 /-- Given `e₁` and `e₂`, cancel nonzero factors to construct a new equality which is logically
 equivalent to `e₁ = e₂`. -/
 def reduceEqQ (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
     (iM : Q(CommGroupWithZero $M)) (e₁ e₂ : Q($M)) :
     AtomM (Σ f₁ f₂ : Q($M), Q(($e₁ = $e₂) = ($f₁ = $f₂))) := do
-  let ⟨g₁, l₁, pf_l₁⟩ ← normalize disch iM e₁
-  let ⟨g₂, l₂, pf_l₂⟩ ← normalize disch iM e₂
+  let ⟨_, ⟨g₁, pf_sgn₁⟩, l₁, pf_l₁⟩ ← normalize disch iM e₁
+  let ⟨_, ⟨g₂, pf_sgn₂⟩, l₂, pf_l₂⟩ ← normalize disch iM e₂
   let ⟨_, l₁', l₂', pf_lhs, pf_rhs, pf₀⟩ ← l₁.gcd iM l₂ disch true
-  let ⟨f₁, pf_l₁'⟩ ← l₁'.evalPretty iM
-  let ⟨f₂, pf_l₂'⟩ ← l₂'.evalPretty iM
-  match g₁, g₂ with
-  | .plus, .plus =>
-    return ⟨f₁, f₂, q(eq_eq_cancel_eq00 $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
-  | .plus, .minus _ =>
-    assumeInstancesCommute
-    return ⟨f₁, q(-$f₂), q(eq_eq_cancel_eq01 $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
-  | .minus _, .plus =>
-    assumeInstancesCommute
-    return ⟨q(-$f₁), f₂, q(eq_eq_cancel_eq10 $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
-  | .minus _, .minus _ =>
-    assumeInstancesCommute
-    return ⟨q(-$f₁), q(-$f₂),
-      q(eq_eq_cancel_eq11 $pf_l₁ $pf_l₂ $pf_l₁' $pf_l₂' $pf₀ $pf_lhs $pf_rhs)⟩
+  let ⟨f₁', pf_l₁'⟩ ← l₁'.evalPretty iM
+  let ⟨f₂', pf_l₂'⟩ ← l₂'.evalPretty iM
+  have zz₁ := ← mkEqMul iM pf_sgn₁ q(Eq.trans $pf_l₁ (Eq.symm $pf_lhs)) pf_l₁'
+  have zz₂ := ← mkEqMul iM pf_sgn₂ q(Eq.trans $pf_l₂ (Eq.symm $pf_rhs)) pf_l₂'
+  return ⟨g₁.expr f₁', g₂.expr f₂', q(eq_eq_cancel_eq $zz₁ $zz₂ $pf₀)⟩
 
 /-- Given an equality `a = b`, cancel nonzero factors to construct a new equality which is logically
 equivalent to `a = b`. -/
