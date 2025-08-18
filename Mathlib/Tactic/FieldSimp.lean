@@ -335,11 +335,7 @@ variable {M : Q(Type v)}
 
 /-- The main algorithm behind the `field_simp` tactic: partially-normalizing an
 expression in a field `M` into the form x1 ^ c1 * x2 ^ c2 * ... x_k ^ c_k,
-where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
-
-Possible TODO, if poor performance on large problems is witnessed: switch the implementation from
-`AtomM` to `CanonM`, per the discussion
-https://github.com/leanprover-community/mathlib4/pull/16593/files#r1749623191 -/
+where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers. -/
 partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
     (iM : Q(CommGroupWithZero $M)) (x : Q($M)) :
     AtomM (Σ y : Q($M), (Σ g : Sign M, Q($x = $(g.expr y))) ×

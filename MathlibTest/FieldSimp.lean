@@ -72,6 +72,10 @@ example : P (x ^ (-1 : ℤ) * x ^ (-2 : ℤ)) := by test_field_simp
 
 -- Cancellation: if x could be zero, we cannot cancel x * x⁻¹.
 
+/-- info: P x⁻¹ -/
+#guard_msgs in
+example : P (x⁻¹) := by test_field_simp
+
 /-- info: P (x / x) -/
 #guard_msgs in
 example : P (x * x⁻¹) := by test_field_simp
@@ -225,6 +229,10 @@ example : P (x + y) := by test_field_simp
 /-- info: P (x * y) -/
 #guard_msgs in
 example : P (x * y) := by test_field_simp
+
+/-- info: P (x * y)⁻¹ -/
+#guard_msgs in
+example : P ((x * y)⁻¹) := by test_field_simp
 
 /-- info: P (x * y / (x * y)) -/
 #guard_msgs in
