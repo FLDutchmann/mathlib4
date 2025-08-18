@@ -66,13 +66,13 @@ example : P (x ^ 3 * x ^ 42) := by test_field_simp
 #guard_msgs in
 example {k : ℤ} : P (x ^ k * x ^ 2) := by test_field_simp
 
-/-- info: P (x ^ 3)⁻¹ -/
+/-- info: P (1 / x ^ 3) -/
 #guard_msgs in
 example : P (x ^ (-1 : ℤ) * x ^ (-2 : ℤ)) := by test_field_simp
 
 -- Cancellation: if x could be zero, we cannot cancel x * x⁻¹.
 
-/-- info: P x⁻¹ -/
+/-- info: P (1 / x) -/
 #guard_msgs in
 example : P (x⁻¹) := by test_field_simp
 
@@ -100,7 +100,7 @@ example : P (x ^ 2 * x⁻¹) := by test_field_simp
 #guard_msgs in
 example : P (x ^ 3 * x⁻¹) := by test_field_simp
 
-/-- info: P (x ^ 3)⁻¹ -/
+/-- info: P (1 / x ^ 3) -/
 #guard_msgs in
 example : P (x / x ^ 4) := by test_field_simp
 
@@ -108,7 +108,7 @@ example : P (x / x ^ 4) := by test_field_simp
 #guard_msgs in
 example : P ((x ^ (2:ℤ)) ^ 3) := by test_field_simp
 
-/-- info: P (x ^ 6)⁻¹ -/
+/-- info: P (1 / x ^ 6) -/
 #guard_msgs in
 example : P ((x ^ (-2:ℤ)) ^ 3) := by test_field_simp
 
@@ -148,7 +148,7 @@ example {hx : x ≠ 0} : P (x / x) := by test_field_simp
 #guard_msgs in
 example {hx : x ≠ 0} : P (x ^ 3 * x⁻¹) := by test_field_simp
 
-/-- info: P (x ^ 3)⁻¹ -/
+/-- info: P (1 / x ^ 3) -/
 #guard_msgs in
 example {hx : x ≠ 0} : P (x / x ^ 4) := by test_field_simp
 
@@ -230,7 +230,7 @@ example : P (x + y) := by test_field_simp
 #guard_msgs in
 example : P (x * y) := by test_field_simp
 
-/-- info: P (x * y)⁻¹ -/
+/-- info: P (1 / (x * y)) -/
 #guard_msgs in
 example : P ((x * y)⁻¹) := by test_field_simp
 
@@ -298,7 +298,7 @@ example : P (x ^ 1 * y * x ^ 2 * y ^ 3) := by test_field_simp
 #guard_msgs in
 example : P (x ^ 1 * y * x ^ 2 * y⁻¹) := by test_field_simp
 
-/-- info: P y⁻¹ -/
+/-- info: P (1 / y) -/
 #guard_msgs in
 example (hx : x ≠ 0) : P (x / (x * y)) := by test_field_simp
 
@@ -324,13 +324,33 @@ example : P (x * y * z) := by test_field_simp
 #guard_msgs in
 example : P (x * y + x * z) := by test_field_simp
 
-/-- info: P (y + z)⁻¹ -/
+/-- info: P (1 / (y + z)) -/
 #guard_msgs in
 example (hx : x ≠ 0) : P (x / (x * y + x * z))  := by test_field_simp
 
 /-- info: P (x / (x * (y + z))) -/
 #guard_msgs in
 example : P (x / (x * y + x * z))  := by test_field_simp
+
+/- ### Transparency
+
+As is standard in Mathlib tactics for algebra, `field_simp` respects let-bindings and identifies
+atoms only up to reducible defeq. -/
+
+/-- info: P (x * (y + a)) -/
+#guard_msgs in
+example : True := by
+  let a := y
+  suffices P (x * y + x * a) from test_sorry
+  test_field_simp
+
+/-- info: P (x * y * (1 + 1)) -/
+#guard_msgs in
+example : P (x * y + x * (fun t ↦ t) y) := by test_field_simp
+
+/-- info: P (x * (y + id y)) -/
+#guard_msgs in
+example : P (x * y + x * id y) := by test_field_simp
 
 end
 
@@ -558,7 +578,7 @@ inst✝¹ : LinearOrder K
 inst✝ : IsStrictOrderedRing K
 hK : ∀ (ξ : K), 0 < ξ + 1
 x : K
-⊢ (x + 1)⁻¹ = 5
+⊢ 1 / (x + 1) = 5
 -/
 #guard_msgs in
 example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by field_simp [hK x]

@@ -382,7 +382,7 @@ theorem sum_Ioc_inv_sq_le_sub {k n : ℕ} (hk : k ≠ 0) (h : k ≤ n) :
     add_le_iff_nonpos_right, neg_add_le_iff_le_add, add_zero]
   have A : 0 < (n : α) := by simpa using hk.bot_lt.trans_le hn
   field_simp
-  rw [← one_div, div_le_div_iff₀ _ A]
+  rw [div_le_div_iff₀ _ A]
   · linarith
   · positivity
 

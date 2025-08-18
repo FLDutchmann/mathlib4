@@ -119,7 +119,7 @@ theorem log_stirlingSeq_sub_log_stirlingSeq_succ (n : ℕ) :
   refine (log_stirlingSeq_diff_le_geo_sum n).trans ?_
   push_cast
   field_simp
-  rw [inv_le_inv₀ h₃ h₁]
+  rw [div_le_div_iff₀ h₃ h₁]
   ring_nf
   norm_cast
   omega
