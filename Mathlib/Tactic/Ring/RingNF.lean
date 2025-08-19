@@ -6,7 +6,6 @@ Authors: Mario Carneiro, Anne Baanen
 import Mathlib.Tactic.Ring.Basic
 import Mathlib.Tactic.TryThis
 import Mathlib.Tactic.Conv
-import Mathlib.Util.AtLoc
 import Mathlib.Util.AtomM.Recurse
 import Mathlib.Util.Qq
 
@@ -173,8 +172,8 @@ elab (name := ringNF) "ring_nf" tk:"!"? cfg:optConfig loc:(location)? : tactic =
   if tk.isSome then cfg := { cfg with red := .default, zetaDelta := true }
   let loc := (loc.map expandLocation).getD (.targets #[] true)
   let s ← IO.mkRef {}
-  let m := AtomM.recurse s cfg.toConfig evalExpr (cleanup cfg)
-  atLoc m "ring_nf" cfg.failIfUnchanged false loc
+  withLocation loc (ringNFLocalDecl s cfg) (ringNFTarget s cfg)
+    fun _ ↦ throwError "ring_nf failed"
 
 @[inherit_doc ringNF] macro "ring_nf!" cfg:optConfig loc:(location)? : tactic =>
   `(tactic| ring_nf ! $cfg:optConfig $(loc)?)
