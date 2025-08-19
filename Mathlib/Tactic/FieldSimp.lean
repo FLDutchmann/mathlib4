@@ -523,7 +523,9 @@ def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger))
     let tac := wrapSimpDischargerWithCtx FieldSimp.discharge ctx
     return (synthesizeUsing' · tac)
   | some d =>
-    -- TODO if `args` is `some`, give user a warning here that it will be ignored
+    if args.isSome then
+      logWarningAt args.get!
+        "Custom `field_simp` dischargers do not make use of the `field_simp` arguments list"
     match d with
     | `(discharger| (discharger:=$tac)) =>
       let tac := (evalTactic (← `(tactic| ($tac))) *> pruneSolvedGoals)

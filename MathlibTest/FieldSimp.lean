@@ -530,6 +530,13 @@ example (x : ℚ) (h₀ : x ≠ 0) :
   field_simp (discharger := simp; assumption)
   ring
 
+/-- warning: Custom `field_simp` dischargers do not make use of the `field_simp` arguments list -/
+#guard_msgs in
+example (x : ℚ) (h₀ : x ≠ 0) :
+    (4 / x)⁻¹ * ((3 * x ^ 3) / x) ^ 2 * ((1 / (2 * x))⁻¹) ^ 3 = 18 * x ^ 8 := by
+  field_simp (discharger := simp; assumption) [h₀]
+  ring
+
 -- mimic discharger
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n ≠ 0 := by simp [h0]
 
