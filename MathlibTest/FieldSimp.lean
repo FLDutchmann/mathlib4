@@ -520,8 +520,6 @@ example (x : ℚ) (h₀ : x ≠ 0) :
   field_simp (discharger := simp; assumption)
   ring
 
-/-! An example where quirks of simp-lemma ordering in the discharger show up -/
-
 -- mimic discharger
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n ≠ 0 := by simp [h0]
 
