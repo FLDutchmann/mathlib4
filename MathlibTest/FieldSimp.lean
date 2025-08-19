@@ -469,6 +469,7 @@ example (x : ℚ) (h₀ : x ≠ 0) :
 
 example {x y : ℚ} (h : x + y ≠ 0) : x / (x + y) + y / (x + y) = 1 := by field_simp
 example {x : ℚ} (hx : x ≠ 0) : x * x⁻¹ = 1 := by field_simp
+example {x : ℚ} : x ^ 2 * x⁻¹ = x := by field_simp
 
 /-! TODO: cancel denominators from disequalities and inequalities -/
 
@@ -588,6 +589,43 @@ example (m n : ℕ) (h : m ≤ n) (hm : (2:ℚ) < n - m) : (n:ℚ) / (n - m) = 1
 example (m n : ℕ) (h : m ≤ n) (hm : (2:ℚ) < n - m) : (n:ℚ) / (n - m) = 1 / ↑(n - m) * n := by
   simp (disch := assumption) [field]
 
+/-! ### Non-confluence issues
+
+We need to ensure that the "normal form" of the simproc `field` does not conflict with the direction
+of any Mathlib simp-lemmas, otherwise we can get infinite loops.  -/
+
+-- Mathlib simp-lemmas `neg_mul` and `mul_neg`
+example {K : Type*} [Field K] {a b c x : K} : -(c * a * x) + -b = 7 := by
+  simp [field]
+  fail_if_success rw [neg_mul]
+  fail_if_success rw [mul_neg]
+  exact test_sorry
+
+-- Mathlib simp-lemma `one_div`
+example (a b : ℚ) : a * b⁻¹ = 7 := by
+  simp [field]
+  fail_if_success rw [one_div]
+  exact test_sorry
+
+-- Mathlib simp-lemma `mul_inv_rev`
+-- from `Analysis.SpecialFunctions.Stirling`
+example (m n : ℚ) : (m * n)⁻¹ = 7 := by
+  simp [field]
+  fail_if_success rw [mul_inv_rev]
+  exact test_sorry
+
+-- undiagnosed non-confluence
+-- from `LinearAlgebra.QuadraticForm.Real`
+/--
+error: Tactic `simp` failed with a nested error:
+maximum recursion depth has been reached
+use `set_option maxRecDepth <num>` to increase limit
+use `set_option diagnostics true` to get diagnostic information
+-/
+#guard_msgs in
+example {t : ℚ} (ht : t ≠ 0) (a : ∀ t, t ≠ 0 → ℚ) : (if h : t = 0 then 1 else a t h) = 1 := by
+  simp only [field]
+
 /-! ## Units of a ring, partial division
 
 This feature was dropped in the August 2025 `field_simp` refactor.
@@ -636,9 +674,18 @@ example : a /ₚ u₁ /ₚ u₂ = a /ₚ (u₂ * u₁) := by field_simp
 
 -/
 
-/-! ## Commutative groups-with-zero -/
+/-! ## Algebraic structures weaker than `Field` -/
 
 example {K : Type} [CommGroupWithZero K] {x y : K} : y / x * x ^ 3 * y ^ 3 = x ^ 2 * y ^ 5 / y := by
+  field_simp
+
+example {K : Type} [Semifield K] {x y : K} (h : x + y ≠ 0) : x / (x + y) + y / (x + y) = 1 := by
+  field_simp
+
+-- `field_simp` implementation requires commutative multiplication
+/-- error: field_simp made no progress -/
+#guard_msgs in
+example {K : Type} [DivisionRing K] {x y : K} (h : x + y ≠ 0) : x / (x + y) + y / (x + y) = 1 := by
   field_simp
 
 /-! ## Miscellaneous -/
