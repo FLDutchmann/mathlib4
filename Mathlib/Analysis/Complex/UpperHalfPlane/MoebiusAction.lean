@@ -301,7 +301,6 @@ theorem exists_SL2_smul_eq_of_apply_zero_one_ne_zero (g : SL(2, ℝ)) (hc : g 1 
   replace h_denom : ↑c * z + d ≠ 0 := by simpa using h_denom ⟨z, hz⟩
   replace h : (a * d - b * c : ℂ) = (1 : ℂ) := by norm_cast
   field_simp
-  -- new field_simp changes denominator normalization
   ring_nf at h_denom ⊢
   field_simp
   linear_combination -h

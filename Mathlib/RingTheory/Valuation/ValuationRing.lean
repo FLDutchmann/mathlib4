@@ -133,12 +133,12 @@ protected theorem le_total (a b : ValueGroup A K) : a ≤ b ∨ b ≤ a := by
   · right
     use c
     rw [Algebra.smul_def]
-    field_simp -- different atom ordering than before
+    field_simp
     simp only [← RingHom.map_mul]; congr 1; linear_combination h
   · left
     use c
     rw [Algebra.smul_def]
-    field_simp -- different atom ordering than before
+    field_simp
     simp only [← RingHom.map_mul]; congr 1; linear_combination h
 
 -- Porting note: it is much faster to split the instance `LinearOrderedCommGroupWithZero`
@@ -208,13 +208,13 @@ noncomputable def valuation : Valuation K (ValueGroup A K) where
     · apply le_trans _ (le_max_left _ _)
       use c + 1
       rw [Algebra.smul_def]
-      field_simp -- different atom ordering than before
+      field_simp
       simp only [← RingHom.map_mul, ← RingHom.map_add]
       congr 1; linear_combination h
     · apply le_trans _ (le_max_right _ _)
       use c + 1
       rw [Algebra.smul_def]
-      field_simp -- different atom ordering than before
+      field_simp
       simp only [← RingHom.map_mul, ← RingHom.map_add]
       congr 1; linear_combination h
 

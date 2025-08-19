@@ -520,7 +520,7 @@ theorem I_mul_I_of_nonzero : (I : K) ≠ 0 → (I : K) * I = -1 :=
 theorem inv_I : (I : K)⁻¹ = -I := by
   by_cases h : (I : K) = 0
   · simp [h]
-  · field_simp -- different simp-normal form
+  · field_simp
     linear_combination I_mul_I_of_nonzero h
 
 @[simp, rclike_simps]

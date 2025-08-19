@@ -235,7 +235,6 @@ theorem smul_eq_lcRow0_add {p : Fin 2 → ℤ} (hp : IsCoprime (p 0) (p 1)) (hg 
   have nonZ2 : (p 0 : ℂ) * z + p 1 ≠ 0 := by simpa using linear_ne_zero z this
   subst hg
   rw [coe_specialLinearGroup_apply]
-  -- new field_simp changes denominator normalization
   replace nonZ2 : z * (g 1 0 : ℂ) + g 1 1 ≠ 0 := by convert nonZ2 using 1; ring
   simp [field]
   have H := congr(Int.cast (R := ℂ) $(det_fin_two g))

@@ -62,7 +62,7 @@ See also `Complex.tan_eq_zero_iff'`. -/
 theorem tan_eq_zero_iff {θ : ℂ} : tan θ = 0 ↔ ∃ k : ℤ, k * π / 2 = θ := by
   rw [tan, div_eq_zero_iff, ← mul_eq_zero, ← mul_right_inj' two_ne_zero, mul_zero,
     ← mul_assoc, ← sin_two_mul, sin_eq_zero_iff]
-  simp [field, mul_comm, eq_comm] -- field_simp gets run six times!!
+  simp [field, mul_comm, eq_comm]
 
 theorem tan_ne_zero_iff {θ : ℂ} : tan θ ≠ 0 ↔ ∀ k : ℤ, (k * π / 2 : ℂ) ≠ θ := by
   rw [← not_exists, not_iff_not, tan_eq_zero_iff]
@@ -191,7 +191,7 @@ theorem continuous_tan : Continuous fun x : {x | cos x ≠ 0} => tan x :=
 theorem cos_eq_iff_quadratic {z w : ℂ} :
     cos z = w ↔ exp (z * I) ^ 2 - 2 * w * exp (z * I) + 1 = 0 := by
   rw [← sub_eq_zero]
-  simp [field, cos, exp_neg] -- field_simp gets run six times!!
+  simp [field, cos, exp_neg]
   refine Eq.congr ?_ rfl
   ring
 
