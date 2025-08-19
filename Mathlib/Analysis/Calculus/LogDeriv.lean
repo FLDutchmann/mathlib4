@@ -79,7 +79,6 @@ theorem logDeriv_prod {ι : Type*} (s : Finset ι) (f : ι → 𝕜 → 𝕜') (
     · exact hd.1
     · exact .fun_finset_prod hd.2
 
-set_option linter.unusedSimpArgs false in
 lemma logDeriv_fun_zpow {f : 𝕜 → 𝕜'} {x : 𝕜} (hdf : DifferentiableAt 𝕜 f x) (n : ℤ) :
     logDeriv (f · ^ n) x = n * logDeriv f x := by
   rcases eq_or_ne n 0 with rfl | hn; · simp
@@ -87,7 +86,7 @@ lemma logDeriv_fun_zpow {f : 𝕜 → 𝕜'} {x : 𝕜} (hdf : DifferentiableAt 
   · simp [logDeriv_apply, zero_zpow, *]
   · rw [logDeriv_apply, ← comp_def (·^n), deriv_comp _ (differentiableAt_zpow.2 <| .inl hf) hdf,
       deriv_zpow, logDeriv_apply]
-    simp [field, zpow_ne_zero, zpow_sub_one₀ hf]
+    simp [field, zpow_sub_one₀ hf]
 
 lemma logDeriv_fun_pow {f : 𝕜 → 𝕜'} {x : 𝕜} (hdf : DifferentiableAt 𝕜 f x) (n : ℕ) :
     logDeriv (f · ^ n) x = n * logDeriv f x :=

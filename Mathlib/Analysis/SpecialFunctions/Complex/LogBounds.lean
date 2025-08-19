@@ -73,7 +73,6 @@ lemma logTaylor_at_zero (n : ℕ) : logTaylor n 0 = 0 := by
   | zero => simp [logTaylor_zero]
   | succ n ih => simpa [logTaylor_succ, ih] using ne_or_eq n 0
 
-set_option linter.unusedSimpArgs false in
 lemma hasDerivAt_logTaylor (n : ℕ) (z : ℂ) :
     HasDerivAt (logTaylor (n + 1)) (∑ j ∈ Finset.range n, (-1) ^ j * z ^ j) z := by
   induction n with
@@ -87,7 +86,7 @@ lemma hasDerivAt_logTaylor (n : ℕ) (z : ℂ) :
     have : HasDerivAt (fun x : ℂ ↦ (x ^ (n + 1) / (n + 1))) (z ^ n) z := by
       simp_rw [div_eq_mul_inv]
       convert HasDerivAt.mul_const (hasDerivAt_pow (n + 1) z) (((n : ℂ) + 1)⁻¹) using 1
-      simp [field, Nat.cast_add_one_ne_zero n]
+      simp [field]
     convert HasDerivAt.const_mul _ this using 2
     ring
 
