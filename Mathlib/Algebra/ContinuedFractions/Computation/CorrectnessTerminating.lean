@@ -178,7 +178,7 @@ theorem compExactValue_correctness_of_stream_eq_some :
       have f_ne_zero : f ≠ 0 := by simpa [f] using ifp_succ_n_fr_ne_zero
       -- now unfold the recurrence one step and simplify both sides to arrive at the conclusion
       dsimp only [conts, pconts, ppconts]
-      simp [fieldExpr, compExactValue, contsAux_recurrence s_nth_eq ppconts_eq pconts_eq,
+      simp [compExactValue, contsAux_recurrence s_nth_eq ppconts_eq pconts_eq,
         nextConts, nextNum, nextDen]
       have hfr : (IntFractPair.of (1 / ifp_n.fr)).fr = f := rfl
       grind

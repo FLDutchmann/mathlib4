@@ -152,7 +152,8 @@ theorem iter_deriv_inv_linear (k : ℕ) (c d : 𝕜) :
         ext y
         field_simp
       rw [h0, deriv_comp_mul_left c (fun x ↦ (x) ^ (-1 - k : ℤ)) (z + d / c)] at this
-      simp [field, fieldExpr, this]
+      simp [this]
+      field_simp
       ring_nf
 
 theorem iter_deriv_inv_linear_sub (k : ℕ) (c d : 𝕜) :

@@ -277,11 +277,12 @@ theorem lintegral_prod_lintegral_pow_le [Fintype ι] [∀ i, SigmaFinite (μ i)]
   have h0 : (1 : ℝ) < #ι := by norm_cast; exact Fintype.one_lt_card
   have h1 : (0 : ℝ) < #ι - 1 := by linarith
   have h2 : 0 ≤ ((1 : ℝ) / (#ι - 1 : ℝ)) := by positivity
-  have h3 : (#ι - 1 : ℝ) * ((1 : ℝ) / (#ι - 1 : ℝ)) ≤ 1 := by simp [fieldExpr]
+  have h3 : (#ι - 1 : ℝ) * ((1 : ℝ) / (#ι - 1 : ℝ)) ≤ 1 := by field_simp; rfl
   have h4 : p = 1 + 1 / (↑#ι - 1) := by simp [field]; rw [mul_comm, hp.sub_one_mul_conj]
   rw [h4]
   convert lintegral_mul_prod_lintegral_pow_le μ h2 h3 hf using 2
-  simp [fieldExpr]
+  field_simp
+  simp
 
 end DecidableEq
 
@@ -495,7 +496,9 @@ theorem eLpNorm_le_eLpNorm_fderiv_of_eq_inner {u : E → F'}
       simp (disch := assumption) [field, n', NNReal.conjExponent]
     · norm_cast
       simp_rw [n', n, eLpNormLESNormFDerivOfEqInnerConst]
-      simp [fieldExpr]
+      simp only [n, NNReal.coe_one] at hnp
+      field_simp
+      simp
   -- the case `p > 1`
   let q := Real.conjExponent p
   have hq : Real.HolderConjugate p q := .conjExponent hp

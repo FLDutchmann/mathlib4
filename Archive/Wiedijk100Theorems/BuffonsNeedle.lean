@@ -352,7 +352,9 @@ theorem buffon_long (h : d ≤ l) :
     ← intervalIntegral.integral_add_adjacent_intervals
       (intervalIntegrable_min_const_sin_mul d l _ _) (intervalIntegrable_min_const_sin_mul d l _ _),
     integral_zero_to_arcsin_min d l hd hl, integral_arcsin_to_pi_div_two_min d l hl h]
-  simp (disch := positivity) [fieldExpr]
+  field_simp
+  simp (disch := positivity)
+  field_simp
   ring_nf
 
 end BuffonsNeedle
