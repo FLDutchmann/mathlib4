@@ -67,25 +67,7 @@ run.
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
   field_simp'
 
-/--
-error: unsolved goals
-x y z : ℚ
-K : Type u_1
-inst✝ : Field K
-n : ℕ
-w : K
-h0 : w ≠ 0
-⊢ w ^ n / w ^ n = 1
--/
-#guard_msgs in
-example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
-  field_simp [pow_ne_zero]
-
-example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
-  field_simp [↓pow_ne_zero]
-
-example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by
-  field_simp [pow_ne_zero, -pow_eq_zero_iff, -pow_eq_zero_iff']
+example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = 1 := by field_simp
 
 /-! ### Non-confluence issues -/
 
@@ -102,7 +84,7 @@ example (a : ℚ) (P : ℚ → Prop) : P (a * a⁻¹) := by
   exact test_sorry
 
 /--
-error: tactic 'simp' failed, nested error:
+error: Tactic `simp` failed with a nested error:
 maximum recursion depth has been reached
 use `set_option maxRecDepth <num>` to increase limit
 use `set_option diagnostics true` to get diagnostic information
@@ -113,16 +95,10 @@ example (t : ℚ) (ht : t ≠ 0) (a : ∀ t, t ≠ 0 → ℚ) :
     (if h : t = 0 then 1 else a t h) = 1 := by
   simp only [field]
 
-/--
-error: tactic 'simp' failed, nested error:
-maximum recursion depth has been reached
-use `set_option maxRecDepth <num>` to increase limit
-use `set_option diagnostics true` to get diagnostic information
--/
-#guard_msgs in
--- this one, from Analysis.SpecialFunctions.Stirling, is due to the simp-lemma `mul_inv_rev`
+-- this one, from Analysis.SpecialFunctions.Stirling, catches looping due to simp-lemma `mul_inv_rev`
 example (n : ℚ) (P : ℚ → Prop ): P ((4 * n)⁻¹) := by
   simp [fieldExpr]
+  exact test_sorry
 
 /-! ### Testing to what extent the simproc discharger picks up hypotheses from the simp args -/
 section
@@ -158,7 +134,7 @@ example (hK : ∀ ξ : K, ξ + 1 ≠ 0) (x : K) : 1 / |x + 1| = 5 := by
 /- `simp [field, ...]` **can't** pass the provided arguments as hypotheses to `positivity`.
 Same for the old implementation (`field_simp`). -/
 
-/-- error: simp made no progress -/
+/-- error: `simp` made no progress -/
 #guard_msgs in
 -- doesn't cancel
 example (hK : ∀ ξ : K, 0 < ξ + 1) (x : K) : 1 / (x + 1) = 5 := by

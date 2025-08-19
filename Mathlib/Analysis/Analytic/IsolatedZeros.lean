@@ -50,7 +50,6 @@ variable {a : ℕ → E}
 theorem hasSum_at_zero (a : ℕ → E) : HasSum (fun n => (0 : 𝕜) ^ n • a n) (a 0) := by
   convert hasSum_single (α := E) 0 fun b h ↦ _ <;> simp [*]
 
-set_option linter.unusedSimpArgs false in
 theorem exists_hasSum_smul_of_apply_eq_zero (hs : HasSum (fun m => z ^ m • a m) s)
     (ha : ∀ k < n, a k = 0) : ∃ t : E, z ^ n • t = s ∧ HasSum (fun m => z ^ m • a (m + n)) t := by
   obtain rfl | hn := n.eq_zero_or_pos
@@ -65,7 +64,7 @@ theorem exists_hasSum_smul_of_apply_eq_zero (hs : HasSum (fun m => z ^ m • a m
       simpa [h1] using (hasSum_nat_add_iff' n).mpr hs
     convert h2.const_smul (z⁻¹ ^ n) using 2 with x
     · match_scalars
-      simp [field, pow_add, ↓pow_ne_zero]
+      simp [field, pow_add]
     · simp only [inv_pow]
 
 end HasSum

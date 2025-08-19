@@ -525,30 +525,8 @@ example (x : ℚ) (h₀ : x ≠ 0) :
 -- mimic discharger
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n ≠ 0 := by simp [h0]
 
-/--
-error: The main goal is
-  w ^ n / w ^ n = ↑n
-but was expected to be
-  1 = ↑n
--/
-#guard_msgs in
 example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = n := by
   field_simp
-  guard_target = (1:K) = n
-
-/--
-error: The main goal is
-  w ^ n / w ^ n = ↑n
-but was expected to be
-  1 = ↑n
--/
-#guard_msgs in
-example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = n := by
-  field_simp [pow_ne_zero]
-  guard_target = (1:K) = n
-
-example {K : Type*} [Field K] (n : ℕ) (w : K) (h0 : w ≠ 0) : w ^ n / w ^ n = n := by
-  field_simp [↓pow_ne_zero]
   guard_target = (1:K) = n
   exact test_sorry
 
