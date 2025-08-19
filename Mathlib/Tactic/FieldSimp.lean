@@ -5,7 +5,6 @@ Authors: Sébastien Gouëzel, David Renshaw, Heather Macbeth, Arend Mellendijk, 
 -/
 import Mathlib.Tactic.FieldSimp.Discharger
 import Mathlib.Tactic.FieldSimp.Lemmas
-import Mathlib.Tactic.FieldSimp'
 import Mathlib.Util.AtLoc
 import Mathlib.Util.AtomM.Recurse
 import Mathlib.Util.Simp
