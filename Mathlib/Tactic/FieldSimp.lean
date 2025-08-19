@@ -449,12 +449,9 @@ partial def normalize (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type
   /- anything else should be treated as an atom -/
   | _ => pure ⟨x, ⟨.plus, q(rfl)⟩, ← baseCase x true⟩
 
-/-- The main algorithm behind the `field_simp` tactic: partially-normalizing an
-expression in a field `M` into the form x1 ^ c1 * x2 ^ c2 * ... x_k ^ c_k,
-where x1, x2, ... are distinct atoms in `M`, and c1, c2, ... are integers.
-
-Version with "pretty" output. -/
-def normalizePretty (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
+/-- Given `x` in a commutative group-with-zero, construct a new expression in the standard form
+*** / *** (all denominators at the end) which is equal to `x`. -/
+def reduceExprQ (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
     (iM : Q(CommGroupWithZero $M)) (x : Q($M)) : AtomM (Σ x' : Q($M), Q($x = $x')) := do
   let ⟨y, ⟨g, pf_sgn⟩, l, pf⟩ ← normalize disch iM x
   let ⟨l', pf'⟩ ← qNF.removeZeros disch q(inferInstance) l
@@ -476,53 +473,29 @@ def reduceEqQ (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type))
   have zz₂ := ← mkEqMul iM pf_sgn₂ q(Eq.trans $pf_l₂ (Eq.symm $pf_rhs)) pf_l₂'
   return ⟨g₁.expr f₁', g₂.expr f₂', q(eq_eq_cancel_eq $zz₁ $zz₂ $pf₀)⟩
 
-/-- Given an equality `a = b`, cancel nonzero factors to construct a new equality which is logically
-equivalent to `a = b`. -/
-def eval (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (e : Expr) :
-    AtomM Simp.Result := do
-  try
-    let some ⟨_, a, b⟩ := e.eq? | throwError "not an equality"
-    -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
-    let ⟨u, K, a⟩ ← inferTypeQ' a
-    -- find a `CommGroupWithZero` instance on `K`
-    let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-    trace[Tactic.field_simp] "clearing denominators in {a} = {b}"
-    -- run the core equality-transforming mechanism on `a = b`
-    let ⟨a', b', pf⟩ ← reduceEqQ disch iK a b
-    let t' ← mkAppM ``Eq #[a', b']
-    return { expr := t', proof? := pf }
-  catch _ =>
-    -- boring unless a function application
-    guard e.isApp
-    let ⟨f, _⟩ := e.getAppFnArgs
-    guard <|
-      f ∈ [``HMul.hMul, ``HDiv.hDiv, ``Inv.inv, ``HPow.hPow, ``HAdd.hAdd, ``HSub.hSub, ``Neg.neg]
-    -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
-    let ⟨u, K, _⟩ ← inferTypeQ' e
-    -- find a `CommGroupWithZero` instance on `K`
-    let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
-    -- run the core normalization function `normalizePretty` on `e`
-    trace[Tactic.field_simp] "running conv on {e}"
-    let ⟨e, pf⟩ ← normalizePretty disch iK e
-    return { expr := e, proof? := some pf }
-
 /-- Given `x` in a commutative group-with-zero, construct a new expression in the standard form
 *** / *** (all denominators at the end) which is equal to `x`. -/
 def reduceExpr (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (x : Expr) :
-    MetaM Simp.Result := do
+    AtomM Simp.Result := do
+  -- for `field_simp` to work with the recursive infrastructure in `AtomM.recurse`, we need to fail
+  -- on things `field_simp` would treat as atoms
+  guard x.isApp
+  let ⟨f, _⟩ := x.getAppFnArgs
+  guard <|
+    f ∈ [``HMul.hMul, ``HDiv.hDiv, ``Inv.inv, ``HPow.hPow, ``HAdd.hAdd, ``HSub.hSub, ``Neg.neg]
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, _⟩ ← inferTypeQ' x
   -- find a `CommGroupWithZero` instance on `K`
   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
   -- run the core normalization function `normalizePretty` on `x`
-  trace[Tactic.field_simp] "running conv on {x}"
-  let ⟨e, pf⟩ ← AtomM.run .reducible <| normalizePretty disch iK x
+  trace[Tactic.field_simp] "putting {x} in \"field_simp\"-normal-form"
+  let ⟨e, pf⟩ ← reduceExprQ disch iK x
   return { expr := e, proof? := some pf }
 
 /-- Given an equality `a = b`, cancel nonzero factors to construct a new equality which is logically
 equivalent to `a = b`. -/
 def reduceEq (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (t : Expr) :
-    MetaM Simp.Result := do
+    AtomM Simp.Result := do
   let some ⟨_, a, b⟩ := t.eq? | throwError "not an equality"
   -- infer `u` and `K : Q(Type u)` such that `x : Q($K)`
   let ⟨u, K, a⟩ ← inferTypeQ' a
@@ -530,9 +503,11 @@ def reduceEq (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (t : E
   let iK : Q(CommGroupWithZero $K) ← synthInstanceQ q(CommGroupWithZero $K)
   trace[Tactic.field_simp] "clearing denominators in {a} = {b}"
   -- run the core equality-transforming mechanism on `a = b`
-  let ⟨a', b', pf⟩ ← AtomM.run .reducible <| reduceEqQ disch iK a b
+  let ⟨a', b', pf⟩ ← reduceEqQ disch iK a b
   let t' ← mkAppM `Eq #[a', b']
   return { expr := t', proof? := pf }
+
+/-! ### Frontend -/
 
 open Elab Tactic Lean.Parser.Tactic
 
@@ -555,13 +530,13 @@ def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger))
       return (synthesizeUsing' · tac)
     | _ => throwError "could not parse the provided discharger {d}"
 
-/-- Conv tactic for field_simp normalisation. -/
+/-- Conv tactic for `field_simp` normalisation. -/
 elab "field_simp" d:(discharger)? args:(simpArgs)? : conv => do
   -- find the expression `x` to `conv` on
   let x ← Conv.getLhs
   let disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type) ← parseDischarger d args
   -- bring into field_simp standard form
-  let r ← reduceExpr disch x
+  let r ← AtomM.run .reducible <| reduceExpr disch x
   -- convert `x` to the output of the normalization
   Conv.applySimpResult r
 
@@ -574,39 +549,23 @@ Summary of the meaning of the simproc outputs in "post" mode:
   initial expression.
 * `continue (e? : Option Result := none)` is passed to `pre` again
 -/
-def reduceEqStep (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (t : Expr) :
-    MetaM Simp.Step := do
-  try
-    let r ← reduceEq disch t
-    return .visit <| ← r.mkEqTrans (← simpOnlyNames [``one_div, ``mul_inv] r.expr)
-  catch _ =>
-    return .continue
-
-def reduceExprStep (disch : ∀ {u : Level} (type : Q(Sort u)), MetaM Q($type)) (t : Expr) :
-    MetaM Simp.Step := do
-  try
-    let r ← reduceExpr disch t
-    return .visit <| ← r.mkEqTrans (← simpOnlyNames [``one_div, ``mul_inv] r.expr)
-  catch _ =>
-    return .continue
-
 simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
   let ctx ← Simp.getContext
   let disch {u} e := synthesizeUsing' (u := u) e <|
     wrapSimpDischargerWithCtx FieldSimp.discharge ctx
-  reduceEqStep disch t
-
-simproc_decl _root_.fieldExpr (_) := fun (t : Expr) ↦ do
-  let ctx ← Simp.getContext
-  let disch {u} e := synthesizeUsing' (u := u) e <|
-    wrapSimpDischargerWithCtx FieldSimp.discharge ctx
-  reduceExprStep disch t
+  try
+    let r ← AtomM.run .reducible <| reduceEq disch t
+    -- the `field_simp`-normal form is in opposition to the `simp`-lemmas `one_div` and `mul_inv`,
+    -- so we need to undo any such lemma applications, otherwise we can get infinite loops
+    return .visit <| ← r.mkEqTrans (← simpOnlyNames [``one_div, ``mul_inv] r.expr)
+  catch _ =>
+    return .continue
 
 elab "field_simp" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => withMainContext do
   let disch ← parseDischarger d args
   let s ← IO.mkRef {}
-  let cleanup r := do r.mkEqTrans (← simpOnlyNames [``eq_self] r.expr)
-  let m := AtomM.recurse s {} (eval disch) cleanup
+  let cleanup r := do r.mkEqTrans (← simpOnlyNames [] r.expr) -- convert e.g. `x = x` to `True`
+  let m := AtomM.recurse s {} (fun e ↦ reduceEq disch e <|> reduceExpr disch e) cleanup
   let loc := (loc.map expandLocation).getD (.targets #[] true)
   atLoc m "field_simp" (failIfUnchanged := true) (mayCloseGoalFromHyp := true) loc
 
