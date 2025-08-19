@@ -215,7 +215,9 @@ theorem abs_discr_ge (h : 1 < finrank ℚ K) :
       suffices (3 : ℝ) ≤ (1 + 1 / m : ℝ) ^ (2 * m) by
         convert_to _ ≤ (a m) * (1 + 1 / m : ℝ) ^ (2 * m) / (4 / π)
         · simp_rw [a, add_mul, one_mul, pow_succ, Nat.factorial_succ]
-          simp [field, fieldExpr, div_pow]; ring
+          field_simp
+          simp [field, div_pow]
+          ring
         · rw [_root_.le_div_iff₀ (by positivity), pow_succ]
           convert (mul_le_mul h_m this (by positivity) (by positivity)) using 1
           field_simp

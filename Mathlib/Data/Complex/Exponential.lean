@@ -599,7 +599,8 @@ theorem exp_1_approx_succ_eq {n} {a₁ b₁ : ℝ} {m : ℕ} (en : n + 1 = m) {r
     |exp 1 - expNear n 1 a₁| ≤ |1| ^ n / n.factorial * b₁ := by
   subst er
   refine exp_approx_succ _ en _ _ ?_ h
-  simp [fieldExpr, show (m : ℝ) ≠ 0 by norm_cast; omega]
+  field_simp [show (m : ℝ) ≠ 0 by norm_cast; omega]
+  simp
 
 theorem exp_approx_start (x a b : ℝ) (h : |exp x - expNear 0 x a| ≤ |x| ^ 0 / Nat.factorial 0 * b) :
     |exp x - a| ≤ b := by simpa using h

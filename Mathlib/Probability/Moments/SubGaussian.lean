@@ -417,8 +417,10 @@ lemma add {Y : Ω → ℝ} {cX cY : ℝ≥0} (hX : HasSubgaussianMGF X cX κ ν)
         · exact hmY (t * q)
       _ = exp ((cX.sqrt + cY.sqrt) ^ 2 * t ^ 2 / 2) := by
         simp_rw [← exp_mul, ← exp_add]
-        simp [fieldExpr, p, q]
-        ring }
+        simp [p, q]
+        field_simp
+        linear_combination t ^ 2 * (-√↑cY * Real.sq_sqrt cX.coe_nonneg
+            -√↑cX * Real.sq_sqrt cY.coe_nonneg) }
 
 variable {Ω'' : Type*} {mΩ'' : MeasurableSpace Ω''} {Y : Ω'' → ℝ} {cY : ℝ≥0}
 

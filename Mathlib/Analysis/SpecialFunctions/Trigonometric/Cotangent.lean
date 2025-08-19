@@ -82,7 +82,7 @@ theorem tendsto_euler_sin_prod' (h0 : x ≠ 0) :
     (𝓝 (sin (π * x) / (π * x))) := by
   rw [show (sin (π * x) / (π * x)) = sin (π * x) * (1 / (π * x)) by ring]
   apply (Filter.Tendsto.mul_const (b := 1 / (π * x)) (tendsto_euler_sin_prod x)).congr
-  exact fun n ↦ by field_simp; ring_nf
+  exact fun n ↦ by field_simp; rfl
 
 theorem multipliable_sineTerm (x : ℂ) : Multipliable fun i ↦ (1 + sineTerm x i) := by
   apply multipliable_one_add_of_summable

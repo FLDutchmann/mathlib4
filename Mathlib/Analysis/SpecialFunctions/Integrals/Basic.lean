@@ -579,7 +579,9 @@ theorem integral_sin_pow_three :
 theorem integral_sin_pow_even_mul_cos_pow_even (m n : ℕ) :
     (∫ x in a..b, sin x ^ (2 * m) * cos x ^ (2 * n)) =
       ∫ x in a..b, ((1 - cos (2 * x)) / 2) ^ m * ((1 + cos (2 * x)) / 2) ^ n := by
-  simp [fieldExpr, pow_mul, sin_sq, cos_sq, ← sub_sub, (by ring : (2 : ℝ) - 1 = 1)]
+  simp [pow_mul, sin_sq, cos_sq, ← sub_sub]
+  field_simp
+  norm_num
 
 @[simp]
 theorem integral_sin_sq_mul_cos_sq :
