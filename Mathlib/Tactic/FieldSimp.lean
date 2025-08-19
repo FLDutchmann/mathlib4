@@ -16,7 +16,7 @@ import Mathlib.Util.SynthesizeUsing
 
 -/
 
-open Lean Meta Elab Qq Mathlib.Tactic List
+open Lean Meta Qq
 
 namespace Mathlib.Tactic.FieldSimp
 
@@ -530,7 +530,38 @@ def parseDischarger (d : Option (TSyntax `Lean.Parser.Tactic.discharger))
       return (synthesizeUsing' · tac)
     | _ => throwError "could not parse the provided discharger {d}"
 
-/-- Conv tactic for `field_simp` normalisation. -/
+/--
+The goal of `field_simp` is to reduce an expression in a field to an expression of the form `n / d`
+where neither `n` nor `d` contains any division symbol.
+
+If the goal is an equality, this tactic will also clear the denominators, so that the proof
+can normally be concluded by an application of `ring`.
+
+For example,
+```lean
+example (a b c d x y : ℂ) (hx : x ≠ 0) (hy : y ≠ 0) :
+    a + b / x + c / x ^ 2 + d / x ^ 3 = a + x⁻¹ * (y * b / y + (d / x + c) / x) := by
+  field_simp
+  ring
+```
+
+Cancelling and combining denominators often requires "nonzeroness" side conditions. The `field_simp`
+tactic attempts to discharge these, and will omit such steps if it cannot discharge the
+corresponding side conditions. The discharger will try, among other things, `positivity` and
+`norm_num`, and will also use any nonzeroness proofs included explicitly (e.g. `field_simp [hx]`).
+If your expression is not completely reduced by `field_simp`, check the denominators of the
+resulting expression and provide proofs that they are nonzero to enable further progress.
+-/
+elab (name := fieldSimp) "field_simp" d:(discharger)? args:(simpArgs)? loc:(location)? :
+    tactic => withMainContext do
+  let disch ← parseDischarger d args
+  let s ← IO.mkRef {}
+  let cleanup r := do r.mkEqTrans (← simpOnlyNames [] r.expr) -- convert e.g. `x = x` to `True`
+  let m := AtomM.recurse s {} (fun e ↦ reduceEq disch e <|> reduceExpr disch e) cleanup
+  let loc := (loc.map expandLocation).getD (.targets #[] true)
+  atLoc m "field_simp" (failIfUnchanged := true) (mayCloseGoalFromHyp := true) loc
+
+@[inherit_doc fieldSimp]
 elab "field_simp" d:(discharger)? args:(simpArgs)? : conv => do
   -- find the expression `x` to `conv` on
   let x ← Conv.getLhs
@@ -540,36 +571,23 @@ elab "field_simp" d:(discharger)? args:(simpArgs)? : conv => do
   -- convert `x` to the output of the normalization
   Conv.applySimpResult r
 
-/-
-Simprocs are `post` by default (but calling with `↓`, i.e. `simp [↓field, ...]`, makes it `pre`).
+end Mathlib.Tactic.FieldSimp
 
-Summary of the meaning of the simproc outputs in "post" mode:
-* `done (r : Result)` returns the result.
-* `visit (e : Result)` is passed to `pre` again IF resulting expression is not equal (`==`) to
-  initial expression.
-* `continue (e? : Option Result := none)` is passed to `pre` again
--/
-simproc_decl _root_.field (Eq _ _) := fun (t : Expr) ↦ do
+open Mathlib.Tactic
+
+simproc_decl field (Eq _ _) := fun (t : Expr) ↦ do
   let ctx ← Simp.getContext
   let disch {u} e := synthesizeUsing' (u := u) e <|
     wrapSimpDischargerWithCtx FieldSimp.discharge ctx
   try
-    let r ← AtomM.run .reducible <| reduceEq disch t
+    let r ← AtomM.run .reducible <| FieldSimp.reduceEq disch t
     -- the `field_simp`-normal form is in opposition to the `simp`-lemmas `one_div` and `mul_inv`,
     -- so we need to undo any such lemma applications, otherwise we can get infinite loops
     return .visit <| ← r.mkEqTrans (← simpOnlyNames [``one_div, ``mul_inv] r.expr)
   catch _ =>
     return .continue
 
-elab "field_simp" d:(discharger)? args:(simpArgs)? loc:(location)? : tactic => withMainContext do
-  let disch ← parseDischarger d args
-  let s ← IO.mkRef {}
-  let cleanup r := do r.mkEqTrans (← simpOnlyNames [] r.expr) -- convert e.g. `x = x` to `True`
-  let m := AtomM.recurse s {} (fun e ↦ reduceEq disch e <|> reduceExpr disch e) cleanup
-  let loc := (loc.map expandLocation).getD (.targets #[] true)
-  atLoc m "field_simp" (failIfUnchanged := true) (mayCloseGoalFromHyp := true) loc
-
-end Mathlib.Tactic.FieldSimp
+attribute [inherit_doc FieldSimp.fieldSimp] field
 
 /-!
  We register `field_simp` with the `hint` tactic.

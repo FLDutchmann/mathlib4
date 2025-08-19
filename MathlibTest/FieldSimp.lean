@@ -375,6 +375,11 @@ example {x y : ℚ} (hx : 0 < x) :
 example {a b : ℚ} (ha : a ≠ 0) : a / (a * b) - 1 / b = 0 := by field
 example {x : ℚ} : x ^ 2 * x⁻¹ = x := by field
 
+-- example from the `field_simp` docstring
+example {K : Type*} [Field K] (a b c d x y : K) (hx : x ≠ 0) (hy : y ≠ 0) :
+    a + b / x + c / x ^ 2 + d / x ^ 3 = a + x⁻¹ * (y * b / y + (d / x + c) / x) := by
+  field
+
 /-! ### Mid-proof use -/
 
 example {K : Type*} [Semifield K] (x y : K) (hy : y + 1 ≠ 0) : 2 * x / (y + 1) = x := by
