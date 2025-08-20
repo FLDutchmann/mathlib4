@@ -368,11 +368,24 @@ partial def evalAdd {u : Level} {A : Q(Type u)}
     return ⟨_, va₂, q(sorry /-hmul_cast_zero_mul (R₁ := $A₁) $a₂-/)⟩
   | .add (R := R₁) (sR := sR₁) (r := r₁) (a := a₁) (b := t₁) sRA₁ vr₁ va₁ vt₁,
     .add (R := R₂) (sR := sR₂) (r := r₂) (a := a₂) (b := t₂) sRA₂ vr₂ va₂ vt₂ =>
-    match vr₁, vr₂ with
-    | .one, .one =>
-      throwError "evalAdd not implemented."
-    | vr₁, vr₂ =>
-      throwError "evalAdd not implemented."
+  match va₁.cmp va₂ with
+  | .lt => do
+    IO.println s!"Comparison of {← ppExpr a₁} and {← ppExpr a₂} was lt. adding {va₁.atomsList} first"
+    let ⟨_, vt, pt⟩ ← evalAdd sA vt₁ (.add sRA₂ vr₂ va₂ vt₂)
+    return ⟨_, .add sRA₁ vr₁ va₁ vt, q(sorry)⟩
+  | .gt => do
+    IO.println s!"Comparison of {← ppExpr a₁} and {← ppExpr a₂} was gt. adding {va₂.atomsList} first"
+    let ⟨_, vt, pt⟩ ← evalAdd sA vt₂ (.add sRA₁ vr₁ va₁ vt₁)
+    return ⟨_, .add sRA₂ vr₂ va₂ vt, q(sorry)⟩
+  | .eq => do
+    IO.println s!"Comparison {← ppExpr a₁} and {← ppExpr a₂} was eq. exprod was {va₁.atomsList}."
+    let ⟨_, vt, pt⟩ ← evalAdd sA vt₁ vt₂
+    let ⟨u, R, sR, sRA, r, a, vr, va, par⟩ ← evalAddExProd sRA₁ sRA₂ va₁ va₂ vr₁ vr₂
+    return ⟨_, .add sRA vr va vt, q(sorry)⟩
+      -- throwError "evalAdd not implemented."
+
+
+
   -- | .one , .one => do
   --   -- TODO: insert the specific instance.
   --   return ⟨_, .add q(inferInstance : Algebra ℕ $A) .one (.const (e := q(2:$A)) 2) .zero, q(sorry)⟩
@@ -412,6 +425,7 @@ partial def evalMul_exProd {u : Level} {A : Q(Type u)}
     (va₂ : Ring.ExProd q($sA) q($a₂)) :
     ExSum q($sA) a₁ → MetaM (Result (ExSum sA) q($a₁ * $a₂))
   | .zero => do
+    IO.println s!"evalMul_exProd on {← ppExpr a₁} and {← ppExpr a₂}"
     assumeInstancesCommute
     return ⟨_, .zero, q(sorry /-hmul_cast_zero_mul (R₁ := $A₁) $a₂-/)⟩
   -- | .one => do
@@ -483,7 +497,7 @@ partial def matchRingsSMul {v : Level} {A : Q(Type v)}
   {iA : Q(Semiring $A)}
   {u₁ : Level} {R₁ : Q(Type u₁)} (iR₁ : Q(CommSemiring $R₁)) (iRA₁ : Q(@Algebra $R₁ $A $iR₁ $iA))
   {u₂ : Level} {R₂ : Q(Type u₂)} (iR₂ : Q(CommSemiring $R₂)) (iRA₂ : Q(@Algebra $R₂ $A $iR₂ $iA))
- {r₁ : Q($R₁)} {r₂ : Q($R₂)} (vr₁ : ExBase iR₁ r₁) (vr₂ : ExBase iR₂ r₂) (a : Q($A)) :
+ {r₁ : Q($R₁)} {r₂ : Q($R₂)} (vr₁ : ExSum iR₁ r₁) (vr₂ : ExSum iR₂ r₂) (a : Q($A)) :
     MetaM <|
       Σ u : Level, Σ R : Q(Type u), Σ iR : Q(CommSemiring $R),
       Σ _ : Q(@Algebra $R $A $iR $iA),
@@ -500,11 +514,12 @@ partial def matchRingsSMul {v : Level} {A : Q(Type v)}
     /- Is this safe and correct? -/
     -- have : Q($r₁' • $r₂ • $a = $r₁ • $r₂ • $a) := ← Lean.Meta.mkEqRefl q($r₁ • $r₂ • $a)
     let ⟨r₁', vr₁'⟩ := vr₁.cast iR₂
-    let ⟨r₁', vr₁', pr₁'⟩ := vr₁'.toExSum
-    let ⟨r₂', vr₂', pr₂'⟩ := vr₂.toExSum
+    -- let ⟨r₁', vr₁', pr₁'⟩ := vr₁'.toExSum
+    -- let ⟨r₂', vr₂', pr₂'⟩ := vr₂.toExSum
     have : $r₁' =Q $r₁ := ⟨⟩
-    let ⟨r, vr, pr⟩ ← evalMul iR₂ vr₁' vr₂'
+    let ⟨r, vr, pr⟩ ← evalMul iR₂ vr₁' vr₂
     pure ⟨_, R₂, iR₂, iRA₂, r, vr, q(sorry /- $this  @smul_smul $R₂ $A _ _ $r₁' $r₂ $a -/ )⟩
+
   -- otherwise the "smaller" of the two rings must be commutative
   else try
     -- first try to exhibit `R₂` as an `R₁`-algebra
@@ -514,8 +529,8 @@ partial def matchRingsSMul {v : Level} {A : Q(Type v)}
     let _i₄ ← synthInstanceQ q(IsScalarTower $R₁ $R₂ $A)
     IO.println s!"synthed IsScalarTower instance {R₁} {R₂} {A}"
     assumeInstancesCommute
-    let ⟨r₂', vr₂', pr₂'⟩ := vr₂.toExSum
-    let ⟨r, vr, pr⟩ ← evalSMul iR₂ iR₁ _i₃ vr₁ vr₂'
+    -- let ⟨r₂', vr₂', pr₂'⟩ := vr₂.toExSum
+    let ⟨r, vr, pr⟩ ← evalSMul iR₂ iR₁ _i₃ (.sum vr₁) vr₂
     pure ⟨u₂, R₂, iR₂, iRA₂, r, vr, q(sorry)⟩
   catch e => try
     throw e
@@ -525,18 +540,18 @@ partial def matchRingsSMul {v : Level} {A : Q(Type v)}
     IO.println s!"synthed algebra instance {R₂} {R₁}"
     let _i₄ ← synthInstanceQ q(IsScalarTower $R₂ $R₁ $A)
     assumeInstancesCommute
-    let ⟨r₁', vr₁', pr₁'⟩ := vr₁.toExSum
-    let ⟨r, vr, pr⟩ ← evalSMul iR₁ iR₂ _i₃ vr₂ vr₁'
+    -- let ⟨r₁', vr₁', pr₁'⟩ := vr₁.toExSum
+    let ⟨r, vr, pr⟩ ← evalSMul iR₁ iR₂ _i₃ (.sum vr₂) vr₁
     pure ⟨u₁, R₁, iR₁, iRA₁, r, vr, q(sorry)⟩
   catch o =>
     throw o
-    throwError "algebra failed: {R₁} is not an {R₂}-algebra and {R₂} is not an {R₁}-algebra"
+    throwError s!"algebra failed: {← ppExpr R₁} is not an {← ppExpr R₂}-algebra and {← ppExpr R₂} is not an {← ppExpr R₁}-algebra"
 
 partial def evalSMul {u v : Level} {R : Q(Type u)} {A : Q(Type v)} (sA : Q(CommSemiring $A))
-  (sR : Q(CommSemiring $R)) (sRA : Q(Algebra $R $A)) {r : Q($R)} {a : Q($A)} (vr : ExBase sR r)
-    : ExSum sA a →
+  (sR : Q(CommSemiring $R)) (sRA : Q(Algebra $R $A)) {r : Q($R)} {a : Q($A)} :
+   ExBase sR r → ExSum sA a →
     MetaM (Result (ExSum sA) q($r • $a))
-  | .zero => do
+  | vr,  .zero => do
     -- TODO: is this the right way to do this?
     assumeInstancesCommute
     return ⟨_, .zero, q(smul_zero_rawCast (r := $r) (A := $A))⟩
@@ -544,10 +559,13 @@ partial def evalSMul {u v : Level} {R : Q(Type u)} {A : Q(Type v)} (sA : Q(CommS
   --   assumeInstancesCommute
   --   return ⟨_, .add sRA vr (.const (e := q(1 : $A)) 1 .none) .zero, q((add_rawCast_zero).symm)⟩
     /- Note: removing the (a := a) produces an inscrutable error during a pattern match-/
-  | .add (R := S) (sR := sS) sSA (r := s) (a := a) vs va vt => do
+  | .one, va => do
+    return ⟨_, va, q(by simp)⟩
+  | .sum vr, .add (R := S) (sR := sS) sSA (r := s) (a := a) vs va vt => do
     assumeInstancesCommute
-    let ⟨et, vt, pt⟩ ← evalSMul sA sR sRA vr vt
-    let ⟨u₁, R₁, iR₁, sR₁A, r₁, vr₁, pr₁⟩ ← matchRingsSMul sS sSA sR sRA vs vr a
+    let ⟨et, vt, pt⟩ ← evalSMul sA sR sRA (.sum vr) vt
+    let ⟨_, vs', ps'⟩ := vs.toExSum
+    let ⟨u₁, R₁, iR₁, sR₁A, r₁, vr₁, pr₁⟩ ← matchRingsSMul sS sSA sR sRA vs' vr a
     -- sorry
     return ⟨_, .add sR₁A (.sum vr₁) va vt, q(sorry)⟩
 
@@ -666,50 +684,51 @@ example {S R A : Type*} [CommSemiring S] [CommSemiring R] [CommSemiring A] [Alge
 end Mathlib.Tactic.Algebra
 
 
--- example (x : ℚ) :  x = (1 : ℤ) • x := by
---   simp_rw [← SMul.smul_eq_hSMul]
---   algebra
---   match_scalars <;> simp
+example (x : ℚ) :  x = (1 : ℤ) • x := by
+  simp_rw [← SMul.smul_eq_hSMul]
+  algebra
+  match_scalars <;> simp
 
--- example (x : ℚ) : x = 1 := by
---   algebra
---   sorry
+example (x : ℚ) : x = 1 := by
+  algebra
+  sorry
 
--- -- BUG: ExProd.one doesn't match with the empty product in sums.
--- example (x : ℚ) : x + x + x  = 3 * x := by
---   -- algebra
---   sorry
+-- BUG: ExProd.one doesn't match with the empty product in sums.
+example (x : ℚ) : x + x + x  = 3 * x := by
+  algebra
+  sorry
 
--- -- BUG: infinite loop
--- example (x : ℚ) : (x + x) + (x + x)  = 4 * x := by
---   algebra
---   -- simp
---   sorry
+-- BUG: infinite loop
+example (x : ℚ) : (x + x) + (x + x)  = 4 * x := by
+  algebra
+  -- simp
+  simp only [Nat.rawCast, Nat.cast_one, pow_one, Nat.cast_ofNat, one_smul, Nat.cast_zero, add_zero,
+    mul_one]
 
--- -- BUG: the x*y terms are not being combined.
--- example (x y : ℚ) : (x + y)*(x+y) = 1 := by
---   -- simp_rw [← SMul.smul_eq_hSMul]
---   algebra
---   simp only [show Nat.rawCast 1 = 1 by rfl]
---   simp only [pow_one, Nat.rawCast, Nat.cast_one, mul_one, one_smul, Nat.cast_ofNat, Nat.cast_zero,
---     add_zero]
+-- BUG: the x*y terms are not being combined.
+example (x y : ℚ) : (x + y)*(x+y) = 1 := by
+  -- simp_rw [← SMul.smul_eq_hSMul]
+  algebra
+  simp only [show Nat.rawCast 1 = 1 by rfl]
+  simp only [pow_one, Nat.rawCast, Nat.cast_one, mul_one, one_smul, Nat.cast_ofNat, Nat.cast_zero,
+    add_zero]
 
 --   sorry
 
 --   -- match_scalars <;> simp
 
--- example (x y : ℚ) : (x+y)*x = 1 := by
---   -- simp_rw [← SMul.smul_eq_hSMul]
---   algebra
---   simp only [show Nat.rawCast 1 = 1 by rfl]
---   simp only [pow_one, Nat.rawCast, Nat.cast_one, mul_one, one_smul, Nat.cast_ofNat, Nat.cast_zero,
---     add_zero]
---   sorry
+example (x y : ℚ) : (x+y)*x = 1 := by
+  -- simp_rw [← SMul.smul_eq_hSMul]
+  algebra
+  simp only [show Nat.rawCast 1 = 1 by rfl]
+  simp only [pow_one, Nat.rawCast, Nat.cast_one, mul_one, one_smul, Nat.cast_ofNat, Nat.cast_zero,
+    add_zero]
+  sorry
 
--- example (x y : ℚ) : (x+y)*y  = 1 := by
---   -- simp_rw [← SMul.smul_eq_hSMul]
---   algebra
---   simp only [show Nat.rawCast 1 = 1 by rfl]
---   simp only [pow_one, Nat.rawCast, Nat.cast_one, mul_one, one_smul, Nat.cast_ofNat, Nat.cast_zero,
---     add_zero]
---   sorry
+example (x y : ℚ) : (x+y)*y  = 1 := by
+  -- simp_rw [← SMul.smul_eq_hSMul]
+  algebra
+  simp only [show Nat.rawCast 1 = 1 by rfl]
+  simp only [pow_one, Nat.rawCast, Nat.cast_one, mul_one, one_smul, Nat.cast_ofNat, Nat.cast_zero,
+    add_zero]
+  sorry
