@@ -315,8 +315,8 @@ def preprocess (mvarId : MVarId) : MetaM MVarId := do
 def cleanupSMul (cfg : RingNF.Config) (r : Simp.Result) : MetaM Simp.Result := do
   let thms : SimpTheorems := {}
   let thms ← [``add_zero, ``add_assoc_rev, ``_root_.mul_one, ``mul_assoc_rev, ``_root_.pow_one,
-    ``mul_neg, ``add_neg, ``one_smul, ``mul_smul_comm, ``Nat.algebraMap_eq_cast,
-    ``Int.algebraMap_eq_cast].foldlM (·.addConst ·) thms
+    ``mul_neg, ``add_neg, ``one_smul, ``mul_smul_comm, ``Algebra.algebraMap_eq_smul_one
+    ].foldlM (·.addConst ·) thms
   let thms ← [``nat_rawCast_0, ``nat_rawCast_1, ``nat_rawCast_2, ``int_rawCast_neg,
       ``nnrat_rawCast, ``rat_rawCast_neg].foldlM (·.addConst · (post := false)) thms
   let ctx ← Simp.mkContext { zetaDelta := cfg.zetaDelta }
@@ -341,6 +341,18 @@ def cleanupConsts (cfg : RingNF.Config) (r : Simp.Result) : MetaM Simp.Result :=
     (congrTheorems := ← getSimpCongrTheorems)
   pure <| ←
     r.mkEqTrans (← Simp.main r.expr ctx (methods := Lean.Meta.Simp.mkDefaultMethodsCore {})).1
+
+/-- A cleanup routine for `algebra_nf`, which simplifies normalized expressions
+to a more human-friendly format. -/
+def cleanup (cfg : RingNF.Config) (r : Simp.Result) : MetaM Simp.Result := do
+  match cfg.mode with
+  | .raw => pure r
+  | .SOP => do
+    /- These two routines cannot be combined into one because the rules
+    "x * (n • y) → n • (x * y)" and "4 • x → 4 * x" are not confluent. -/
+    let r ← cleanupSMul cfg r
+    let r ← cleanupConsts cfg r
+    return r
 
 /-- Collect all scalar rings from scalar multiplications using a state monad for performance.
 
@@ -481,5 +493,88 @@ elab (name := algebraWith) "algebra" " with " R:term : tactic =>
     let ⟨u, R⟩ ← getLevelQ' (← elabTerm R none)
     let g ← getMainGoal
     AtomM.run .default (proveEq (some ⟨u, R⟩) g)
+
+/-- Check if an expression is an atom or can be simplified by `norm_num`, versus being an algebraic
+operation that should be normalized by `eval`. Used by `algebra_nf`. -/
+def isAtomOrDerivable (cr : Algebra.Cache sR) (ca : Algebra.Cache sA) (e : Q($A)) :
+    AtomM (Option (Option (Common.Result (ExSum sAlg) e))) := do
+  let els := try
+      pure <| some (evalCast sAlg cr ca (← derive e))
+    catch _ => pure (some none)
+  let .const n _ := (← withReducible <| whnf e).getAppFn | els
+  match n, ca.rα, cr.rα, ca.dsα with
+  | ``HAdd.hAdd, _, _, _ | ``Add.add, _, _, _
+  | ``HMul.hMul, _, _, _ | ``Mul.mul, _, _, _
+  | ``HSMul.hSMul, _, _, _| ``SMul.smul, _, _, _
+  | ``HPow.hPow, _, _, _ | ``Pow.pow, _, _, _
+  | ``Neg.neg, some _, some _, _
+  | ``HSub.hSub, some _, some _, _ | ``Sub.sub, some _, some _, _ => pure none
+  | _, _, _, _ => els
+
+/-- The core of `algebra_nf with R` - normalize the expression `e` over the base ring `R` -/
+def evalExpr {u : Lean.Level} (R : Q(Type u)) (e : Expr) : AtomM Simp.Result := do
+  let e ← withReducible <| whnf e
+  guard e.isApp -- all interesting ring expressions are applications
+  let ⟨v, A, e⟩ ← inferTypeQ' e
+  let sA ← synthInstanceQ q(CommSemiring $A)
+  let sR ← synthInstanceQ q(CommSemiring $R)
+  let sAlg ← synthInstanceQ q(Algebra $R $A)
+  let cr ← Algebra.mkCache sR
+  let ca ← Algebra.mkCache sA
+  assumeInstancesCommute
+  let ⟨a, _, pa⟩ ← match ← isAtomOrDerivable q($sAlg) cr ca q($e) with
+    -- `none` indicates that `eval` will find something algebraic.
+  | none => Common.eval rcℕ (ringCompute sAlg cr ca) ca.toCache e
+  | some none => failure -- No point rewriting atoms
+  | some (some r) => pure r -- Nothing algebraic for `eval` to use, but `norm_num` simplifies.
+  pure { expr := a, proof? := pa }
+
+/-- The core of `algebra_nf` - normalize an expression while first inferring the base ring `R`.
+
+This is somewhat unstable as the normal form will depend on `R` and the inferred ring depends
+strongly on the form of the initial expression. For example: ⊢ P ((n : ℕ) • x) ∧ P ((n : ℤ) • x)
+is unchanged by `algebra_nf` -/
+def evalExprInfer (e : Expr) : AtomM Simp.Result := do
+  let ⟨_, A, e⟩ ← inferTypeQ' e
+  let sA ← synthInstanceQ q(CommSemiring $A)
+  let cA ← mkCache q($sA)
+  let ⟨_, R⟩ ← inferBase cA e
+  evalExpr R e
+
+
+/-- Attempt to normalize all expressions in an algebra over some fixed base ring. -/
+elab (name := algebraNFWith) "algebra_nf" tk:"!"? " with " R:term loc:(location)?  : tactic =>
+  withMainContext do
+    liftMetaTactic' preprocess
+    let mut cfg : RingNF.Config := {}
+    let ⟨_u, R⟩ ← getLevelQ' (← elabTerm R none)
+    if tk.isSome then cfg := { cfg with red := .default, zetaDelta := true }
+    let loc := (loc.map expandLocation).getD (.targets #[] true)
+    let s ← IO.mkRef {}
+    let m := AtomM.recurse s cfg.toConfig (wellBehavedDischarge := true)
+      (evalExpr R) (cleanup cfg)
+    transformAtLocation (m ·) "algebra_nf" loc cfg.ifUnchanged false
+
+/-- Attempt to normalize all expressions in algebras over commutative rings.
+
+The tactic attempts to infer the base ring from the expression being normalized, and may infer
+different rings on different subexpressions. This makes the normal form unpredictable.
+
+Use `algebra_nf with` instead. -/
+elab (name := algebraNF) "algebra_nf" tk:"!"? loc:(location)?  : tactic =>
+  withMainContext do
+    liftMetaTactic' preprocess
+    let suggestion : Tactic.TryThis.Suggestion := {
+      suggestion := ← `(tactic| algebra_nf with _)
+      postInfo? := "\n\n 'algebra_nf' without specifying the base ring is unstable. \
+      Use `algebra_nf with` instead." }
+    Meta.Tactic.TryThis.addSuggestion (← getRef) suggestion (origSpan? := ← getRef)
+    let mut cfg := {}
+    if tk.isSome then cfg := { cfg with red := .default, zetaDelta := true }
+    let loc := (loc.map expandLocation).getD (.targets #[] true)
+    let s ← IO.mkRef {}
+    let m := AtomM.recurse s cfg.toConfig (wellBehavedDischarge := true) evalExprInfer
+      (cleanup cfg)
+    transformAtLocation (m ·) "algebra_nf" loc cfg.ifUnchanged false
 
 end Mathlib.Tactic.Algebra

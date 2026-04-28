@@ -146,3 +146,75 @@ example {A R R' : Type*} [CommRing A] [CommRing R] [CommRing R'] [Algebra R A] [
 example {A R R' : Type*} [CommRing A] [CommRing R] [CommRing R'] [Algebra R A] [Algebra R' A] (r : R) (r' : R') (x : A) :
 (r : R) • x + (1 : ℕ) • x + (r' : R') • x = (r' : R') • x + (1 : ℕ) • x + (r : R) • x:= by
   algebra
+
+/--
+info: Try this:
+  [apply] algebra_nf with _
+  ⏎
+   'algebra_nf' without specifying the base ring is unstable. Use `algebra_nf with` instead.
+-/
+#guard_msgs in
+example (x : ℚ) (a : ℤ) : algebraMap ℤ ℚ a * x = a • x := by
+  algebra_nf
+
+/--
+info: Try this:
+  [apply] algebra_nf with _
+  ⏎
+   'algebra_nf' without specifying the base ring is unstable. Use `algebra_nf with` instead.
+-/
+#guard_msgs in
+example (x : ℚ) (n : ℕ) : n • x + x = (n : ℤ) • x + x := by
+  algebra_nf
+  /- This behaviour is not desirable, it would be better if both sides were lifted to nsmul or zsmul.
+  We keep the test to document this behaviour. For this reason we push users to provide an explicit
+  base ring. -/
+  guard_target = (1 + n) • x = (1 + ↑n : ℤ) • x
+  exact sorryAlgebraTest
+
+/--
+info: Try this:
+  [apply] algebra_nf with _
+  ⏎
+   'algebra_nf' without specifying the base ring is unstable. Use `algebra_nf with` instead.
+-/
+#guard_msgs in
+example (x y : ℚ) : x + (y)*(x+y) = 0 := by
+  algebra_nf
+  guard_target = x + x * y + y ^ 2 = 0
+  exact sorryAlgebraTest
+
+example (x y : ℚ) : x + (x)*(x + -y) = 0 := by
+  algebra_nf with ℤ
+  guard_target = x - (x * y) + x ^ 2 = 0
+  exact sorryAlgebraTest
+
+example (x : ℚ) (n : ℕ) : (x^n - 1)^2 = 0 := by
+  algebra_nf with ℤ
+  guard_target =  1 - 2 * x ^ n + x ^ (n * 2) = 0
+  exact sorryAlgebraTest
+
+-- Test algebra_nf with rational constants
+example (x : ℚ) : (1/2) * x + (1/3) * x = 1 := by
+  algebra_nf with ℚ
+  guard_target = (5/6 : ℚ) * x = 1
+  exact sorryAlgebraTest
+
+example (x y : ℚ) : ((2/5) * x + (3/5) * y)^2 = 0 := by
+  algebra_nf with ℚ
+  guard_target = (12 / 25 : ℚ) * (x * y) + (4 / 25 : ℚ) * x ^ 2 + (9 / 25 : ℚ) * y ^ 2 = 0
+  exact sorryAlgebraTest
+
+example {R A : Type*} [Field R] [CharZero R] [CommRing A] [Algebra R A] (x : A) (r : R) :
+    ((4/3 : R) • x + r • (1 : A))^2 = 0 := by
+  algebra_nf with R
+  guard_target = r ^ 2 • (1 : A) + (r * (8 / 3) : R) • x + (16 / 9 : R) • x ^ 2 = 0
+  exact sorryAlgebraTest
+
+/- Record the fact that we turn scalar multiplication by a constant into normal multiplication
+where possible. -/
+example {R A : Type*} [Field R] [CharZero R] [Field A] [Algebra R A] (x : A) (r : R) :
+    ((4/3 : R) • x + r • (1 : A))^2 = 0 := by
+  algebra_nf with R
+  guard_target = r ^ 2 • (1 : A) + (r * (8 / 3) : R) • x + (16 / 9 : A) * x ^ 2 = 0
+  exact sorryAlgebraTest
